@@ -51,14 +51,18 @@ function alertModel() {
 }
 
 /**
- * Biến bắt buộc còn thiếu.
+ * Hai tác vụ nền còn thiếu model.
  *
- * Chỉ cần CHAT_MODEL là mọi thứ chạy được, vì tất cả các chuỗi dự phòng đều kết
- * thúc ở đó. Thiếu nó thì không gọi được model nào — và hệ thống phải BÁO LỖI
- * chứ không được bịa câu trả lời cho học sinh (xem fallback.js).
+ * "Thiếu" nghĩa là KHÔNG GIẢI RA ĐƯỢC tên model nào, chứ không phải "biến đó
+ * trống". Khai riêng đủ cho từng thành phần thì bỏ trống CHAT_MODEL vẫn hợp lệ —
+ * đó chính là cách .env.example khuyến khích, và cũng là cách đang chạy trên
+ * Render. Kiểm tra riêng mỗi CHAT_MODEL là từ chối nhầm một cấu hình đúng.
  */
-function missingModelConfig() {
-  return chatModel() ? [] : ["CHAT_MODEL"];
+function missingBackgroundModels() {
+  const missing = [];
+  if (!summaryModel()) missing.push("SUMMARY_MODEL");
+  if (!alertModel()) missing.push("ALERT_MODEL");
+  return missing;
 }
 
 // Bảng model đang dùng, cho log lúc khởi động và cho /api/health
@@ -75,6 +79,6 @@ module.exports = {
   agentModel,
   summaryModel,
   alertModel,
-  missingModelConfig,
+  missingBackgroundModels,
   describeModels
 };

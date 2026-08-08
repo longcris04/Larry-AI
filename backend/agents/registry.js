@@ -116,6 +116,19 @@ function modelTable() {
   return Object.fromEntries([...AGENTS, SUPERVISOR].map((a) => [a.id, modelForAgent(a.id)]));
 }
 
+/**
+ * Tên biến .env của những agent chưa giải ra được model nào.
+ *
+ * Rỗng nghĩa là hệ agent chạy được — dù CHAT_MODEL có trống, miễn là mỗi agent
+ * đã khai riêng. Đây là thứ /chat phải kiểm tra, chứ không phải sự có mặt của
+ * một biến cụ thể nào.
+ */
+function missingAgentModels() {
+  return Object.entries(modelTable())
+    .filter(([, model]) => !model)
+    .map(([id]) => BY_ID.get(id).envModel);
+}
+
 module.exports = {
   GROUPS,
   GROUP_LIST,
@@ -127,5 +140,6 @@ module.exports = {
   agentForGroup,
   agentIdsForGroups,
   modelForAgent,
-  modelTable
+  modelTable,
+  missingAgentModels
 };

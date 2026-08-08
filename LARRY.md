@@ -991,11 +991,15 @@ AGENT_TIMEOUT_MS=30000       # timeout mỗi lần gọi model
 Thứ tự dự phòng: biến của thành phần → `CHAT_MODEL`. Tên biến của từng agent khai
 ngay trong `registry.js` (trường `envModel`), còn giá trị thì luôn đọc từ `.env`.
 
-**Thiếu `CHAT_MODEL` thì hệ thống BÁO LỖI, không tự chọn model thay bạn.**
-`/chat` trả `SYSTEM_DOWN_MESSAGE` kèm cảnh báo *"Chưa cấu hình tên model"*, `/api/health`
-liệt kê biến còn thiếu ở `missingModelConfig`, và log khởi động in nguyên bảng
-agent → model. Trước đây mỗi file tự đặt một giá trị mặc định trong code, nên cấu
-hình sai vẫn chạy êm bằng một model không ai chọn — không dấu hiệu nào báo ra.
+**Thành phần nào không giải ra được tên model thì hệ thống BÁO LỖI, không tự chọn
+model thay bạn.** Kiểm tra theo TỪNG THÀNH PHẦN chứ không theo sự có mặt của một
+biến: khai riêng đủ cho cả năm agent thì bỏ trống `CHAT_MODEL` vẫn là cấu hình hợp
+lệ. Thiếu thật thì `/chat` trả `SYSTEM_DOWN_MESSAGE` kèm tên đúng các biến còn
+trống, `/api/health` liệt kê ở `missingModelConfig`, và log khởi động in nguyên
+bảng agent → model.
+
+Trước đây mỗi file tự đặt một giá trị mặc định trong code, nên cấu hình sai vẫn
+chạy êm bằng một model không ai chọn — không dấu hiệu nào báo ra.
 
 > Số agent nói trong một lượt **luôn là 1**, không có biến môi trường để nới ra —
 > đây là luật của hệ, không phải tuỳ chọn (§6.3).

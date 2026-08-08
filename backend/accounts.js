@@ -158,6 +158,34 @@ function findUserByEmail(users, email, role) {
   return users.find((user) => user.email === email && user.role === role);
 }
 
+/**
+ * Tạo quản trị viên từ biến môi trường, chạy lúc khởi động.
+ *
+ * Vì sao cần dù đã có `npm run create-admin`: lệnh đó phải gõ trong terminal, mà
+ * nền tảng deploy gói miễn phí (Render Free chẳng hạn) KHÔNG cho mở shell. Nặng
+ * hơn nữa, ổ đĩa ở đó là tạm — tài khoản tạo bằng tay sẽ mất sau mỗi lần deploy
+ * lại. Đọc từ biến môi trường thì mỗi lần khởi động lại tự dựng lại đúng tài
+ * khoản đó, không cần ai đụng tay.
+ *
+ * Chạy KHÔNG làm gì cả khi: không khai biến, hoặc đã có admin đúng email này
+ * (giữ nguyên tài khoản đang có, không ghi đè mật khẩu).
+ *
+ * @returns {object|null} admin vừa tạo, hoặc null nếu không tạo gì
+ */
+function seedAdminFromEnv(users) {
+  const email = String(process.env.ADMIN_EMAIL || "").trim();
+  const password = String(process.env.ADMIN_PASSWORD || "");
+  if (!email || !password) return null;
+
+  const username = String(process.env.ADMIN_USERNAME || "").trim() || "admin";
+
+  if (users.some((u) => u.role === ROLES.ADMIN && u.email === email)) return null;
+
+  const admin = addAdmin(users, { username, email, password });
+  saveUsers(users);
+  return admin;
+}
+
 module.exports = {
   ACCOUNTS_FILE,
   ROLES,
@@ -166,5 +194,6 @@ module.exports = {
   saveUsers,
   nextUserId,
   findUserByEmail,
-  addAdmin
+  addAdmin,
+  seedAdminFromEnv
 };

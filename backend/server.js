@@ -27,7 +27,8 @@ const {
   loadUsers,
   saveUsers,
   nextUserId,
-  findUserByEmail
+  findUserByEmail,
+  seedAdminFromEnv
 } = require("./accounts");
 const {
   JWT_SECRET,
@@ -39,8 +40,15 @@ const {
 const { sessions, persistSessions } = require("./sessionStore");
 const { createChatRouter } = require("./routes/chat");
 const { hasApiKey } = require("./agents/llm");
-const { chatModel, missingModelConfig } = require("./models");
-const { AGENTS, SUPERVISOR, agentById, modelForAgent, modelTable } = require("./agents/registry");
+const { chatModel, missingBackgroundModels } = require("./models");
+const {
+  AGENTS,
+  SUPERVISOR,
+  agentById,
+  modelForAgent,
+  modelTable,
+  missingAgentModels
+} = require("./agents/registry");
 const { MAX_PROBE_TURNS } = require("./agents/routing");
 
 const app = express();
@@ -49,6 +57,19 @@ const PORT = process.env.PORT || 5000;
 // Tài khoản được nạp từ account.json lúc khởi động và ghi lại mỗi lần đăng ký
 // (đủ dùng cho demo — production nên thay bằng database)
 const users = loadUsers();
+
+// Dựng lại quản trị viên từ ADMIN_EMAIL/ADMIN_PASSWORD nếu có. Cần cho nơi deploy
+// không mở được shell và có ổ đĩa tạm — xem seedAdminFromEnv trong accounts.js.
+// Khai sai (mật khẩu ngắn, trùng tên) thì CẢNH BÁO rồi chạy tiếp: thiếu trang quản
+// trị vẫn hơn là cả dịch vụ không khởi động được.
+try {
+  const seeded = seedAdminFromEnv(users);
+  if (seeded) {
+    console.log(`✅ Đã tạo quản trị viên từ biến môi trường: ${seeded.username} <${seeded.email}>`);
+  }
+} catch (err) {
+  console.warn(`⚠️  Không tạo được quản trị viên từ ADMIN_*: ${err.message}`);
+}
 
 // Middleware
 app.use(cors({ origin: true }));
@@ -471,7 +492,9 @@ app.get("/api/health", (req, res) => {
     agentModels: Object.fromEntries(AGENTS.map((a) => [a.id, modelForAgent(a.id)])),
     summaryModel: summaryModel(),
     alertModel: alertModel(),
-    missingModelConfig: missingModelConfig(),
+    // Rỗng = mọi thành phần đều giải ra được model. CHAT_MODEL trống KHÔNG phải
+    // lỗi nếu từng thành phần đã khai riêng.
+    missingModelConfig: [...missingAgentModels(), ...missingBackgroundModels()],
     // Tên cũ, giữ cho công cụ/script cũ còn đọc được
     model: chatModel(),
     routing: {
@@ -535,7 +558,11 @@ app.listen(PORT, () => {
 
   // In đúng model của từng agent: đọc log là biết ngay .env đã vào chưa, thay vì
   // phải đoán xem giá trị mặc định nào đang được dùng.
-  console.log(`Model nền (CHAT_MODEL): ${chatModel() || "CHƯA ĐẶT ✗"}`);
+  console.log(
+    `Model nền (CHAT_MODEL): ${
+      chatModel() || "(không đặt — mỗi thành phần dùng biến riêng bên dưới)"
+    }`
+  );
   for (const [id, model] of Object.entries(modelTable())) {
     const agent = agentById(id);
     console.log(`  ${agent.icon} ${id.padEnd(16)} ${model || "CHƯA ĐẶT ✗"}`);
@@ -543,11 +570,11 @@ app.listen(PORT, () => {
   console.log(`Model tóm tắt   : ${summaryModel() || "CHƯA ĐẶT ✗"}`);
   console.log(`Model soạn email: ${alertModel() || "CHƯA ĐẶT ✗"}`);
 
-  const missing = missingModelConfig();
+  const missing = [...missingAgentModels(), ...missingBackgroundModels()];
   if (missing.length) {
     console.warn(
-      `⚠️  Thiếu ${missing.join(", ")} trong backend/.env — /chat sẽ báo lỗi hệ thống ` +
-        "chứ không tự chọn model thay bạn."
+      `⚠️  Chưa có model cho: ${missing.join(", ")}. Đặt các biến đó, hoặc đặt ` +
+        "CHAT_MODEL làm model nền, trong biến môi trường của backend."
     );
   }
   console.log(

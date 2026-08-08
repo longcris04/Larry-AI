@@ -13,9 +13,8 @@ const { authenticateToken, blockAdmin } = require("../auth");
 const { SYSTEM_DOWN_MESSAGE } = require("../fallback");
 const { sanitizeCheckin } = require("../agents/checkin");
 const { hasApiKey } = require("../agents/llm");
-const { missingModelConfig } = require("../models");
 const { runTurn } = require("../agents/runner");
-const { SUPERVISOR } = require("../agents/registry");
+const { SUPERVISOR, missingAgentModels } = require("../agents/registry");
 const { touchSession, refreshSummary, applyAgentGroups, persistSessions } = require("../sessionStore");
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -205,12 +204,19 @@ function createChatRouter({ getUserById } = {}) {
 
 // Cấu hình thiếu thì nói rõ THIẾU CÁI GÌ. Trước đây chỉ kiểm tra mỗi API key, nên
 // quên đặt tên model sẽ hiện ra thành một lỗi gọi API khó hiểu.
+//
+// Kiểm tra theo AGENT chứ không theo một biến cụ thể: khai riêng đủ cho cả năm
+// thành phần thì bỏ trống CHAT_MODEL vẫn là cấu hình hợp lệ, chặn lúc đó là từ
+// chối nhầm một hệ thống đang chạy được.
 function describeConfigError() {
   if (!hasApiKey()) return "Chưa cấu hình OPENROUTER_API_KEY trong backend/.env.";
 
-  const missing = missingModelConfig();
+  const missing = missingAgentModels();
   if (missing.length) {
-    return `Chưa cấu hình tên model: thiếu ${missing.join(", ")} trong backend/.env.`;
+    return (
+      `Chưa cấu hình tên model cho: ${missing.join(", ")}. ` +
+      "Đặt các biến đó, hoặc đặt CHAT_MODEL làm model nền, trong biến môi trường của backend."
+    );
   }
 
   return "";

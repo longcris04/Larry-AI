@@ -110,14 +110,15 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 ```
 
 > Tên model **chỉ nằm trong `.env`** — mã nguồn không ghi cứng tên model nào
-> ([backend/models.js](backend/models.js) là nơi duy nhất đọc chúng). Thiếu
-> `CHAT_MODEL` thì `/chat` báo lỗi hệ thống chứ không tự chọn model thay bạn.
+> ([backend/models.js](backend/models.js) là nơi duy nhất đọc chúng). Thành phần
+> nào không giải ra được model thì `/chat` báo lỗi hệ thống chứ không tự chọn model
+> thay bạn. Khai riêng đủ cho từng agent thì bỏ trống `CHAT_MODEL` cũng được.
 
 | Biến | Bắt buộc | Mặc định | Ý nghĩa |
 |---|---|---|---|
 | `OPENROUTER_API_KEY` | ✅ | – | API key OpenRouter. Thiếu key thì `/chat` báo hệ thống AI không hoạt động. |
 | `SUPPORT_EMAIL` | – | `lanmc2k13@gmail.com` | Email hiển thị trong thông báo lỗi hệ thống. |
-| `CHAT_MODEL` | ✅ | – | Model nền. Thành phần nào không khai riêng thì dùng cái này. Thiếu nó thì `/chat` báo lỗi hệ thống. |
+| `CHAT_MODEL` | ✅¹ | – | Model nền. Thành phần nào không khai riêng thì dùng cái này. ¹Bỏ trống được nếu **mọi** biến bên dưới đều đã khai. |
 | `SUPERVISOR_MODEL` | – | `CHAT_MODEL` | Model của 🧭 Larry Điều phối — đánh giá và phân nhóm. Nên nâng cấp trước tiên. |
 | `AGENT_SELF_HARM_MODEL` | – | `CHAT_MODEL` | Model của 🛟 Larry Đồng hành (ca tự hại). |
 | `AGENT_VICTIM_MODEL` | – | `CHAT_MODEL` | Model của 🛡️ Larry Bảo vệ (nạn nhân bạo lực học đường). |
@@ -126,7 +127,8 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `SUMMARY_MODEL` | – | `CHAT_MODEL` | Model tóm tắt hội thoại + chấm mức độ nguy cơ cho quản trị viên. |
 | `ALERT_MODEL` | – | `SUMMARY_MODEL` | Model soạn email cảnh báo giáo viên chủ nhiệm. |
 | `OPENROUTER_MODEL` | – | – | Tên **cũ** của `CHAT_MODEL`, chỉ dùng khi `CHAT_MODEL` không có. |
-| `PORT` | – | `5000` | Cổng backend. |
+| `PORT` | – | `5000` | Cổng backend. Trên Render/Railway thì **đừng đặt** — nền tảng tự tiêm. |
+| `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | – | – | Tự tạo quản trị viên lúc khởi động, dùng khi nơi deploy không mở được terminal. |
 | `JWT_SECRET` | – | chuỗi dev mặc định | Khoá ký JWT. **Bắt buộc đổi khi deploy thật.** |
 | `OPENROUTER_BASE_URL` | – | `https://openrouter.ai/api/v1` | Chỉ đổi khi dùng proxy tương thích OpenRouter. |
 | `OPENROUTER_SITE_URL` / `OPENROUTER_SITE_NAME` | – | `http://localhost:3000` / `Larry AI` | Gửi kèm request để OpenRouter thống kê app. |
@@ -372,6 +374,20 @@ Script tự chặn: mật khẩu dưới 8 ký tự, trùng email hoặc trùng 
 ```
 
 Muốn gỡ quyền admin của ai đó thì sửa tay `account.json` (đổi `"role": "admin"` thành `"user"`, hoặc xoá cả bản ghi) rồi khởi động lại backend.
+
+#### Tạo admin ở nơi không mở được terminal (Render, Railway…)
+
+Gói miễn phí của các nền tảng này thường **không cho mở shell**, và ổ đĩa là tạm nên tài khoản tạo bằng tay cũng mất sau mỗi lần deploy. Khai ba biến môi trường sau, backend sẽ tự dựng lại đúng tài khoản đó **ở mỗi lần khởi động**:
+
+```env
+ADMIN_USERNAME=coLan
+ADMIN_EMAIL=co.lan@truong.edu.vn
+ADMIN_PASSWORD=MatKhauRatManh@2026
+```
+
+Log khởi động sẽ in `✅ Đã tạo quản trị viên từ biến môi trường: …`. Cơ chế này **không ghi đè** tài khoản đang có: đã tồn tại admin đúng email đó thì bỏ qua, nên đổi mật khẩu trong `account.json` cũng không bị dựng lại. Mật khẩu dưới 8 ký tự hoặc trùng tên với admin khác thì backend chỉ cảnh báo rồi chạy tiếp, không sập.
+
+> Mật khẩu nằm trong biến môi trường của nền tảng — hãy dùng một mật khẩu riêng, không tái sử dụng ở đâu khác.
 
 ### Tính năng quản trị viên
 
