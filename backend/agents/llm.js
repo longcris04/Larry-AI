@@ -6,12 +6,10 @@
 
 const { ChatOpenAI } = require("@langchain/openai");
 
+const { chatModel } = require("../models");
+
 const OPENROUTER_BASE_URL =
   process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
-
-// OPENROUTER_MODEL là tên cũ của CHAT_MODEL, giữ lại để .env cũ vẫn chạy
-const DEFAULT_MODEL =
-  process.env.CHAT_MODEL || process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash-lite";
 
 const REQUEST_TIMEOUT_MS = Number(process.env.AGENT_TIMEOUT_MS) || 30000;
 
@@ -26,15 +24,29 @@ function hasApiKey() {
 /**
  * Tạo một LLM client.
  *
- * @param {string}   [opts.model]        Tên model OpenRouter, mặc định CHAT_MODEL
+ * @param {string}   [opts.model]        Tên model OpenRouter; bỏ trống thì lấy
+ *                                       CHAT_MODEL trong .env (xem models.js)
  * @param {number}   [opts.temperature]  0.1 cho việc phân loại, 0.6 cho trò chuyện
  * @param {string[]} [opts.tags]         Nhãn để lọc sự kiện lúc stream — luôn
  *                                       truyền id của agent vào đây, nếu không
  *                                       thì token stream về không biết của ai.
  */
 function makeLLM({ model, temperature = 0.6, tags = [] } = {}) {
+  const resolved = model || chatModel();
+
+  // Không có tên model thì DỪNG ở đây với lời báo rõ ràng. Đoán bừa một tên model
+  // trong code chính là thứ vừa được gỡ bỏ: nó khiến .env cấu hình sai vẫn chạy
+  // êm bằng một model không ai chọn.
+  if (!resolved) {
+    throw new Error(
+      "Chưa cấu hình tên model. Đặt CHAT_MODEL (và nếu muốn, model riêng cho từng " +
+        "agent: SUPERVISOR_MODEL, AGENT_SELF_HARM_MODEL, AGENT_VICTIM_MODEL, " +
+        "AGENT_ACTOR_MODEL, AGENT_HOMEROOM_MODEL) trong backend/.env."
+    );
+  }
+
   return new ChatOpenAI({
-    model: model || DEFAULT_MODEL,
+    model: resolved,
     temperature,
     apiKey: process.env.OPENROUTER_API_KEY,
     timeout: REQUEST_TIMEOUT_MS,
@@ -51,4 +63,4 @@ function makeLLM({ model, temperature = 0.6, tags = [] } = {}) {
   });
 }
 
-module.exports = { makeLLM, hasApiKey, DEFAULT_MODEL, OPENROUTER_BASE_URL };
+module.exports = { makeLLM, hasApiKey, OPENROUTER_BASE_URL };

@@ -13,6 +13,7 @@ const { authenticateToken, blockAdmin } = require("../auth");
 const { SYSTEM_DOWN_MESSAGE } = require("../fallback");
 const { sanitizeCheckin } = require("../agents/checkin");
 const { hasApiKey } = require("../agents/llm");
+const { missingModelConfig } = require("../models");
 const { runTurn } = require("../agents/runner");
 const { SUPERVISOR } = require("../agents/registry");
 const { touchSession, refreshSummary, applyAgentGroups, persistSessions } = require("../sessionStore");
@@ -103,7 +104,10 @@ function createChatRouter({ getUserById } = {}) {
       res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
     };
 
-    if (!hasApiKey()) {
+    // Thiếu khoá, hoặc thiếu tên model: cả hai đều là LỖI CẤU HÌNH, và cả hai đều
+    // phải báo lỗi thật chứ không được tự chọn model thay người vận hành.
+    const configError = describeConfigError();
+    if (configError) {
       send("message", {
         agent: SUPERVISOR.id,
         displayName: SUPERVISOR.displayName,
@@ -111,7 +115,7 @@ function createChatRouter({ getUserById } = {}) {
         color: SUPERVISOR.color,
         text: SYSTEM_DOWN_MESSAGE
       });
-      send("error", { warning: "Chưa cấu hình OPENROUTER_API_KEY trong backend/.env." });
+      send("error", { warning: configError });
       return res.end();
     }
 
@@ -143,11 +147,12 @@ function createChatRouter({ getUserById } = {}) {
     const input = readTurnInput(req);
     if (input.error) return res.status(400).json({ error: input.error });
 
-    if (!hasApiKey()) {
+    const configError = describeConfigError();
+    if (configError) {
       return res.json({
         messages: [{ agent: SUPERVISOR.id, text: SYSTEM_DOWN_MESSAGE }],
         fallback: true,
-        warning: "Chưa cấu hình OPENROUTER_API_KEY trong backend/.env."
+        warning: configError
       });
     }
 
@@ -196,6 +201,19 @@ function createChatRouter({ getUserById } = {}) {
   });
 
   return router;
+}
+
+// Cấu hình thiếu thì nói rõ THIẾU CÁI GÌ. Trước đây chỉ kiểm tra mỗi API key, nên
+// quên đặt tên model sẽ hiện ra thành một lỗi gọi API khó hiểu.
+function describeConfigError() {
+  if (!hasApiKey()) return "Chưa cấu hình OPENROUTER_API_KEY trong backend/.env.";
+
+  const missing = missingModelConfig();
+  if (missing.length) {
+    return `Chưa cấu hình tên model: thiếu ${missing.join(", ")} trong backend/.env.`;
+  }
+
+  return "";
 }
 
 function describeError(err) {

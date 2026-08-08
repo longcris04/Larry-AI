@@ -92,19 +92,38 @@ Mở `backend/.env` và điền:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...            # Lấy tại https://openrouter.ai/keys
+
+# Model nền — thành phần nào không khai riêng thì dùng cái này
 CHAT_MODEL=google/gemini-2.5-flash-lite
+
+# Từng agent trong hệ multi-agent, đổi riêng được
+SUPERVISOR_MODEL=google/gemini-2.5-flash-lite
+AGENT_SELF_HARM_MODEL=google/gemini-2.5-flash-lite
+AGENT_VICTIM_MODEL=google/gemini-2.5-flash-lite
+AGENT_ACTOR_MODEL=google/gemini-2.5-flash-lite
+AGENT_HOMEROOM_MODEL=google/gemini-2.5-flash-lite
+
 SUMMARY_MODEL=google/gemini-2.5-flash
 ALERT_MODEL=google/gemini-2.5-flash
 PORT=5000
 JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 ```
 
+> Tên model **chỉ nằm trong `.env`** — mã nguồn không ghi cứng tên model nào
+> ([backend/models.js](backend/models.js) là nơi duy nhất đọc chúng). Thiếu
+> `CHAT_MODEL` thì `/chat` báo lỗi hệ thống chứ không tự chọn model thay bạn.
+
 | Biến | Bắt buộc | Mặc định | Ý nghĩa |
 |---|---|---|---|
 | `OPENROUTER_API_KEY` | ✅ | – | API key OpenRouter. Thiếu key thì `/chat` báo hệ thống AI không hoạt động. |
 | `SUPPORT_EMAIL` | – | `lanmc2k13@gmail.com` | Email hiển thị trong thông báo lỗi hệ thống. |
-| `CHAT_MODEL` | – | `google/gemini-2.5-flash-lite` | Model Larry dùng để trò chuyện với học sinh. |
-| `SUMMARY_MODEL` | – | `google/gemini-2.5-flash` | Model tóm tắt hội thoại + chấm mức độ nguy cơ cho quản trị viên. |
+| `CHAT_MODEL` | ✅ | – | Model nền. Thành phần nào không khai riêng thì dùng cái này. Thiếu nó thì `/chat` báo lỗi hệ thống. |
+| `SUPERVISOR_MODEL` | – | `CHAT_MODEL` | Model của 🧭 Larry Điều phối — đánh giá và phân nhóm. Nên nâng cấp trước tiên. |
+| `AGENT_SELF_HARM_MODEL` | – | `CHAT_MODEL` | Model của 🛟 Larry Đồng hành (ca tự hại). |
+| `AGENT_VICTIM_MODEL` | – | `CHAT_MODEL` | Model của 🛡️ Larry Bảo vệ (nạn nhân bạo lực học đường). |
+| `AGENT_ACTOR_MODEL` | – | `CHAT_MODEL` | Model của 🧩 Larry Thấu hiểu (người gây bạo lực). |
+| `AGENT_HOMEROOM_MODEL` | – | `CHAT_MODEL` | Model của 🍎 Cô giáo Larry (trò chuyện thường ngày). |
+| `SUMMARY_MODEL` | – | `CHAT_MODEL` | Model tóm tắt hội thoại + chấm mức độ nguy cơ cho quản trị viên. |
 | `ALERT_MODEL` | – | `SUMMARY_MODEL` | Model soạn email cảnh báo giáo viên chủ nhiệm. |
 | `OPENROUTER_MODEL` | – | – | Tên **cũ** của `CHAT_MODEL`, chỉ dùng khi `CHAT_MODEL` không có. |
 | `PORT` | – | `5000` | Cổng backend. |
@@ -600,23 +619,32 @@ Response vẫn là HTTP 200 kèm `fallback: true` và một field `warning` mô 
 
 ## 11. Đổi model AI
 
-Hệ thống gọi LLM ở **ba chỗ, mỗi chỗ một biến riêng** trong `backend/.env` — đổi cái nào chỉ ảnh hưởng đúng tác vụ đó. Sửa xong khởi động lại backend, log lúc khởi động in ra cả ba để bạn kiểm tra:
+Hệ thống gọi LLM ở **nhiều chỗ, mỗi chỗ một biến riêng** trong `backend/.env` — đổi cái nào chỉ ảnh hưởng đúng phần đó. **Không có tên model nào ghi trong mã nguồn**: [backend/models.js](backend/models.js) là nơi duy nhất đọc các biến này. Sửa xong khởi động lại backend, log khởi động in nguyên bảng agent → model để bạn kiểm tra:
 
 | Tác vụ | Biến | Chạy ở | Gợi ý chọn |
 |---|---|---|---|
-| Larry trò chuyện với học sinh | `CHAT_MODEL` | `requestOpenRouter()` — [server.js](backend/server.js) | Gọi nhiều nhất → ưu tiên nhanh & rẻ |
-| Tóm tắt hội thoại + chấm mức độ nguy cơ | `SUMMARY_MODEL` | [summarizer.js](backend/summarizer.js) | Quyết định có gắn cờ hay không → nên khá hơn model chat |
+| Model nền cho mọi thành phần | `CHAT_MODEL` | [agents/llm.js](backend/agents/llm.js) | Gọi nhiều nhất → ưu tiên nhanh & rẻ |
+| 🧭 Điều phối: đánh giá, phân nhóm | `SUPERVISOR_MODEL` | [agents/supervisor.js](backend/agents/supervisor.js) | Phân nhóm sai thì cả lượt sai → nâng trước tiên |
+| 🛟 Đồng hành (tự hại) | `AGENT_SELF_HARM_MODEL` | [nodes/agentNode.js](backend/agents/nodes/agentNode.js) | Rủi ro cao nhất → nên khá hơn model nền |
+| 🛡️ Bảo vệ (nạn nhân) | `AGENT_VICTIM_MODEL` | như trên | |
+| 🧩 Thấu hiểu (người gây bạo lực) | `AGENT_ACTOR_MODEL` | như trên | Dễ hỏng nhất về giọng điệu |
+| 🍎 Cô giáo (thường ngày) | `AGENT_HOMEROOM_MODEL` | như trên | Chạy nhiều nhất → ưu tiên rẻ |
+| Tóm tắt + chấm mức độ nguy cơ | `SUMMARY_MODEL` | [summarizer.js](backend/summarizer.js) | Quyết định có gắn cờ hay không → nên khá hơn model chat |
 | Soạn email cảnh báo GVCN | `ALERT_MODEL` | [alertEmail.js](backend/alertEmail.js) | Văn bản gửi ra ngoài cho giáo viên → nên khá hơn model chat |
 
+Biến của một thành phần bỏ trống thì rơi về `CHAT_MODEL`. Ví dụ nâng riêng hai chỗ quan trọng nhất, phần còn lại giữ nguyên model rẻ:
+
 ```env
-CHAT_MODEL=google/gemini-2.5-flash-lite     # nhanh, rẻ
-SUMMARY_MODEL=google/gemini-2.5-flash       # cân bằng
-ALERT_MODEL=google/gemini-2.5-pro           # kỹ hơn cho văn bản đối ngoại
+CHAT_MODEL=google/gemini-2.5-flash-lite       # nhanh, rẻ — nền cho mọi agent
+SUPERVISOR_MODEL=google/gemini-2.5-flash      # phân nhóm chuẩn hơn
+AGENT_SELF_HARM_MODEL=google/gemini-2.5-flash # ca rủi ro cao nhất
+SUMMARY_MODEL=google/gemini-2.5-flash         # cân bằng
+ALERT_MODEL=google/gemini-2.5-pro             # kỹ hơn cho văn bản đối ngoại
 ```
 
 Đổi sang nhà cung cấp khác cũng chỉ là đổi chuỗi, vì cả ba đều đi qua OpenRouter: `anthropic/claude-sonnet-4.5`, `openai/gpt-4o-mini`, ... Danh sách đầy đủ ở [openrouter.ai/models](https://openrouter.ai/models).
 
-Kiểm tra nhanh model nào đang chạy: `curl -s http://localhost:5000/api/health` → `{ chatModel, summaryModel, alertModel }`.
+Kiểm tra nhanh model nào đang chạy: `curl -s http://localhost:5000/api/health` → `{ chatModel, supervisorModel, agentModels, summaryModel, alertModel, missingModelConfig }`.
 
 Phần gọi AI của Larry nằm trong `requestOpenRouter` ([server.js](backend/server.js)) — đúng chuẩn `POST /chat/completions` của OpenRouter, tự thử lại 1 lần khi gặp lỗi 429/503/timeout. Prompt của Larry ở `buildSystemPrompt` và `buildUserPrompt` trong cùng file.
 
@@ -630,7 +658,7 @@ npm run build      # kết quả trong frontend/build/
 ```
 
 - **Frontend**: repo đã có sẵn [netlify.toml](netlify.toml) (base `frontend`, publish `build`). Nhớ khai báo `REACT_APP_API_URL` trong phần environment variables của Netlify, trỏ về backend đã deploy.
-- **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `CHAT_MODEL`, `SUMMARY_MODEL`, `ALERT_MODEL`, `JWT_SECRET`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó.
+- **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `JWT_SECRET`, `CHAT_MODEL` (bắt buộc — không có giá trị mặc định trong code), các biến model của từng agent nếu muốn tách, `SUMMARY_MODEL`, `ALERT_MODEL`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó.
 
 > ⚠️ Render/Railway gói free dùng ổ đĩa tạm — `account.json` sẽ bị xoá mỗi lần deploy lại hoặc khi dịch vụ ngủ dậy. Muốn giữ tài khoản trên server thật thì gắn persistent disk rồi trỏ `ACCOUNTS_FILE` vào đó, hoặc chuyển hẳn sang database.
 

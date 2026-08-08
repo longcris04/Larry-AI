@@ -4,6 +4,8 @@
 // Frontend có bản sao ở frontend/src/constants/agents.js — sửa bên này thì
 // phải sửa bên kia, id phải khớp từng ký tự.
 
+const { agentModel } = require("../models");
+
 // Mã nhóm nội bộ. KHÔNG bao giờ hiện nguyên mã này cho học sinh thấy.
 const GROUPS = {
   SELF_HARM: "self_harm", // có hành vi / ý nghĩ tự làm đau bản thân
@@ -100,11 +102,18 @@ function agentIdsForGroups(groups = []) {
     .map((a) => a.id);
 }
 
-// Model riêng cho từng agent, bỏ trống thì rơi về CHAT_MODEL trong llm.js
+// Model riêng của một agent. Tên biến khai ngay trong bảng trên (`envModel`), giá
+// trị thì đọc từ .env qua models.js — không có tên model nào nằm trong file này.
+// Biến của agent bỏ trống thì rơi về CHAT_MODEL.
 function modelForAgent(id) {
   const agent = BY_ID.get(id);
-  if (!agent) return undefined;
-  return process.env[agent.envModel] || undefined;
+  if (!agent) return "";
+  return agentModel(agent.envModel);
+}
+
+// Bảng "agent nào đang chạy model nào", cho log khởi động và /api/health
+function modelTable() {
+  return Object.fromEntries([...AGENTS, SUPERVISOR].map((a) => [a.id, modelForAgent(a.id)]));
 }
 
 module.exports = {
@@ -117,5 +126,6 @@ module.exports = {
   agentById,
   agentForGroup,
   agentIdsForGroups,
-  modelForAgent
+  modelForAgent,
+  modelTable
 };

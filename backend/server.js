@@ -8,10 +8,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const { SESSIONS_FILE } = require("./sessions");
-const { SUMMARY_MODEL } = require("./summarizer");
+const { summaryModel } = require("./summarizer");
 const { RISK_ORDER, riskCategoryLabels } = require("./risk");
 const {
-  ALERT_MODEL,
+  alertModel,
   EMAIL_USER,
   ALERT_EMAIL_TO,
   isMailerConfigured,
@@ -38,8 +38,9 @@ const {
 } = require("./auth");
 const { sessions, persistSessions } = require("./sessionStore");
 const { createChatRouter } = require("./routes/chat");
-const { hasApiKey, DEFAULT_MODEL } = require("./agents/llm");
-const { AGENTS, SUPERVISOR, modelForAgent } = require("./agents/registry");
+const { hasApiKey } = require("./agents/llm");
+const { chatModel, missingModelConfig } = require("./models");
+const { AGENTS, SUPERVISOR, agentById, modelForAgent, modelTable } = require("./agents/registry");
 const { MAX_PROBE_TURNS } = require("./agents/routing");
 
 const app = express();
@@ -379,7 +380,7 @@ app.get("/api/admin/alert/config", adminOnly, async (req, res) => {
     error: status.error,
     from: EMAIL_USER,
     defaultTo: ALERT_EMAIL_TO,
-    model: ALERT_MODEL
+    model: alertModel()
   });
 });
 
@@ -462,16 +463,17 @@ app.get("/api/health", (req, res) => {
     provider: "openrouter",
     apiKey: hasApiKey() ? "loaded" : "missing",
     architecture: "multi-agent (langgraph)",
-    // Model của từng thành phần, cấu hình độc lập trong .env
-    chatModel: DEFAULT_MODEL,
-    supervisorModel: modelForAgent(SUPERVISOR.id) || DEFAULT_MODEL,
-    agentModels: Object.fromEntries(
-      AGENTS.map((a) => [a.id, modelForAgent(a.id) || DEFAULT_MODEL])
-    ),
-    summaryModel: SUMMARY_MODEL,
-    alertModel: ALERT_MODEL,
+    // Model của từng thành phần, khai riêng trong backend/.env (xem models.js).
+    // Biến nào còn thiếu thì hiện ở missingModelConfig thay vì im lặng chạy bằng
+    // một tên model ghi cứng trong mã nguồn.
+    chatModel: chatModel(),
+    supervisorModel: modelForAgent(SUPERVISOR.id),
+    agentModels: Object.fromEntries(AGENTS.map((a) => [a.id, modelForAgent(a.id)])),
+    summaryModel: summaryModel(),
+    alertModel: alertModel(),
+    missingModelConfig: missingModelConfig(),
     // Tên cũ, giữ cho công cụ/script cũ còn đọc được
-    model: DEFAULT_MODEL,
+    model: chatModel(),
     routing: {
       // Mỗi lượt supervisor chỉ gọi ĐÚNG MỘT agent — nhóm ưu tiên cao nhất thắng
       agentsPerTurn: 1,
@@ -530,9 +532,24 @@ app.listen(PORT, () => {
     }`
   );
   console.log(`Kiến trúc      : multi-agent (LangGraph) — 1 supervisor + ${AGENTS.length} agent`);
-  console.log(`Model mặc định : ${DEFAULT_MODEL}`);
-  console.log(`Model tóm tắt  : ${SUMMARY_MODEL}`);
-  console.log(`Model soạn email: ${ALERT_MODEL}`);
+
+  // In đúng model của từng agent: đọc log là biết ngay .env đã vào chưa, thay vì
+  // phải đoán xem giá trị mặc định nào đang được dùng.
+  console.log(`Model nền (CHAT_MODEL): ${chatModel() || "CHƯA ĐẶT ✗"}`);
+  for (const [id, model] of Object.entries(modelTable())) {
+    const agent = agentById(id);
+    console.log(`  ${agent.icon} ${id.padEnd(16)} ${model || "CHƯA ĐẶT ✗"}`);
+  }
+  console.log(`Model tóm tắt   : ${summaryModel() || "CHƯA ĐẶT ✗"}`);
+  console.log(`Model soạn email: ${alertModel() || "CHƯA ĐẶT ✗"}`);
+
+  const missing = missingModelConfig();
+  if (missing.length) {
+    console.warn(
+      `⚠️  Thiếu ${missing.join(", ")} trong backend/.env — /chat sẽ báo lỗi hệ thống ` +
+        "chứ không tự chọn model thay bạn."
+    );
+  }
   console.log(
     `Định tuyến     : đúng 1 agent/lượt (ưu tiên cao nhất), ` +
       `tối đa ${MAX_PROBE_TURNS} lượt khai thác`

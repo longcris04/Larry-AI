@@ -887,7 +887,8 @@ backend/
 │   ├── state.js              🆕  LarryState (§5)
 │   ├── runner.js             🆕  Chạy một lượt, chuẩn hoá sự kiện cho SSE và JSON
 │   ├── llm.js                🆕  makeLLM() → ChatOpenAI qua OpenRouter (§2)
-│   ├── registry.js           🆕  Bảng agent: id, nhóm, tên, icon, màu, ưu tiên, domain
+│   ├── registry.js           🆕  Bảng agent: id, nhóm, tên, icon, màu, ưu tiên, domain,
+│   │                             và TÊN BIẾN .env chứa model của agent đó
 │   ├── supervisor.js         🆕  Node supervisor: đánh giá → hỏi thêm / bàn giao → queue
 │   ├── routing.js            🆕  Chuẩn hoá nhóm, sàn an toàn, luật phân luồng lại,
 │   │                             pickAgent() — chọn ĐÚNG 1 agent cho mỗi lượt
@@ -910,6 +911,7 @@ backend/
 │   ├── graph/*.json              Node + cạnh rút từ 3 tài liệu trong documents/
 │   ├── retrieve.js               Lời em kể + assessment → chọn node
 │   └── render.js                 Node → khối prompt + thẻ cho bảng tri thức (§8.5)
+├── models.js                 🆕  Nơi DUY NHẤT đọc tên model từ .env (§10)
 ├── risk.js                   ✅  Giữ nguyên
 ├── summarizer.js             ✅  Giữ nguyên (chạy song song, độc lập với supervisor)
 ├── alertEmail.js             ✅  Giữ nguyên
@@ -959,16 +961,26 @@ general    → không nâng sàn
 
 ## 10. Cấu hình
 
-`backend/.env` — thêm vào phần đã có:
+**Tên model chỉ nằm trong `.env`.** Mã nguồn không ghi cứng tên model nào —
+[backend/models.js](backend/models.js) là nơi duy nhất đọc các biến này, mọi chỗ
+khác đi qua nó. Đổi model là sửa `.env` rồi khởi động lại, không phải sửa code.
+
+`backend/.env` — mỗi thành phần một dòng:
 
 ```bash
-# Model cho từng agent. Bỏ trống thì dùng CHAT_MODEL.
+# Model nền: thành phần nào không khai riêng thì dùng cái này
 CHAT_MODEL=google/gemini-2.5-flash-lite
-SUPERVISOR_MODEL=google/gemini-2.5-flash-lite   # phân nhóm — nên nâng cấp trước tiên
-AGENT_SELF_HARM_MODEL=
-AGENT_VICTIM_MODEL=
-AGENT_ACTOR_MODEL=
-AGENT_HOMEROOM_MODEL=
+
+# Từng thành viên của hệ multi-agent
+SUPERVISOR_MODEL=google/gemini-2.5-flash-lite       # nên nâng cấp trước tiên
+AGENT_SELF_HARM_MODEL=google/gemini-2.5-flash-lite
+AGENT_VICTIM_MODEL=google/gemini-2.5-flash-lite
+AGENT_ACTOR_MODEL=google/gemini-2.5-flash-lite
+AGENT_HOMEROOM_MODEL=google/gemini-2.5-flash-lite
+
+# Hai tác vụ nền, không nói chuyện với học sinh
+SUMMARY_MODEL=google/gemini-2.5-flash
+ALERT_MODEL=google/gemini-2.5-flash
 
 # Điều phối
 MAX_PROBE_TURNS=5            # số lượt supervisor được hỏi khai thác
@@ -976,12 +988,17 @@ GROUP_DROP_AFTER_TURNS=2     # số lượt liên tiếp vắng dấu hiệu th�
 AGENT_TIMEOUT_MS=30000       # timeout mỗi lần gọi model
 ```
 
+Thứ tự dự phòng: biến của thành phần → `CHAT_MODEL`. Tên biến của từng agent khai
+ngay trong `registry.js` (trường `envModel`), còn giá trị thì luôn đọc từ `.env`.
+
+**Thiếu `CHAT_MODEL` thì hệ thống BÁO LỖI, không tự chọn model thay bạn.**
+`/chat` trả `SYSTEM_DOWN_MESSAGE` kèm cảnh báo *"Chưa cấu hình tên model"*, `/api/health`
+liệt kê biến còn thiếu ở `missingModelConfig`, và log khởi động in nguyên bảng
+agent → model. Trước đây mỗi file tự đặt một giá trị mặc định trong code, nên cấu
+hình sai vẫn chạy êm bằng một model không ai chọn — không dấu hiệu nào báo ra.
+
 > Số agent nói trong một lượt **luôn là 1**, không có biến môi trường để nới ra —
 > đây là luật của hệ, không phải tuỳ chọn (§6.3).
-
-Tách model theo agent ngay từ đầu để sau này nâng riêng supervisor và
-`agent_self_harm` lên model mạnh hơn mà không làm đắt phần chat thường ngày —
-giống cách `CHAT_MODEL` / `SUMMARY_MODEL` / `ALERT_MODEL` đang tách hiện tại.
 
 `frontend/.env`:
 

@@ -4,8 +4,10 @@
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
-const SUMMARY_MODEL = process.env.SUMMARY_MODEL || "google/gemini-2.5-flash";
 const SUMMARY_TIMEOUT_MS = 30000;
+
+// Tên model đọc từ .env qua models.js — xem SUMMARY_MODEL trong backend/.env
+const { summaryModel } = require("./models");
 
 const {
   RISK_CATEGORIES,
@@ -181,7 +183,7 @@ async function summarizeSession(history, { checkin = null, emotion = "" } = {}) 
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: SUMMARY_MODEL,
+      model: summaryModel(),
       messages: [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
         {
@@ -209,4 +211,4 @@ async function summarizeSession(history, { checkin = null, emotion = "" } = {}) 
   return parseSummaryJson(text);
 }
 
-module.exports = { SUMMARY_MODEL, RISK_CATEGORIES, RISK_LEVELS, summarizeSession };
+module.exports = { summaryModel, RISK_CATEGORIES, RISK_LEVELS, summarizeSession };

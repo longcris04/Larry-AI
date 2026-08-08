@@ -11,9 +11,8 @@ const { RISK_LEVEL_LABELS } = require("./risk");
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
-// Dùng chung model với phần tóm tắt nếu không cấu hình riêng
-const ALERT_MODEL =
-  process.env.ALERT_MODEL || process.env.SUMMARY_MODEL || "google/gemini-2.5-flash";
+// Tên model đọc từ .env qua models.js: ALERT_MODEL → SUMMARY_MODEL → CHAT_MODEL
+const { alertModel } = require("./models");
 const ALERT_TIMEOUT_MS = 30000;
 
 // Tài khoản gửi (Gmail + App Password, xem README mục "Cảnh báo cho GVCN").
@@ -132,7 +131,7 @@ async function draftAlertEmail({ session, student, categoryLabels = [] }) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: ALERT_MODEL,
+      model: alertModel(),
       messages: [
         { role: "system", content: DRAFT_SYSTEM_PROMPT },
         {
@@ -231,7 +230,7 @@ async function verifyMailer() {
 }
 
 module.exports = {
-  ALERT_MODEL,
+  alertModel,
   EMAIL_USER,
   ALERT_EMAIL_TO,
   isMailerConfigured,
