@@ -1,0 +1,272 @@
+/* Giao diện của hệ multi-agent: nhãn agent trên bong bóng chat và bảng
+   "Đang xử lý" cho thấy agent nào đang làm việc.
+
+   Mỗi agent có một màu riêng, truyền vào qua biến --agent-color đặt trên phần
+   tử (xem AgentBadge.jsx / Message.jsx). Nhờ vậy thêm agent mới chỉ cần thêm
+   màu ở registry, không phải viết thêm CSS. */
+
+/* --- Bong bóng chat có nhãn agent ---------------------------------------- */
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 76%;
+  min-width: 0;
+}
+
+.message-row--user .message-content {
+  align-items: flex-end;
+}
+
+/* Bubble đã có max-width riêng, trong wrapper thì để nó chiếm trọn */
+.message-content .message-bubble {
+  max-width: 100%;
+}
+
+/* Viền và avatar đổi theo màu của agent đang nói */
+.message-bubble--ai {
+  border-color: var(--agent-color, var(--blue));
+}
+
+.message-avatar--ai {
+  background: linear-gradient(135deg, var(--agent-color, var(--blue)), var(--purple));
+}
+
+/* --- Nhãn tên agent ------------------------------------------------------ */
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--agent-color, var(--blue)) 12%, white);
+  border: 2px solid color-mix(in srgb, var(--agent-color, var(--blue)) 35%, white);
+  color: var(--agent-color, var(--blue));
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.agent-badge--sm {
+  padding: 2px 8px;
+  font-size: 0.72rem;
+}
+
+.agent-badge__icon {
+  font-size: 0.9rem;
+}
+
+/* Con trỏ nhấp nháy khi chữ đang chạy về theo từng token */
+.message-bubble--streaming {
+  border-style: dashed;
+}
+
+.message-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--agent-color, var(--blue));
+  animation: agent-caret 1s steps(2) infinite;
+}
+
+@keyframes agent-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* --- Bảng "Đang xử lý" --------------------------------------------------- */
+
+.agent-trace {
+  margin: 6px 0 2px 52px;
+  border: 2px dashed rgba(124, 58, 237, 0.28);
+  border-radius: var(--radius-sm, 12px);
+  background: rgba(124, 58, 237, 0.04);
+  overflow: hidden;
+  animation: bounce-in 0.35s ease-out both;
+  /* .chat-messages là flex column: không có dòng này thì bảng bị bóp lại cho
+     vừa khung và overflow:hidden cắt mất các bước cuối */
+  flex-shrink: 0;
+}
+
+.agent-trace--busy {
+  border-style: solid;
+  border-color: rgba(124, 58, 237, 0.45);
+}
+
+.agent-trace__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #7c3aed;
+}
+
+.agent-trace__toggle {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.agent-trace__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  /* Lượt nào nhiều bước thì tự cuộn trong bảng, không đẩy dài cả khung chat */
+  max-height: min(50vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.agent-trace__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.agent-trace__list::-webkit-scrollbar-track {
+  background: rgba(124, 58, 237, 0.08);
+  border-radius: var(--radius-pill, 999px);
+}
+
+.agent-trace__list::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.45);
+  border-radius: var(--radius-pill, 999px);
+}
+
+.agent-trace__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.7);
+}
+
+.agent-trace__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--white, #fff);
+  border-left: 4px solid var(--agent-color, #7c3aed);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text, #1a1a2e);
+}
+
+.agent-trace__step--running {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agent-color, #7c3aed) 25%, transparent);
+}
+
+/* Dòng "gọi sang agent nào" — mắt xích quan trọng nhất của bảng này */
+.agent-trace__step--route {
+  background: color-mix(in srgb, var(--agent-color, #7c3aed) 8%, white);
+  font-weight: 800;
+}
+
+.agent-trace__icon {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  width: 1.2em;
+  text-align: center;
+}
+
+.agent-trace__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-trace__detail {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-soft, #6b7280);
+}
+
+.agent-trace__urgent {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.agent-trace__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--agent-color, #7c3aed);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.agent-trace__ms {
+  color: var(--text-soft, #6b7280);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-trace__dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.agent-trace__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--agent-color, #7c3aed);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+
+.agent-trace__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.agent-trace__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* --- Khung "đang gõ" đổi màu theo agent ---------------------------------- */
+
+.typing-bubble {
+  border-color: var(--agent-color, var(--blue));
+}
+
+.typing-dots span {
+  background: var(--agent-color, var(--blue));
+}
+
+@media (max-width: 640px) {
+  .message-content {
+    max-width: 100%;
+  }
+
+  .agent-trace {
+    margin-left: 0;
+  }
+
+  .agent-trace__step {
+    flex-wrap: wrap;
+  }
+}

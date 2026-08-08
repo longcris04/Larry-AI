@@ -1,0 +1,6 @@
+{
+  "name": "larry-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Larry AI — chatbot đồng hành cảm xúc cho học sinh (React + Express + OpenRouter)"
+}

@@ -1,0 +1,170 @@
+/* Hộp thoại Điều khoản / Chính sách bảo mật (LegalModal.jsx) */
+
+.legal-modal__backdrop{
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:70;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:24px 16px;
+
+    background:rgba(30,40,60,.45);
+}
+
+.legal-modal{
+
+    display:flex;
+
+    flex-direction:column;
+
+    width:100%;
+
+    max-width:720px;
+
+    max-height:85vh;
+
+    background:white;
+
+    border-radius:22px;
+
+    box-shadow:0 24px 60px rgba(30,40,60,.25);
+
+    overflow:hidden;
+}
+
+.legal-modal__head{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:12px;
+
+    padding:18px 22px;
+
+    border-bottom:1px solid #EDF1F9;
+}
+
+.legal-modal__title{
+
+    margin:0;
+
+    font-size:20px;
+
+    color:#2C3654;
+}
+
+.legal-modal__close{
+
+    flex-shrink:0;
+
+    border:none;
+
+    background:#F3F6FC;
+
+    border-radius:12px;
+
+    width:36px;
+
+    height:36px;
+
+    cursor:pointer;
+
+    color:#6B7690;
+
+    font-size:16px;
+}
+
+.legal-modal__body{
+
+    flex:1;
+
+    overflow-y:auto;
+
+    padding:18px 22px;
+}
+
+/* Văn bản .txt đã tự xuống dòng sẵn — giữ nguyên khoảng trắng, nhưng vẫn cho
+   phép ngắt dòng lại trên màn hình hẹp thay vì trượt ngang */
+.legal-modal__text{
+
+    margin:0;
+
+    font-family:inherit;
+
+    font-size:15px;
+
+    line-height:1.75;
+
+    color:#3C4763;
+
+    white-space:pre-wrap;
+
+    word-wrap:break-word;
+}
+
+.legal-modal__loading,
+.legal-modal__error{
+
+    margin:0;
+
+    color:#6B7690;
+}
+
+.legal-modal__error{
+
+    color:#C0392B;
+}
+
+.legal-modal__foot{
+
+    padding:14px 22px 18px;
+
+    border-top:1px solid #EDF1F9;
+
+    text-align:right;
+}
+
+.legal-modal__ok{
+
+    padding:11px 26px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:linear-gradient(135deg,#56C6FF,#8B7CFF);
+
+    color:white;
+
+    font-size:15px;
+
+    font-weight:700;
+
+    font-family:inherit;
+
+    cursor:pointer;
+}
+
+@media(max-width:520px){
+
+    .legal-modal{
+
+        max-height:92vh;
+    }
+
+    .legal-modal__text{
+
+        font-size:14px;
+    }
+}

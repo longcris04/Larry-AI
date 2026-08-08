@@ -1,0 +1,178 @@
+.gradient-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-weight: 600;
+  color: var(--text-white);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: transform var(--transition-base), box-shadow var(--transition-base),
+    filter var(--transition-base);
+}
+
+.gradient-btn:hover:not(.gradient-btn--disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: var(--shadow-lift);
+}
+
+.gradient-btn:active:not(.gradient-btn--disabled) {
+  transform: translateY(0);
+}
+
+/* ---- variants ---- */
+
+.gradient-btn--primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+.gradient-btn--secondary {
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+}
+
+.gradient-btn--pink {
+  background: linear-gradient(135deg, #ff8fd8, var(--secondary));
+}
+
+.gradient-btn--success {
+  background: linear-gradient(135deg, var(--success), var(--primary));
+}
+
+.gradient-btn--outline {
+  background: var(--bg-card);
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+  box-shadow: none;
+}
+
+.gradient-btn--outline:hover:not(.gradient-btn--disabled) {
+  background: rgba(165, 108, 255, 0.08);
+  box-shadow: none;
+}
+
+.gradient-btn--outline .gradient-btn__shine {
+  display: none;
+}
+
+/* ---- sizes ---- */
+
+.gradient-btn--sm {
+  padding: 10px 18px;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.gradient-btn--md {
+  padding: 13px 22px;
+  font-size: 14.5px;
+  gap: 8px;
+}
+
+.gradient-btn--lg {
+  padding: 16px 28px;
+  font-size: 16px;
+  gap: 10px;
+}
+
+/* ---- modifiers ---- */
+
+.gradient-btn--full {
+  width: 100%;
+}
+
+.gradient-btn--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  filter: none !important;
+}
+
+.gradient-btn--loading {
+  cursor: wait;
+}
+
+/* ---- inner structure ---- */
+
+.gradient-btn__content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+}
+
+.gradient-btn--loading .gradient-btn__content {
+  opacity: 0.55;
+}
+
+.gradient-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  transition: transform var(--transition-base);
+}
+
+.gradient-btn:hover:not(.gradient-btn--disabled) .gradient-btn__icon--right {
+  transform: translateX(3px);
+}
+
+.gradient-btn:hover:not(.gradient-btn--disabled) .gradient-btn__icon--left {
+  transform: translateX(-3px);
+}
+
+.gradient-btn__text {
+  white-space: nowrap;
+}
+
+/* ---- loading spinner ---- */
+
+.gradient-btn__spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--text-white);
+  border-radius: var(--radius-circle);
+  animation: gradient-btn-spin 0.7s linear infinite;
+  z-index: 2;
+}
+
+.gradient-btn--outline .gradient-btn__spinner {
+  border: 2.5px solid rgba(165, 108, 255, 0.25);
+  border-top-color: var(--secondary);
+}
+
+@keyframes gradient-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- hover shine sweep ---- */
+
+.gradient-btn__shine {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 80%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.gradient-btn:hover:not(.gradient-btn--disabled) .gradient-btn__shine {
+  transform: translateX(120%);
+}

@@ -1,0 +1,46 @@
+.game-page {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: stretch;
+  padding: 24px;
+  background: var(--bg-primary);
+  gap: 24px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+
+
+.game-page__center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  height: calc(100vh - 48px);
+  border: 5px solid var(--blue);
+
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 1200px) {
+  .game-page {
+    flex-wrap: wrap;
+  }
+
+  .game-page__center {
+    height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-page {
+    padding: 14px;
+    gap: 14px;
+  }
+}

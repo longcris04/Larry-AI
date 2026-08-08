@@ -1,0 +1,329 @@
+{
+  "$comment": "Phần dùng chung giữa nhiều agent: định nghĩa gốc về bạo lực học đường, 5 dạng hành vi (nạn nhân và người gây ra cùng cần), kỹ thuật hạ nhiệt cảm xúc, và toàn bộ danh bạ hỗ trợ khẩn cấp. Đặt ở đây thay vì chép vào từng file để sửa một chỗ là mọi agent cùng đổi.",
+  "source": { "id": "shared", "title": "Tổng hợp từ cả ba tài liệu khung lý thuyết" },
+  "nodes": [
+    {
+      "id": "concept.bao_luc_hoc_duong",
+      "type": "Concept",
+      "label": "Bạo lực học đường",
+      "agents": ["*"],
+      "priority": 1,
+      "triggers": ["bạo lực học đường", "bắt nạt ở trường", "đánh nhau ở trường"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Hành vi hành hạ, ngược đãi, đánh đập, xâm hại thân thể, sức khoẻ; lăng mạ, xúc phạm danh dự nhân phẩm; cô lập, xua đuổi và các hành vi cố ý khác gây tổn hại thể chất, tinh thần của người học, xảy ra trong cơ sở giáo dục hoặc lớp độc lập.",
+      "detail": "Theo WHO: cố ý sử dụng vũ lực hoặc quyền lực, bị đe doạ hoặc thực tế, chống lại một học sinh hoặc một nhóm học sinh, dẫn đến tổn thương thể chất, tinh thần, ảnh hưởng lâu dài đến sự phát triển nhân cách.",
+      "source": "victim#PhầnI, actor#PhầnI.1.1"
+    },
+    {
+      "id": "concept.bat_nat_hoc_duong",
+      "type": "Concept",
+      "label": "Bắt nạt học đường",
+      "agents": ["agent_victim", "agent_actor", "agent_homeroom"],
+      "priority": 1,
+      "triggers": ["bắt nạt", "bị bắt nạt", "trêu chọc", "ăn hiếp", "bắt nạt học đường"],
+      "summary": "Hành vi tiêu cực LẶP ĐI LẶP LẠI, có ý định xấu, của một hoặc nhiều học sinh nhằm chống lại một học sinh vốn khó tự bảo vệ mình. Điểm cốt lõi là sự MẤT CÂN BẰNG QUYỀN LỰC giữa hai bên.",
+      "guidance": "Khi em kể chuyện chỉ xảy ra một lần và hai bên ngang sức, đó là mâu thuẫn/xung đột chứ chưa phải bắt nạt — vẫn cần xử lý nhưng cách nói khác. Đừng gán nhãn vội.",
+      "source": "actor#PhầnI.1.1"
+    },
+    {
+      "id": "concept.phan_biet_batnat_baoluc",
+      "type": "Concept",
+      "label": "Phân biệt bắt nạt và bạo lực học đường",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 0,
+      "triggers": [
+        "khác nhau thế nào", "có phải bắt nạt không", "thế có tính là bạo lực", "có tính là bạo lực",
+        "có phải bắt nạt"
+      ],
+      "summary": "Bắt nạt chỉ giữa học sinh với nhau, lặp lại nhiều lần, có mất cân bằng quyền lực rõ rệt, động cơ là kiểm soát và thể hiện vị thế, diễn ra thầm lặng nên khó phát hiện. Bạo lực học đường có thể xảy ra cả với giáo viên/nhân viên, thường bộc phát theo sự kiện chứ không lặp trên một đối tượng cố định, hai bên thường cân bằng quyền lực và sẵn sàng phản kháng nhau, động cơ là giải quyết mâu thuẫn nhất thời, và bộc lộ công khai nên dễ nhìn thấy.",
+      "source": "actor#PhầnI.1.1"
+    },
+    {
+      "id": "vtype.physical",
+      "type": "ViolenceType",
+      "label": "Bạo lực thể chất",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "đánh", "đấm", "đá", "tát", "cấu véo", "xô đẩy", "giật tóc", "ném đồ", "nhốt", "bắt quỳ",
+        "hành hung", "bị đánh", "đánh hội đồng", "chặn đường đánh"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Dùng sức mạnh cơ bắp hoặc công cụ tác động lên cơ thể, gây tổn thương sinh lý trực tiếp: đánh đập, đấm, đá, tát, cấu véo, xô đẩy, giật tóc, ném đồ vật vào người, nhốt trong phòng hoặc nhà vệ sinh, ép quỳ gối, bắt đứng dưới nắng, ép lao động quá sức, làm hỏng hoặc chiếm đoạt sách vở, tiền bạc, đồ dùng cá nhân.",
+      "source": "victim#PhầnI.1, actor#PhầnI.1.2"
+    },
+    {
+      "id": "vtype.emotional",
+      "type": "ViolenceType",
+      "label": "Bắt nạt tinh thần và xã hội",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "chửi", "lăng mạ", "sỉ nhục", "miệt thị", "chê ngoại hình", "đặt biệt danh", "biệt danh xấu",
+        "tung tin đồn", "nói xấu", "tẩy chay", "cô lập", "không ai chơi", "bơ", "phớt lờ",
+        "cười nhạo", "chế giễu", "mỉa mai", "xa lánh"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Tác động trực tiếp lên cảm xúc, nhận thức và nhân phẩm khiến học sinh thấy xấu hổ, tủi nhục, bị cô lập: chửi rủa, lăng mạ, đe doạ, sỉ nhục, miệt thị ngoại hình, đặt biệt danh xấu để chế giễu, tung tin đồn sai sự thật, phớt lờ, tẩy chay, không cho tham gia hoạt động tập thể. Với người gây ra còn kèm hành vi sai khiến học tập: bắt làm bài hộ, giành bài kiểm tra, bắt nhắc bài.",
+      "guidance": "Đây là dạng bị coi nhẹ nhất nhưng gây tổn thương dài nhất. Không bao giờ nói với em rằng 'chỉ là trêu đùa thôi'.",
+      "source": "victim#PhầnI.2, actor#PhầnI.1.2"
+    },
+    {
+      "id": "vtype.economic",
+      "type": "ViolenceType",
+      "label": "Bắt nạt kinh tế",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "trấn lột", "xin đểu", "đòi tiền", "ép mua đồ", "lấy tiền", "cống nạp", "xé sách",
+        "làm hỏng đồ", "mất tiền ở trường", "bắt nộp tiền", "xin tiền em", "lấy tiền của em"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Cố ý chiếm đoạt, huỷ hoại tài sản hoặc dùng sức mạnh, uy quyền ép nạn nhân nộp tiền bạc, đồ đạc: trấn lột tiền, 'xin đểu', ép mua đồ ăn, ép mua đồ dùng học tập, ép cống nạp, xé rách sách vở, bẻ gãy bút thước, làm hỏng cặp sách.",
+      "guidance": "Dấu hiệu gián tiếp rất hay gặp: em liên tục xin thêm tiền bố mẹ, hoặc lấy trộm tiền ở nhà. Hỏi nhẹ về việc tiền tiêu vặt gần đây có đủ không.",
+      "source": "victim#PhầnI.3"
+    },
+    {
+      "id": "vtype.sexual",
+      "type": "ViolenceType",
+      "label": "Bạo lực và quấy rối tình dục",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "sờ", "sờ mó", "đụng chạm", "tốc váy", "giật dây áo", "ôm ghì", "cưỡng hôn", "hiếp dâm",
+        "cưỡng dâm", "gợi dục", "bình phẩm cơ thể", "ảnh khiêu dâm", "quấy rối", "quan hệ",
+        "có thai", "mang thai", "phá thai", "ảnh nhạy cảm"
+      ],
+      "dangerSignals": ["sexual_abuse", "grooming"],
+      "summary": "Hành vi ngôn từ hoặc hành động nhằm thoả mãn nhu cầu tình dục của người gây bạo lực, xúc phạm danh dự và cơ thể nạn nhân: lời nói gợi dục, bình phẩm khiếm nhã về bộ phận cơ thể, đụng chạm sờ mó không mong muốn (sờ mông, giật dây áo lót, tốc váy), ép xem tranh ảnh khiêu dâm, nặng hơn là hiếp dâm, cưỡng dâm.",
+      "guidance": "MỨC ƯU TIÊN CAO NHẤT sau tự hại. Không hỏi chi tiết diễn biến — đó là việc của điều tra viên, không phải của em kể lại cho chatbot. Chỉ cần xác nhận em an toàn ở hiện tại, khẳng định KHÔNG PHẢI LỖI CỦA EM, và đưa em tới người lớn tin cậy + tổng đài 111.",
+      "source": "victim#PhầnI.4, actor#PhầnI.1.2"
+    },
+    {
+      "id": "vtype.cyber",
+      "type": "ViolenceType",
+      "label": "Bắt nạt trực tuyến",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "trên mạng", "facebook", "instagram", "tiktok", "zalo", "group chat", "ghép ảnh", "đăng ảnh",
+        "tin nhắn đe doạ", "mạo danh", "nick giả", "bị bóc phốt", "antifan", "lan truyền",
+        "ảnh nhạy cảm", "tống tiền bằng ảnh"
+      ],
+      "dangerSignals": ["school_violence", "grooming"],
+      "summary": "Gây hấn có chủ định, lặp đi lặp lại qua thiết bị công nghệ và mạng xã hội: gửi tin nhắn công kích lăng mạ, đăng ảnh/video cắt ghép bôi nhọ danh dự, mạo danh tài khoản để đăng tin xấu, lan truyền tin đồn độc hại trong nhóm chat, cô lập tẩy chay khỏi hội nhóm trực tuyến.",
+      "guidance": "Khác bắt nạt trực tiếp ở chỗ nó theo em về tận nhà, không có giờ tan trường. Đừng khuyên em 'thôi khoá máy là xong' — nội dung vẫn còn ở đó và em biết điều đó.",
+      "source": "victim#PhầnI.5, actor#PhầnI.1.2"
+    },
+    {
+      "id": "skill.box_breathing",
+      "type": "Skill",
+      "label": "Thở hình vuông (Box Breathing)",
+      "agents": ["*"],
+      "priority": 2,
+      "triggers": [
+        "tức giận", "bực", "nóng người", "run", "hoảng", "lo lắng quá", "tim đập nhanh", "thở gấp",
+        "không bình tĩnh được", "muốn đập phá"
+      ],
+      "summary": "Hít vào bằng mũi 4 giây — nhịn thở 4 giây — thở ra bằng miệng chậm rãi 4 giây — ngưng thở 4 giây. Lặp lại 5-10 phút để hạ nhiệt cơn tức giận và lo âu.",
+      "guidance": "Hướng dẫn bằng cách ĐẾM CÙNG em ngay trong tin nhắn, đừng chỉ nêu tên kỹ thuật rồi thôi.",
+      "source": "victim#PhầnIV.5, actor#PhầnIII.3.4"
+    },
+    {
+      "id": "skill.breath_4_4_6",
+      "type": "Skill",
+      "label": "Thở sâu 4-4-6",
+      "agents": ["agent_self_harm", "agent_homeroom"],
+      "priority": 2,
+      "triggers": ["thở", "hít thở", "căng thẳng", "quá tải", "không chịu nổi"],
+      "summary": "Hít vào bằng mũi 4 giây, giữ hơi 4 giây, chầm chậm thở ra bằng miệng 6 giây. Thở có ý thức 5-10 phút giúp điều hoà nhịp tim và xoa dịu hệ thần kinh giao cảm đang bị kích thích quá độ.",
+      "guidance": "Thì thở ra DÀI HƠN thì hít vào là điểm mấu chốt — đó là thứ kích hoạt hệ phó giao cảm. Đừng rút gọn thành 'em hít thở sâu đi'.",
+      "source": "self-harm#ChươngV.1"
+    },
+    {
+      "id": "skill.cognitive_reframe",
+      "type": "Skill",
+      "label": "Chuyển hoá suy nghĩ tiêu cực",
+      "agents": ["*"],
+      "priority": 1,
+      "triggers": [
+        "mình dốt", "vô dụng", "mình kém", "chẳng làm được gì", "ai cũng ghét mình", "lúc nào cũng",
+        "chẳng bao giờ", "mình tệ"
+      ],
+      "summary": "Thay niềm tin tiêu cực cũ bằng niềm tin lành mạnh hơn. Ví dụ thay vì 'Mình dốt nát môn toán, mình vô dụng' thì chuyển thành 'Chỉ cần mình chăm chỉ và tìm phương pháp học phù hợp, mình sẽ tiến bộ từng ngày'.",
+      "guidance": "Làm CÙNG em chứ không giảng lý thuyết: lấy đúng câu em vừa nói, rồi hỏi em thử viết lại câu đó theo cách khác xem sao.",
+      "source": "victim#PhầnIV.5, actor#PhầnIII.3.4"
+    },
+    {
+      "id": "skill.muscle_relax",
+      "type": "Skill",
+      "label": "Giãn cơ sinh học",
+      "agents": ["agent_victim", "agent_homeroom"],
+      "priority": 0,
+      "triggers": ["người cứng đờ", "mỏi vai", "căng cứng", "đau vai gáy", "mệt mỏi"],
+      "summary": "Vươn vai, duỗi căng cơ tay chân, xoa bóp nhẹ vùng vai gáy khi cảm thấy cơ thể bị căng cứng do stress.",
+      "source": "victim#PhầnIV.5"
+    },
+    {
+      "id": "hotline.111",
+      "type": "Hotline",
+      "label": "Tổng đài Quốc gia Bảo vệ Trẻ em — 111",
+      "agents": ["*"],
+      "priority": 2,
+      "triggers": ["gọi ai", "nhờ ai giúp", "tổng đài", "đường dây nóng", "báo cho ai"],
+      "summary": "Gọi 111 — miễn phí, 24/7, gọi lúc nào cũng được. Tư vấn tâm lý và can thiệp khẩn cấp các vụ bạo lực, xâm hại trẻ em dưới 16 tuổi trên toàn quốc.",
+      "guidance": "Đây là số DUY NHẤT phải nhắc trong mọi tình huống nguy hiểm. Nói rõ 'miễn phí' và '24/7' — trẻ hay ngại vì sợ tốn tiền hoặc sợ gọi đêm không ai nghe.",
+      "source": "victim#PhầnV, actor#PhầnVII"
+    },
+    {
+      "id": "hotline.115",
+      "type": "Hotline",
+      "label": "Cấp cứu y tế — 115",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["uống thuốc", "quá liều", "nuốt", "chảy máu nhiều", "vết cắt sâu", "ngất"],
+      "dangerSignals": ["suicidal", "self_injury"],
+      "summary": "Gọi 115 ngay khi có nghi ngờ uống thuốc quá liều, nuốt chất độc, hoặc vết cắt quá sâu đe doạ mạch máu.",
+      "guidance": "Nếu lời em kể chạm tới bất kỳ dấu hiệu nào trong số này, việc gọi người lớn ngay tại chỗ và 115 phải được nói TRƯỚC mọi nội dung tư vấn khác.",
+      "source": "self-harm#ChươngIII.1"
+    },
+    {
+      "id": "hotline.ngay_mai",
+      "type": "Hotline",
+      "label": "Đường dây nóng Ngày Mai — 096 306 1414",
+      "agents": ["agent_self_harm", "agent_victim"],
+      "priority": 2,
+      "triggers": ["trầm cảm", "muốn chết", "không muốn sống", "tuyệt vọng"],
+      "dangerSignals": ["suicidal", "self_injury"],
+      "summary": "Hotline 096 306 1414 — lắng nghe, đồng hành và sơ cứu tâm lý cho người trầm cảm, có ý định tự hại hoặc tự sát.",
+      "source": "victim#PhầnV, actor#PhầnVII"
+    },
+    {
+      "id": "hotline.blue_blue",
+      "type": "Hotline",
+      "label": "Đường dây nóng Blue Blue — 1900 9204 (phím 3)",
+      "agents": ["agent_victim", "agent_actor", "agent_homeroom"],
+      "priority": 1,
+      "triggers": ["tư vấn tâm lý", "áp lực bạn bè", "stress"],
+      "summary": "Hotline 1900 9204 phím 3 — tư vấn và hỗ trợ tâm lý chuyên sâu cho thanh thiếu niên đối phó với bạo lực học đường, stress và áp lực đồng trang lứa.",
+      "source": "victim#PhầnV, actor#PhầnVII"
+    },
+    {
+      "id": "hotline.ngoi_nha_binh_yen",
+      "type": "Hotline",
+      "label": "Ngôi nhà Bình yên — 1900 969 680",
+      "agents": ["agent_victim", "agent_self_harm"],
+      "priority": 2,
+      "triggers": ["bị đánh ở nhà", "bố mẹ đánh", "không dám về nhà", "bị bạo hành"],
+      "dangerSignals": ["domestic_violence", "sexual_abuse"],
+      "summary": "Hotline 1900 969 680 — hỗ trợ khẩn cấp và cung cấp nơi tạm lánh an toàn cho phụ nữ, trẻ em gái là nạn nhân của bạo lực gia đình và xâm hại.",
+      "guidance": "Đây là địa chỉ dành cho trường hợp nguy hiểm nằm ở CHÍNH TRONG NHÀ em — lúc đó lời khuyên 'nói với bố mẹ' không dùng được.",
+      "source": "victim#PhầnV, actor#PhầnVII"
+    },
+    {
+      "id": "hotline.hagar",
+      "type": "Hotline",
+      "label": "Tổ chức Hagar International — 0943 111 967",
+      "agents": ["agent_victim"],
+      "priority": 0,
+      "triggers": ["hỗ trợ phục hồi", "sang chấn"],
+      "summary": "Hotline 0943 111 967 — tổ chức phi chính phủ hỗ trợ phục hồi tâm lý xã hội chuyên sâu cho nạn nhân bị bạo lực, xâm hại nghiêm trọng.",
+      "source": "victim#PhầnV"
+    },
+    {
+      "id": "hotline.csaga",
+      "type": "Hotline",
+      "label": "Tổ chức CSAGA — 024 3333 5599",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 0,
+      "triggers": ["pháp lý", "bạo lực giới", "xâm hại tình dục"],
+      "dangerSignals": ["sexual_abuse"],
+      "summary": "Hotline 024 3333 5599 — tư vấn tâm lý, pháp lý, can thiệp bảo vệ trẻ em và phụ nữ khỏi bạo lực, xâm hại trên cơ sở giới.",
+      "source": "victim#PhầnV, actor#PhầnVII"
+    },
+    {
+      "id": "hotline.rong_xanh",
+      "type": "Hotline",
+      "label": "Tổ chức Rồng Xanh (Blue Dragon) — 024 3717 2307",
+      "agents": ["agent_victim"],
+      "priority": 0,
+      "triggers": ["bỏ nhà đi", "bị bóc lột", "phải đi làm"],
+      "summary": "Hotline 024 3717 2307 — giải cứu, bảo vệ và hỗ trợ phục hồi cho trẻ em đường phố, trẻ em bị bóc lột sức lao động và xâm hại.",
+      "source": "victim#PhầnV"
+    },
+    {
+      "id": "clinic.vien_suc_khoe_tam_than",
+      "type": "Hotline",
+      "label": "Viện Sức khoẻ Tâm thần Quốc gia — Bệnh viện Bạch Mai",
+      "agents": ["agent_self_harm", "agent_actor"],
+      "priority": 0,
+      "triggers": ["đi khám", "bác sĩ tâm lý", "khám tâm thần", "trầm cảm nặng"],
+      "summary": "78 Giải Phóng, Hà Nội — 024 3576 5344. Thăm khám, chẩn đoán rối loạn lo âu, trầm cảm, rối loạn hành vi.",
+      "guidance": "Chỉ nhắc khi NGƯỜI LỚN đang hỏi hộ em hoặc em chủ động hỏi nơi khám. Không tự gợi ý em đi khám — đó là chẩn đoán, và agent không được chẩn đoán.",
+      "source": "actor#PhầnVII"
+    },
+    {
+      "id": "clinic.tam_than_tw1",
+      "type": "Hotline",
+      "label": "Bệnh viện Tâm thần Trung ương I",
+      "agents": ["agent_self_harm", "agent_actor"],
+      "priority": 0,
+      "triggers": ["bệnh viện tâm thần", "điều trị chuyên sâu"],
+      "summary": "Hoà Bình, Thường Tín, Hà Nội — 024 3385 3227. Điều trị chuyên sâu các rối loạn tâm thần và hành vi tuổi trẻ.",
+      "source": "actor#PhầnVII"
+    },
+    {
+      "id": "clinic.mai_huong",
+      "type": "Hotline",
+      "label": "Bệnh viện Tâm thần ban ngày Mai Hương",
+      "agents": ["agent_self_harm", "agent_actor"],
+      "priority": 0,
+      "triggers": ["trị liệu tâm lý", "liệu pháp nhận thức hành vi"],
+      "summary": "4 Hồng Mai, Hà Nội — 024 3627 5762. Liệu pháp nhận thức hành vi chuyên sâu cho học sinh.",
+      "source": "actor#PhầnVII"
+    },
+    {
+      "id": "clinic.tam_than_hcm",
+      "type": "Hotline",
+      "label": "Bệnh viện Tâm thần TP. Hồ Chí Minh",
+      "agents": ["agent_self_harm", "agent_actor"],
+      "priority": 0,
+      "triggers": ["ở sài gòn", "ở tphcm", "miền nam"],
+      "summary": "766 Võ Văn Kiệt, Quận 5, TP. Hồ Chí Minh. Khám và trị liệu tâm lý cho học sinh khu vực phía Nam.",
+      "source": "actor#PhầnVII"
+    }
+  ],
+  "edges": [
+    {
+      "from": "concept.bat_nat_hoc_duong",
+      "rel": "CONTRASTS_WITH",
+      "to": "concept.bao_luc_hoc_duong",
+      "via": "concept.phan_biet_batnat_baoluc"
+    },
+    {
+      "from": "concept.phan_biet_batnat_baoluc",
+      "rel": "RELATED_TO",
+      "to": "concept.bat_nat_hoc_duong"
+    },
+    {
+      "from": "concept.phan_biet_batnat_baoluc",
+      "rel": "RELATED_TO",
+      "to": "concept.bao_luc_hoc_duong"
+    },
+    { "from": "vtype.physical", "rel": "INDICATES", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "vtype.emotional", "rel": "INDICATES", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "vtype.economic", "rel": "INDICATES", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "vtype.sexual", "rel": "INDICATES", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "vtype.cyber", "rel": "INDICATES", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "vtype.emotional", "rel": "RELATED_TO", "to": "vtype.cyber" },
+    { "from": "vtype.economic", "rel": "RELATED_TO", "to": "vtype.physical" },
+    { "from": "vtype.cyber", "rel": "RELATED_TO", "to": "vtype.sexual" },
+    { "from": "skill.box_breathing", "rel": "RELATED_TO", "to": "skill.breath_4_4_6" },
+    { "from": "vtype.sexual", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "vtype.sexual", "rel": "REFER_TO", "to": "hotline.csaga" },
+    { "from": "vtype.sexual", "rel": "REFER_TO", "to": "hotline.ngoi_nha_binh_yen" },
+    { "from": "vtype.physical", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "vtype.cyber", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "vtype.economic", "rel": "REFER_TO", "to": "hotline.111" }
+  ]
+}

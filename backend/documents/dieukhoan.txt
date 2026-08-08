@@ -1,0 +1,131 @@
+ĐIỀU KHOẢN SỬ DỤNG LARRY AI
+Cập nhật lần cuối: 26/07/2026
+
+Larry là người bạn đồng hành trò chuyện, hỗ trợ tâm lý cho học sinh tiểu học và
+trung học cơ sở. Trước khi tạo tài khoản, em hãy đọc kỹ những điều dưới đây.
+Nếu em dưới 16 tuổi, hãy đọc cùng bố mẹ hoặc thầy cô nhé.
+
+Khi bấm "Đăng ký", em xác nhận đã đọc, hiểu và đồng ý với các điều khoản này.
+
+
+1. LARRY LÀ GÌ VÀ KHÔNG PHẢI LÀ GÌ
+
+Larry LÀ:
+- Một chatbot dùng trí tuệ nhân tạo (AI) để trò chuyện, lắng nghe và động viên em.
+- Một kênh để em nói ra điều đang làm mình buồn, lo lắng hay sợ hãi.
+- Một công cụ giúp nhà trường phát hiện sớm những bạn đang cần được giúp đỡ.
+
+Larry KHÔNG PHẢI:
+- Không phải bác sĩ, không phải chuyên gia tâm lý. Larry không chẩn đoán bệnh,
+  không kê thuốc, không thay thế việc gặp thầy cô, bố mẹ hay chuyên gia.
+- Không phải dịch vụ cấp cứu. Larry không thể đến giúp em ngay lập tức.
+
+KHI EM ĐANG GẶP NGUY HIỂM, hãy gọi ngay cho người lớn bên cạnh, hoặc:
+- 111 - Tổng đài quốc gia bảo vệ trẻ em (miễn phí, 24/7)
+- 113 - Công an
+- 115 - Cấp cứu y tế
+
+
+2. ĐIỀU QUAN TRỌNG NHẤT: LARRY KHÔNG HỨA GIỮ BÍ MẬT TUYỆT ĐỐI
+
+Đây là điều em cần biết trước khi kể bất cứ chuyện gì.
+
+Sau mỗi cuộc trò chuyện, hệ thống dùng AI viết một BẢN TÓM TẮT ngắn về tình
+trạng của em. Nếu bản tóm tắt cho thấy em có dấu hiệu tiêu cực - bị bắt nạt, bị
+xâm hại, bị bạo hành, sợ hãi, buồn bã kéo dài, mệt mỏi, cô đơn... - phiên trò
+chuyện sẽ được ĐÁNH DẤU để thầy cô phụ trách xem lại.
+
+Thầy cô phụ trách (quản trị viên) có thể:
+- Đọc bản tóm tắt và các dấu hiệu hệ thống ghi nhận về em.
+- Gửi email cảnh báo cho giáo viên chủ nhiệm của em để thầy cô gặp và hỏi thăm.
+
+Điều này KHÔNG phải để bắt lỗi em, mà để người lớn kịp giúp em khi có chuyện.
+Nếu em chỉ vui vẻ, bình thường thì phiên trò chuyện không bị đánh dấu.
+
+Thầy cô KHÔNG đọc được nguyên văn từng câu em đã nhắn - hệ thống chỉ lưu bản
+tóm tắt, không lưu lại nội dung trò chuyện. Chi tiết xem Chính sách bảo mật.
+
+Nếu em chưa muốn ai biết gì cả, em có thể dùng chế độ "Trò chuyện với Larry
+ngay!" mà không đăng nhập - khi đó hệ thống không lưu và không báo gì cả.
+
+
+3. TÀI KHOẢN CỦA EM
+
+- Em cần có sự đồng ý của bố mẹ hoặc thầy cô khi tạo tài khoản, vì em là học sinh.
+- Hãy điền thông tin thật để thầy cô liên hệ đúng người khi cần giúp em.
+- Mật khẩu là của riêng em: không đưa cho bạn khác, không dùng chung tài khoản.
+- Nếu nghi ngờ có người biết mật khẩu của mình, hãy đổi ngay hoặc báo thầy cô.
+- Em có thể yêu cầu xoá tài khoản bất cứ lúc nào (xem mục 7).
+
+
+4. EM ĐỒNG Ý KHÔNG LÀM NHỮNG VIỆC SAU
+
+- Không dùng Larry để trêu chọc, bắt nạt hay nói xấu người khác.
+- Không cố tình bịa chuyện về bạn bè, thầy cô để hệ thống gửi cảnh báo sai.
+  Một cảnh báo giả có thể làm người khác bị hiểu lầm oan.
+- Không đăng nội dung bạo lực, khiêu dâm hoặc không phù hợp với lứa tuổi.
+- Không tìm cách "lừa" AI để nó nói bậy, hướng dẫn việc nguy hiểm, hoặc bỏ qua
+  các quy tắc an toàn. Hệ thống có bộ lọc và sẽ tự động bỏ qua những yêu cầu đó.
+- Không dùng tài khoản của người khác, không mạo danh thầy cô hay bạn bè.
+- Không tìm cách xâm nhập, dò mật khẩu hay phá hoại hệ thống.
+
+Nhà trường có quyền tạm khoá hoặc xoá tài khoản vi phạm những điều trên.
+
+
+5. AI CÓ THỂ TRẢ LỜI SAI
+
+Larry chạy trên các mô hình AI. Dù đã có nhiều quy tắc an toàn, AI vẫn có thể:
+- Trả lời chưa chính xác, chưa phù hợp hoặc hiểu nhầm ý em.
+- Đánh giá sai mức độ nghiêm trọng của tình huống (báo thừa hoặc bỏ sót).
+
+Vì vậy:
+- Đừng coi lời Larry nói là lời khuyên chuyên môn cuối cùng.
+- Việc quan trọng, hãy hỏi bố mẹ, thầy cô hoặc chuyên gia.
+- Nếu Larry nói điều gì làm em khó chịu hoặc thấy sai, hãy báo cho thầy cô, hoặc
+  gửi email về lanmc2k13@gmail.com.
+
+
+6. CAMERA VÀ PHIẾU CẢM XÚC
+
+- Khi vào phòng chat, ứng dụng xin quyền dùng camera để đoán cảm xúc của em, và
+  hỏi một phiếu cảm xúc ngắn. Cả hai đều để Larry hiểu em hơn khi mở lời.
+- Em có quyền từ chối: không cho phép camera, hoặc bấm "Bỏ qua" ở phiếu cảm xúc.
+  Larry vẫn trò chuyện bình thường.
+- Hình ảnh từ camera được xử lý NGAY TRÊN MÁY của em và không được gửi đi đâu,
+  không được lưu lại. Chi tiết xem Chính sách bảo mật.
+
+
+7. XOÁ TÀI KHOẢN VÀ DỮ LIỆU
+
+Em (hoặc bố mẹ em) có thể đề nghị thầy cô phụ trách xoá tài khoản. Khi tài khoản
+bị xoá, toàn bộ bản tóm tắt các phiên trò chuyện của em cũng bị xoá cùng lúc và
+không khôi phục lại được.
+
+
+8. GIỚI HẠN TRÁCH NHIỆM
+
+Larry AI phục vụ mục đích hỗ trợ tâm lý học đường, được cung cấp "như hiện có".
+Đơn vị triển khai cố gắng giữ hệ thống chạy ổn định và an toàn, nhưng không cam
+kết hệ thống luôn hoạt động không gián đoạn, không lỗi, hoặc AI luôn đưa ra phản
+hồi chính xác.
+
+Đơn vị triển khai không chịu trách nhiệm cho những quyết định mà người dùng đưa
+ra chỉ dựa trên lời Larry nói, mà không tham khảo người lớn hoặc chuyên gia.
+
+Việc hệ thống đánh dấu (hoặc không đánh dấu) một phiên trò chuyện là công cụ hỗ
+trợ cho nhà trường, không thay thế trách nhiệm quan sát, xác minh và can thiệp
+của thầy cô và gia đình.
+
+
+9. THAY ĐỔI ĐIỀU KHOẢN
+
+Điều khoản này có thể được cập nhật khi ứng dụng có tính năng mới. Ngày cập nhật
+luôn ghi ở đầu văn bản. Khi có thay đổi lớn, nhà trường sẽ thông báo tới học sinh
+và phụ huynh.
+
+
+10. LIÊN HỆ
+
+Mọi thắc mắc, góp ý hoặc yêu cầu về tài khoản và dữ liệu:
+- Email: lanmc2k13@gmail.com
+- Hoặc gặp trực tiếp thầy cô phụ trách phòng tư vấn tâm lý của trường.

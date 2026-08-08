@@ -1,0 +1,460 @@
+{
+  "$comment": "Khung lý thuyết cho agent_victim (🛡️ Larry Bảo vệ). Năm dạng hành vi bạo lực nằm ở shared.json vì agent_actor cũng dùng; file này giữ phần riêng của phía nạn nhân: dấu hiệu nhận biết, thang mức độ, và bộ kỹ năng ứng phó em tự làm được.",
+  "source": {
+    "id": "victim",
+    "title": "Nạn nhân bạo lực học đường — khung lý thuyết và bộ chỉ dẫn ứng phó thực tế",
+    "file": "backend/documents/nan-nhan-bao-luc-hoc-duong-khung-ly-thuyet.docx"
+  },
+  "nodes": [
+    {
+      "id": "sign.v.physical",
+      "type": "Sign",
+      "label": "Dấu hiệu thể chất ở nạn nhân",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": [
+        "bầm tím", "trầy xước", "rách áo", "mệt mỏi", "đau đầu", "đau bụng", "buồn nôn", "mất ngủ",
+        "khó ngủ", "ác mộng", "giật mình"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Vết thương, bầm tím, trầy xước không rõ nguyên nhân; quần áo nhem nhuốc, rách hỏng; mệt mỏi uể oải kéo dài; thường xuyên kêu đau đầu, đau bụng, buồn nôn; khó ngủ, mất ngủ, hay giật mình, khóc thét khi ngủ hoặc gặp ác mộng.",
+      "guidance": "Đau đầu và đau bụng lặp lại vào buổi sáng trước giờ đi học là biểu hiện cơ thể hoá của nỗi sợ, không phải em giả vờ ốm để trốn học.",
+      "source": "victim#PhầnII"
+    },
+    {
+      "id": "sign.v.behavioral",
+      "type": "Sign",
+      "label": "Dấu hiệu hành vi ở nạn nhân",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "sợ đi học", "không muốn đến trường", "đi đường khác", "trốn tiết", "học kém đi",
+        "ngồi một mình", "xin tiền", "lấy trộm tiền", "sách vở bị rách"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Sợ hãi khi đi học hoặc tan trường, đột ngột đổi tuyến đường đi học, sợ lên phương tiện công cộng; học sút kém đột ngột, trốn tiết, chán học; ngồi cô độc trong lớp, lảng tránh đám đông; sách vở, cặp sách hay bị rách hỏng; thường xuyên xin thêm tiền bố mẹ hoặc trộm tiền để nộp cho kẻ bắt nạt.",
+      "source": "victim#PhầnII"
+    },
+    {
+      "id": "sign.v.emotional",
+      "type": "Sign",
+      "label": "Dấu hiệu cảm xúc ở nạn nhân",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "ít nói hẳn", "lầm lì", "cáu gắt", "căng thẳng", "hoang mang", "bồn chồn", "tự trách",
+        "tự ti", "bi quan", "buồn kéo dài"
+      ],
+      "dangerSignals": ["school_violence", "self_injury"],
+      "summary": "Tính cách thay đổi đột ngột trái ngược thường lệ: từ vui vẻ nói nhiều thành ít nói, lầm lì, cáu gắt vô cớ; luôn căng thẳng, hoang mang, sợ hãi, bồn chồn; tự trách bản thân quá mức, cảm giác tội lỗi; tự ti, bi quan, buồn bã kéo dài, có biểu hiện trầm cảm hoặc ý nghĩ tự làm hại bản thân, ý nghĩ tự sát.",
+      "guidance": "Đây là cây cầu nối sang nhóm tự hại. Nghe thấy phần cuối của nhóm dấu hiệu này thì đó không còn là việc của riêng agent nạn nhân nữa — supervisor sẽ nâng nhóm, còn bạn phải ghi nhận nó nghiêm túc ngay trong lượt.",
+      "source": "victim#PhầnII"
+    },
+    {
+      "id": "sign.v.social",
+      "type": "Sign",
+      "label": "Dấu hiệu xã hội ở nạn nhân",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": [
+        "không muốn gặp ai", "không có bạn", "mất bạn", "ở nhà suốt", "không muốn ra ngoài",
+        "ngại giao tiếp"
+      ],
+      "summary": "Buồn bã, e ngại giao tiếp, tự cô lập, tránh gặp bạn bè và người thân; số lượng bạn bè giảm sút nghiêm trọng; không muốn ra khỏi nhà, từ chối các hoạt động vui chơi giải trí.",
+      "source": "victim#PhầnII"
+    },
+    {
+      "id": "sign.v.cyber",
+      "type": "Sign",
+      "label": "Dấu hiệu bị bắt nạt qua mạng",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "che màn hình", "khoá facebook", "xoá tài khoản", "nhiều tin nhắn lạ", "cuộc gọi đe doạ",
+        "sau khi dùng điện thoại"
+      ],
+      "dangerSignals": ["school_violence", "grooming"],
+      "summary": "Bối rối, tức giận, lo sợ sau khi dùng điện thoại hoặc máy tính; tỏ ra bí mật, che màn hình khi có người đến gần; nhận lượng lớn tin nhắn hoặc cuộc gọi đe doạ; đột ngột khoá tài khoản mạng xã hội hoặc ngừng vào mạng không rõ lý do.",
+      "source": "victim#PhầnII"
+    },
+    {
+      "id": "level.v.low",
+      "type": "RiskLevel",
+      "label": "Mức THẤP — hiếm khi (1-2 điểm)",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": ["thỉnh thoảng bị trêu", "một lần thôi", "hôm nọ có chuyện"],
+      "summary": "Bạo lực xảy ra hiếm khi. Chỉ dẫn cho em: giữ bình tĩnh, không phản ứng quá khích; học cách phớt lờ các lời chọc ghẹo vô hại; tập trung vào những người bạn tốt thật sự.",
+      "guidance": "Việc của agent ở mức này: cung cấp kiến thức để em NHẬN DIỆN được đâu là hành vi bắt nạt, và trang bị kỹ năng ứng phó cơ bản để ngăn nó leo thang. Đừng làm to chuyện, nhưng cũng đừng nói 'không có gì đâu'.",
+      "source": "victim#PhầnIII"
+    },
+    {
+      "id": "level.v.medium",
+      "type": "RiskLevel",
+      "label": "Mức TRUNG BÌNH — thỉnh thoảng (2-3 điểm)",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": ["mấy lần rồi", "cứ hay bị", "tuần nào cũng"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Chỉ dẫn cho em: tuyệt đối không dùng bạo lực đáp trả; dùng giao tiếp quyết đoán để phản kháng; chia sẻ, lên tiếng với một người mình tin tưởng.",
+      "guidance": "Việc của agent: lắng nghe tích cực, đồng cảm, xoa dịu cảm xúc trước đã; sau đó định hướng em KHÔNG im lặng và hướng dẫn cụ thể cách nói chuyện với cha mẹ hoặc thầy cô.",
+      "source": "victim#PhầnIII"
+    },
+    {
+      "id": "level.v.serious",
+      "type": "RiskLevel",
+      "label": "Mức NGHIÊM TRỌNG — khá thường xuyên (3-4 điểm)",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": ["ngày nào cũng", "liên tục", "suốt", "lần nào cũng bị"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Chỉ dẫn cho em: không im lặng, vì im lặng không làm bạo lực chấm dứt; thu thập và lưu trữ bằng chứng (ảnh, tin nhắn, ghi âm); tránh đi một mình ở nơi vắng vẻ.",
+      "guidance": "Việc của agent: đánh giá nguy cơ tổn thương tâm lý và thể chất; giúp em lập kế hoạch hành động an toàn cụ thể; khuyên em trình báo ngay giáo viên hoặc phụ huynh.",
+      "source": "victim#PhầnIII"
+    },
+    {
+      "id": "level.v.very_serious",
+      "type": "RiskLevel",
+      "label": "Mức RẤT NGHIÊM TRỌNG — thường xuyên (từ 4 điểm)",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "em sợ lắm", "họ doạ giết", "em không dám về", "hôm nay lại bị", "em bị đánh chảy máu",
+        "cả nhóm chặn em", "bị đánh chảy máu", "em rất sợ", "doạ đánh em"
+      ],
+      "dangerSignals": ["school_violence", "sexual_abuse"],
+      "summary": "Chỉ dẫn cho em: ưu tiên an toàn thể chất ngay lập tức; nói chuyện ngay với người lớn hoặc gọi tổng đài 111; tìm nhóm bạn đi cùng để bảo vệ bản thân.",
+      "guidance": "Việc của agent: can thiệp khẩn cấp — hướng dẫn em liên hệ trực tiếp phòng tham vấn của trường, công an địa phương; hỗ trợ em kết nối khẩn cấp với chuyên gia tâm thần hoặc y tế. Ở mức này KHÔNG dạy kỹ năng ứng phó nữa, mà đưa em ra khỏi nguy hiểm trước.",
+      "source": "victim#PhầnIII"
+    },
+    {
+      "id": "strategy.v.ignore",
+      "type": "Skill",
+      "label": "Chiến lược 1 — Phớt lờ (Ignore)",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": ["họ trêu em", "chọc tức", "nói móc", "chọc ghẹo"],
+      "summary": "Áp dụng khi lời nói hoặc hành động chỉ gây tổn thương nhẹ, KHÔNG mang tính thù địch đe doạ, mục đích đối phương chỉ là chọc tức. Phớt lờ khiến họ chán nản vì không làm em tức giận được.",
+      "guidance": "Chỉ được gợi ý chiến lược này khi đã xác định đúng là mức nhẹ. Khuyên em phớt lờ trong tình huống bị đe doạ an toàn là lời khuyên có hại — nó dạy em rằng chịu đựng là cách đúng.",
+      "source": "victim#PhầnIV.1"
+    },
+    {
+      "id": "strategy.v.confront",
+      "type": "Skill",
+      "label": "Chiến lược 2 — Phản ứng lại (Confront)",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": ["em nên nói gì", "em phải làm sao", "em không dám nói", "nói lại thế nào"],
+      "summary": "Áp dụng khi lời lẽ gây tổn thương nhưng KHÔNG đe doạ an toàn thể chất. Đứng thẳng, nhìn thẳng vào mắt đối phương, nói kiên quyết và bình tĩnh: 'Tớ không đồng ý với những gì cậu nói', 'Đừng nói những lời bịa đặt đó nữa', 'Cậu không có quyền làm vậy'.",
+      "guidance": "Cho em mượn nguyên câu để nói. Học sinh bị bắt nạt thường không nghĩ ra được câu nào tại trận — có sẵn một câu trong đầu là thứ giúp được nhiều nhất.",
+      "source": "victim#PhầnIV.1"
+    },
+    {
+      "id": "strategy.v.report",
+      "type": "Skill",
+      "label": "Chiến lược 3 — Lên tiếng (Report)",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "em không dám mách", "sợ bị trả thù", "mách thì càng bị đánh", "không ai tin em",
+        "nói với ai bây giờ", "sợ trả thù", "mách cô", "nói với cô", "em sợ mách"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Áp dụng khi sự an toàn thể chất hoặc tinh thần bị đe doạ. Trình báo ngay cho giáo viên, bố mẹ, hoặc người lớn đáng tin cậy.",
+      "guidance": "Câu chốt phải nói với em: LÊN TIẾNG KHÔNG PHẢI LÀ YẾU ĐUỐI, mà là dũng cảm để bảo vệ chính mình. Nỗi sợ 'mách thì càng bị đánh' là có thật với em — đừng gạt đi, hãy cùng em chọn người an toàn nhất và nghĩ cách nói.",
+      "source": "victim#PhầnIV.1"
+    },
+    {
+      "id": "protocol.v.assertive_5steps",
+      "type": "Protocol",
+      "label": "Giao tiếp quyết đoán — 5 bước",
+      "agents": ["agent_victim", "agent_actor", "agent_homeroom"],
+      "priority": 2,
+      "triggers": [
+        "nói chuyện thẳng", "em muốn nói với bạn ấy", "giải quyết mâu thuẫn", "làm hoà",
+        "nói với bạn ấy", "nói chuyện với bạn"
+      ],
+      "summary": "Giúp em bày tỏ thẳng thắn suy nghĩ và cảm xúc trên cơ sở tôn trọng đối phương, để giải quyết triệt để mâu thuẫn thay vì chịu đựng hoặc đáp trả bằng bạo lực.",
+      "guidance": "Đừng liệt kê cả 5 bước một lượt cho em — quá nhiều. Làm mẫu bước 1 với đúng chuyện em vừa kể, rồi hỏi em thử nói lại xem.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "step.v.assertive_1",
+      "type": "Step",
+      "label": "Bước 1 — Nói rõ cảm xúc của bản thân",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Dùng mẫu 'Tôi cảm thấy... khi bạn...'. Ví dụ: 'Tớ cảm thấy rất khó chịu và tức giận khi cậu gọi tớ bằng biệt danh miệt thị ngoại hình trước mặt cả lớp'.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "step.v.assertive_2",
+      "type": "Step",
+      "label": "Bước 2 — Đưa ra đề nghị dứt khoát",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Nói bình tĩnh, rõ ràng điều mình muốn: 'Tôi mong bạn hãy...'. Ví dụ: 'Tớ mong cậu dừng ngay việc gọi tớ bằng cái tên đó và tôn trọng tớ'.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "step.v.assertive_3",
+      "type": "Step",
+      "label": "Bước 3 — Hỏi lại đối phương",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Ví dụ: 'Cậu nghĩ thế nào về đề nghị vừa rồi của tớ?'.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "step.v.assertive_4",
+      "type": "Step",
+      "label": "Bước 4 — Lắng nghe câu trả lời",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Giữ bình tĩnh nghe đối phương giải thích, không cắt ngang.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "step.v.assertive_5",
+      "type": "Step",
+      "label": "Bước 5 — Chấp nhận và cảm ơn sự chia sẻ",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Nếu đối phương đồng ý, cảm ơn và kết thúc cuộc đối thoại — việc này củng cố ranh giới hành vi vừa được thiết lập.",
+      "source": "victim#PhầnIV.2"
+    },
+    {
+      "id": "protocol.v.refusal_4steps",
+      "type": "Protocol",
+      "label": "Nói KHÔNG dứt khoát — 4 bước",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "bị ép", "bắt em làm", "rủ em đi", "không dám từ chối", "sợ mất bạn", "ép chép bài",
+        "bắt đưa tiền", "ép làm chuyện đó"
+      ],
+      "dangerSignals": ["school_violence", "sexual_abuse"],
+      "summary": "Dùng khi em bị ép làm việc xấu (chép bài hộ, đưa tiền, đi cùng nhóm gây chuyện) hoặc bị ép quan hệ tình dục không mong muốn.",
+      "guidance": "Bốn bước phải nói LIỀN MẠCH như một chuỗi hành động, vì trong tình huống thật em không có thời gian cân nhắc từng bước.",
+      "source": "victim#PhầnIV.3, actor#PhầnIV.4.4"
+    },
+    {
+      "id": "step.v.refusal_1",
+      "type": "Step",
+      "label": "Bước 1 — Nói KHÔNG rõ ràng",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Nói 'KHÔNG' nhẹ nhàng nhưng rõ ràng, với ngôn từ và nét mặt cực kỳ nghiêm túc — không cười đùa cợt nhả.",
+      "source": "victim#PhầnIV.3"
+    },
+    {
+      "id": "step.v.refusal_2",
+      "type": "Step",
+      "label": "Bước 2 — Nhắc lại mạnh hơn",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Nếu đối phương vẫn năn nỉ hoặc ép buộc, nhắc lại lời từ chối với ngữ điệu lớn hơn, mạnh mẽ hơn. Nhìn thẳng vào mắt họ, không ngó nghiêng ngượng ngùng, để họ không có cảm giác dỗ dành được em.",
+      "source": "victim#PhầnIV.3"
+    },
+    {
+      "id": "step.v.refusal_3",
+      "type": "Step",
+      "label": "Bước 3 — Rời khỏi đó ngay",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 1,
+      "triggers": [],
+      "summary": "Rời khỏi địa điểm đó ngay lập tức để ngắt tương tác. Đi về phía chỗ đông người hoặc khu vực văn phòng nhà trường.",
+      "source": "victim#PhầnIV.3, actor#PhầnIV.4.4"
+    },
+    {
+      "id": "step.v.refusal_4",
+      "type": "Step",
+      "label": "Bước 4 — Kêu cứu hoặc tự vệ",
+      "agents": ["agent_victim", "agent_actor"],
+      "priority": 2,
+      "triggers": [],
+      "dangerSignals": ["sexual_abuse", "school_violence"],
+      "summary": "Nếu đối phương cố tình dùng sức mạnh giữ em lại, hãy kêu cứu thật to ('Cứu tôi với!') hoặc dùng vũ lực tự vệ để thoát ra, rồi báo ngay cho thầy cô.",
+      "guidance": "Đây là ngoại lệ duy nhất mà việc dùng sức được phép nói tới: để THOÁT RA, không phải để đánh trả. Phải nói rõ ranh giới đó khi hướng dẫn em.",
+      "source": "victim#PhầnIV.3, actor#PhầnIV.4.4"
+    },
+    {
+      "id": "protocol.v.harassment_6steps",
+      "type": "Protocol",
+      "label": "Ngăn chặn quấy rối tình dục ở trường — 6 bước",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "thầy sờ em", "bạn sờ em", "bị đụng chạm", "tốc váy", "bình phẩm cơ thể em",
+        "em bị quấy rối", "em không dám kể"
+      ],
+      "dangerSignals": ["sexual_abuse", "grooming"],
+      "summary": "Bước 1 — hiểu rõ rằng các hành vi quấy rối tình dục là phạm pháp và không được chấp nhận. Bước 2 — tìm bạn cùng cảnh ngộ để cùng lên tiếng, và phản ứng ngay tại thời điểm xảy ra, trước mặt mọi người: 'Tôi không thích hành động đó của bạn, hãy dừng lại'. Bước 3 — ghi lại bằng chứng chi tiết: ngày giờ, vị trí, người chứng kiến, ảnh hưởng tới tinh thần và học tập. Bước 4 — nói với cán bộ tư vấn học đường hoặc giáo viên tin cậy, đề nghị họ ghi chép lại thời điểm trình báo. Bước 5 — viết thư cảnh cáo người quấy rối, mô tả hành vi, yêu cầu chấm dứt và giữ lại một bản sao. Bước 6 — nộp toàn bộ hồ sơ bằng chứng cho ban giám hiệu để xử lý theo quy định.",
+      "guidance": "Với một học sinh đang sợ hãi, ĐỪNG đọc cả 6 bước. Chọn đúng bước em làm được ngay hôm nay — thường là bước 4: tìm một người lớn để nói. Các bước còn lại là việc của người lớn giúp em làm. Và nói trước mọi thứ: ĐÂY KHÔNG PHẢI LỖI CỦA EM.",
+      "source": "victim#PhầnIV.4"
+    },
+    {
+      "id": "case.v.cuong",
+      "type": "Case",
+      "label": "Cường (lớp 8) — bị chặn đường đánh vì ghen tuông",
+      "agents": ["agent_victim"],
+      "priority": 0,
+      "triggers": ["chặn đường", "bị nhóm đánh", "nói dối bố mẹ bị ngã", "sợ không dám đi học"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Cường bị Tuấn và một nhóm thanh niên lớp lớn chặn đường ngoài cổng trường, lôi vào góc khuất đánh dã man và đe doạ không được mách ai. Vì quá sợ trả thù, Cường về nhà nói dối bố mẹ là bị ngã xe, rồi sợ không dám đến trường nữa.",
+      "guidance": "Bài học rút ra: nói dối về nguyên nhân vết thương là phản ứng ĐIỂN HÌNH của nạn nhân, không phải sự gian dối. Và đe doạ 'không được mách' chính là thứ giữ em im lặng — phải gọi tên nó ra cho em thấy.",
+      "source": "victim#PhầnI.1"
+    },
+    {
+      "id": "case.v.s",
+      "type": "Case",
+      "label": "S (lớp 8) — bị đồn thổi và cả khối cô lập",
+      "agents": ["agent_victim"],
+      "priority": 0,
+      "triggers": ["bị đồn", "xuyên tạc", "cả lớp nói xấu", "không ai tin em", "bị săm soi"],
+      "summary": "S học giỏi, thân thiện nhưng bị bạn trong lớp không thích. Một bạn nam xuyên tạc quan hệ bạn bè bình thường của S thành yêu đương rồi đồn khắp trường. S phản ứng lại thì không ai tin. Cả lớp và cả khối bắt đầu săm soi, nói móc. S rời nhóm nòng cốt của trường, từ người hay nói thành lầm lì và sợ đến trường.",
+      "guidance": "Bài học: phản ứng bằng cách nói xấu lại là điều em rất hay làm và nó luôn phản tác dụng. Đây là chỗ để dạy giao tiếp quyết đoán thay vì ăn miếng trả miếng.",
+      "source": "victim#PhầnI.2"
+    },
+    {
+      "id": "case.v.hung",
+      "type": "Case",
+      "label": "Hùng (lớp 6) — bị chế giễu vì khác biệt giới tính biểu hiện",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": [
+        "gọi em là ái", "chê giọng em", "bảo em giống con gái", "không cho vào nhà vệ sinh",
+        "bị chặn cửa"
+      ],
+      "dangerSignals": ["school_violence", "suicidal"],
+      "summary": "Hùng có nước da trắng, giọng nhỏ nhẹ, bị các bạn nam gọi bằng biệt danh chế giễu ở khắp nơi, cả khối lớp trên cũng hùa vào. Mấy tuần liền Hùng không dám đi vệ sinh ở trường vì bị chặn cửa xua đuổi. Hùng rơi vào bế tắc và đã có ý nghĩ tự tử ngay trong nhà vệ sinh trường.",
+      "guidance": "Đây là ca cho thấy bắt nạt vì SỰ KHÁC BIỆT leo thang tới ý định tự sát nhanh thế nào, và nó bắt đầu chỉ từ một biệt danh. Khi em kể chuyện bị chê cười vì ngoại hình hay giọng nói, phải hỏi thăm cả phần cảm xúc sâu hơn, đừng dừng ở 'kệ họ đi'.",
+      "source": "victim#PhầnI.2"
+    },
+    {
+      "id": "case.v.trung",
+      "type": "Case",
+      "label": "Trung (lớp 8) — bị trấn lột và bị nắm bí mật",
+      "agents": ["agent_victim"],
+      "priority": 0,
+      "triggers": ["bị đòi tiền", "doạ mách bố mẹ", "phải nộp tiền hàng ngày", "lấy trộm tiền nhà"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Trung bị hai thanh niên lớn tuổi chặn đường đòi ví tiền và doạ 'về đem thêm tiền đến nộp, nếu không mày chết'. Trước đó chúng từng lôi kéo Trung bỏ học đi chơi game và dùng chính bí mật đó để doạ mách bố mẹ. Vì sợ, Trung liên tục nói dối xin tiền, thậm chí ăn cắp tiền của gia đình để nộp.",
+      "guidance": "Bài học quan trọng: kẻ bắt nạt giữ em bằng một LỖI NHỎ của em. Phải nói rõ với em rằng lỗi cũ của em không làm em mất quyền được bảo vệ, và người lớn cần biết cả hai chuyện.",
+      "source": "victim#PhầnI.3"
+    },
+    {
+      "id": "case.v.m",
+      "type": "Case",
+      "label": "M (lớp 7) — bị giáo viên đụng chạm khi ở lại một mình",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": ["thầy giữ em lại", "học thêm một mình", "thầy vuốt tóc", "thầy ôm em"],
+      "dangerSignals": ["sexual_abuse", "grooming"],
+      "summary": "M học yếu môn Lý, được thầy giáo mới tỏ ra ân cần nâng đỡ và hẹn ở lại cuối giờ để phụ đạo. Khi lớp chỉ còn hai thầy trò, thầy bắt đầu vuốt tóc, ngồi sát ghé má, vòng tay qua cổ, rồi bất ngờ ôm ghì lấy M. M hoảng sợ vùng chạy ra khỏi trường.",
+      "guidance": "Đây là mẫu GROOMING điển hình: sự ân cần đặc biệt đến trước, việc tách riêng đến sau. Khi em kể có người lớn quan tâm mình 'khác hẳn mọi người' và hay tìm cách ở riêng với em, đó là tín hiệu cần chú ý dù chưa có gì xảy ra.",
+      "source": "victim#PhầnI.4"
+    },
+    {
+      "id": "case.v.h",
+      "type": "Case",
+      "label": "H (lớp 10) — quan hệ dẫn tới mang thai và bị bỏ rơi",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": ["em có thai", "bạn trai em", "anh ấy bảo em phá", "em sợ bố mẹ biết"],
+      "dangerSignals": ["sexual_abuse"],
+      "summary": "H yêu một anh khoá trên. H nói dối bố mẹ để đi chơi, được đưa về nhà anh ta khi gia đình đi vắng và dẫn đến quan hệ tình dục. Một tháng sau H phát hiện mang thai, bạn trai thoái thác trách nhiệm và bắt H đi phá thai ngay vì sắp đi du học.",
+      "guidance": "Tình huống này cần người lớn vào cuộc NGAY, không có ngoại lệ. Tuyệt đối không trách em về việc nói dối bố mẹ — em đang cần giúp, không cần bị phán xét. Hướng tới tổng đài 111 và một người lớn nữ mà em tin tưởng.",
+      "source": "victim#PhầnI.4"
+    },
+    {
+      "id": "case.v.c",
+      "type": "Case",
+      "label": "C (lớp 10) — bị dụ dỗ trên mạng và tống tiền bằng ảnh",
+      "agents": ["agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "quen trên mạng", "anh ấy bảo em gửi ảnh", "doạ gửi ảnh cho bố mẹ", "bị tống tiền",
+        "em đã gửi ảnh", "bảo em gửi ảnh", "doạ gửi ảnh", "em gửi ảnh rồi"
+      ],
+      "dangerSignals": ["grooming", "sexual_abuse"],
+      "summary": "C quen một tài khoản nam tự xưng sinh viên năm 3, được hướng dẫn học tập, gửi nhạc, trò chuyện thâu đêm rồi tỏ tình. C rung động và gửi cho anh ta ảnh nhạy cảm. Có ảnh rồi, anh ta lập tức đổi thái độ, liên tục đe doạ ép C quay video gửi tiếp, nếu không sẽ gửi ảnh cho thầy cô, bạn bè và bố mẹ. C hoang mang tột độ, luôn tự trách bản thân và hoảng loạn.",
+      "guidance": "Ba điều phải nói ngay với em trong ca này: (1) đây là tội phạm và em là NẠN NHÂN, không phải người có lỗi; (2) tuyệt đối không gửi thêm bất cứ thứ gì và không trả tiền — làm theo chỉ khiến việc đe doạ tiếp diễn; (3) phải có một người lớn biết ngay hôm nay, và gọi 111.",
+      "source": "victim#PhầnI.5"
+    },
+    {
+      "id": "case.v.hanoi_grade10",
+      "type": "Case",
+      "label": "Nữ sinh lớp 10 tại Hà Nội — ảnh ghép, cả lớp hùa theo, tự tử",
+      "agents": ["agent_victim"],
+      "priority": 1,
+      "triggers": ["ảnh ghép", "đăng lên nhóm lớp", "cả lớp hùa vào", "thách em chết"],
+      "dangerSignals": ["school_violence", "suicidal"],
+      "summary": "Một học sinh lấy ảnh bạn cùng lớp cắt ghép nhạy cảm, không chịu gỡ mà còn đăng lên group chat của lớp; một bạn khác tiếp tục đăng lên Facebook cả lớp. Khi nạn nhân phản kháng, cả lớp thích chí hùa vào trêu chọc. Nạn nhân nhắn rằng sẽ chết vì bức ảnh này thì bị thách thức 'chết đi cho bọn tao ăn mừng'. Em đã uống thuốc diệt cỏ và tử vong tại bệnh viện.",
+      "guidance": "Đây là lý do vì sao nguyên tắc 'không bao giờ phớt lờ bất kỳ tín hiệu nào' là tuyệt đối. Khi một em kể rằng mình đã nói ra ý định muốn chết mà bị cười nhạo, đó là mức nguy cơ cao nhất — chuyển sang phần tự hại ngay lập tức.",
+      "source": "victim#PhầnI.5"
+    }
+  ],
+  "edges": [
+    { "from": "sign.v.physical", "rel": "INDICATES", "to": "vtype.physical" },
+    { "from": "sign.v.behavioral", "rel": "INDICATES", "to": "vtype.physical" },
+    { "from": "sign.v.behavioral", "rel": "INDICATES", "to": "vtype.economic" },
+    { "from": "sign.v.emotional", "rel": "INDICATES", "to": "vtype.emotional" },
+    { "from": "sign.v.social", "rel": "INDICATES", "to": "vtype.emotional" },
+    { "from": "sign.v.cyber", "rel": "INDICATES", "to": "vtype.cyber" },
+    { "from": "sign.v.emotional", "rel": "ESCALATES_TO", "to": "concept.y_tuong_tu_sat" },
+    { "from": "sign.v.emotional", "rel": "ESCALATES_TO", "to": "concept.nssi" },
+    { "from": "vtype.emotional", "rel": "ESCALATES_TO", "to": "concept.y_tuong_tu_sat" },
+    { "from": "vtype.cyber", "rel": "ESCALATES_TO", "to": "concept.y_tuong_tu_sat" },
+    { "from": "level.v.low", "rel": "ESCALATES_TO", "to": "level.v.medium" },
+    { "from": "level.v.medium", "rel": "ESCALATES_TO", "to": "level.v.serious" },
+    { "from": "level.v.serious", "rel": "ESCALATES_TO", "to": "level.v.very_serious" },
+    { "from": "strategy.v.ignore", "rel": "APPLIES_AT", "to": "level.v.low" },
+    { "from": "strategy.v.confront", "rel": "APPLIES_AT", "to": "level.v.medium" },
+    { "from": "strategy.v.report", "rel": "APPLIES_AT", "to": "level.v.serious" },
+    { "from": "strategy.v.report", "rel": "APPLIES_AT", "to": "level.v.very_serious" },
+    { "from": "protocol.v.assertive_5steps", "rel": "APPLIES_AT", "to": "level.v.medium" },
+    { "from": "protocol.v.harassment_6steps", "rel": "APPLIES_AT", "to": "level.v.very_serious" },
+    { "from": "strategy.v.confront", "rel": "RELATED_TO", "to": "protocol.v.assertive_5steps" },
+    { "from": "strategy.v.report", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "level.v.very_serious", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "level.v.very_serious", "rel": "REFER_TO", "to": "hotline.blue_blue" },
+    { "from": "protocol.v.assertive_5steps", "rel": "HAS_STEP", "to": "step.v.assertive_1" },
+    { "from": "protocol.v.assertive_5steps", "rel": "HAS_STEP", "to": "step.v.assertive_2" },
+    { "from": "protocol.v.assertive_5steps", "rel": "HAS_STEP", "to": "step.v.assertive_3" },
+    { "from": "protocol.v.assertive_5steps", "rel": "HAS_STEP", "to": "step.v.assertive_4" },
+    { "from": "protocol.v.assertive_5steps", "rel": "HAS_STEP", "to": "step.v.assertive_5" },
+    { "from": "protocol.v.refusal_4steps", "rel": "HAS_STEP", "to": "step.v.refusal_1" },
+    { "from": "protocol.v.refusal_4steps", "rel": "HAS_STEP", "to": "step.v.refusal_2" },
+    { "from": "protocol.v.refusal_4steps", "rel": "HAS_STEP", "to": "step.v.refusal_3" },
+    { "from": "protocol.v.refusal_4steps", "rel": "HAS_STEP", "to": "step.v.refusal_4" },
+    { "from": "protocol.v.refusal_4steps", "rel": "RESPONDS_TO", "to": "vtype.economic" },
+    { "from": "protocol.v.refusal_4steps", "rel": "RESPONDS_TO", "to": "vtype.sexual" },
+    { "from": "protocol.v.harassment_6steps", "rel": "RESPONDS_TO", "to": "vtype.sexual" },
+    { "from": "protocol.v.harassment_6steps", "rel": "REFER_TO", "to": "hotline.csaga" },
+    { "from": "protocol.v.assertive_5steps", "rel": "RESPONDS_TO", "to": "vtype.emotional" },
+    { "from": "skill.box_breathing", "rel": "RESPONDS_TO", "to": "sign.v.emotional" },
+    { "from": "skill.cognitive_reframe", "rel": "RESPONDS_TO", "to": "sign.v.emotional" },
+    { "from": "skill.muscle_relax", "rel": "RESPONDS_TO", "to": "sign.v.physical" },
+    { "from": "case.v.cuong", "rel": "EXEMPLIFIES", "to": "vtype.physical" },
+    { "from": "case.v.s", "rel": "EXEMPLIFIES", "to": "vtype.emotional" },
+    { "from": "case.v.hung", "rel": "EXEMPLIFIES", "to": "vtype.emotional" },
+    { "from": "case.v.trung", "rel": "EXEMPLIFIES", "to": "vtype.economic" },
+    { "from": "case.v.m", "rel": "EXEMPLIFIES", "to": "vtype.sexual" },
+    { "from": "case.v.h", "rel": "EXEMPLIFIES", "to": "vtype.sexual" },
+    { "from": "case.v.c", "rel": "EXEMPLIFIES", "to": "vtype.cyber" },
+    { "from": "case.v.hanoi_grade10", "rel": "EXEMPLIFIES", "to": "vtype.cyber" },
+    { "from": "case.v.hung", "rel": "ESCALATES_TO", "to": "concept.y_tuong_tu_sat" },
+    { "from": "case.v.hanoi_grade10", "rel": "ESCALATES_TO", "to": "concept.toan_tu_sat" },
+    { "from": "case.v.c", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "case.v.h", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "case.v.m", "rel": "REFER_TO", "to": "hotline.111" }
+  ]
+}

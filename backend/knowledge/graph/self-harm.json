@@ -1,0 +1,650 @@
+{
+  "$comment": "Khung lý thuyết cho agent_self_harm (🛟 Larry Đồng hành) — file rủi ro cao nhất trong graph. Các node Taboo ở đây KHÔNG được ghim: bản thân prompts/roles/selfHarm.js đã mang sẵn danh sách điều cấm ở mọi lượt, ghim lại lần nữa chỉ chiếm chỗ của phần tri thức theo tình huống. Thay vào đó mỗi Taboo nối bằng cạnh CONTRAINDICATED_FOR tới đúng chủ đề mà nó cấm, nên nó tự nổi lên khi chủ đề đó xuất hiện. Chỉ ba node Principle được ghim, vì chúng không có từ khoá nào để khớp và không tài liệu nào khác nhắc lại chúng.",
+  "source": {
+    "id": "self-harm",
+    "title": "Cơ sở lý thuyết và cẩm nang can thiệp khẩn cấp — hành vi tự hại và toan tự sát ở học sinh",
+    "file": "backend/documents/khung-ly-thuyet-tu-van-khan-cap-hoc-sinh-tu-hai.docx"
+  },
+  "nodes": [
+    {
+      "id": "concept.y_tuong_tu_sat",
+      "type": "Concept",
+      "label": "Ý tưởng tự sát (Suicidal Ideation)",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "muốn chết", "không muốn sống", "muốn biến mất", "chán sống", "sống làm gì",
+        "nếu không có tôi", "không chịu nổi nữa", "kết thúc tất cả", "đi luôn cho rồi"
+      ],
+      "dangerSignals": ["suicidal"],
+      "summary": "Trạng thái có suy nghĩ muốn chết, đang cân nhắc, nghiền ngẫm hoặc lên kế hoạch tự sát nhưng CHƯA thực thi hành động. Trải dài nhiều mức: từ suy nghĩ thoáng qua mơ hồ, đến nghiền ngẫm sâu về cái chết, cao nhất là lập kế hoạch chi tiết về thời gian, địa điểm, phương thức.",
+      "guidance": "Ở học sinh, ý tưởng tự sát thường lộ ra GIÁN TIẾP: lời nói bâng quơ, thư từ, bài viết, hoặc thay đổi hành vi đột ngột — chứ hiếm khi nói thẳng. Bất kỳ tín hiệu nào cũng phải được ghi nhận nghiêm túc, không có tín hiệu nào là 'nói cho vui'.",
+      "source": "self-harm#ChươngI.1"
+    },
+    {
+      "id": "concept.toan_tu_sat",
+      "type": "Concept",
+      "label": "Hành vi toan tự sát (Suicide Attempt)",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "đã từng thử", "uống thuốc", "quá liều", "treo cổ", "nhảy lầu", "tự tử hụt", "định làm rồi",
+        "suýt nữa thì"
+      ],
+      "dangerSignals": ["suicidal"],
+      "summary": "Hành động tự gây thương tích có chủ định, có ý thức, HƯỚNG TỚI CÁI CHẾT nhưng không dẫn đến tử vong. Bắt nguồn từ nhu cầu thoát khỏi thực tại bế tắc, trốn chạy đau khổ tột cùng, hoặc giải quyết một khủng hoảng mà em thấy mình bất lực không thể ứng phó.",
+      "guidance": "Điểm phân biệt duy nhất với NSSI là Ý ĐỊNH CHẾT. Đừng hỏi em về phương tiện hay cách thức — đó là việc của chuyên viên lâm sàng, và hỏi ra là đang nhắc lại cách làm. Chỉ cần biết em có an toàn ở HIỆN TẠI không.",
+      "source": "self-harm#ChươngI.1"
+    },
+    {
+      "id": "concept.nssi",
+      "type": "Concept",
+      "label": "Tự làm tổn thương không do tự sát (NSSI)",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "tự hại", "tự làm đau", "cắt tay", "rạch tay", "tự cắt", "tự đánh mình", "đấm tường",
+        "tự cào", "làm đau mình", "tự trừng phạt"
+      ],
+      "dangerSignals": ["self_injury"],
+      "summary": "Phá huỷ hoặc gây thương tổn có chủ đích, trực tiếp lên mô cơ thể mình, nhưng TUYỆT ĐỐI KHÔNG kèm ý định tự sát. Là một vấn đề sức khoẻ tâm thần độc lập, không đơn thuần là triệu chứng của rối loạn nhân cách.",
+      "guidance": "Em làm vậy thường để có được sự giải thoát tức thì khỏi cảm xúc tiêu cực, để chuyển nỗi đau tinh thần thành nỗi đau thể xác dễ kiểm soát hơn, hoặc để tìm lại cảm giác thực khi rơi vào trạng thái trống rỗng. Hiểu được CHỨC NĂNG này rồi mới gợi ý được cách thay thế đúng — cấm đoán suông thì không có tác dụng.",
+      "source": "self-harm#ChươngI.1"
+    },
+    {
+      "id": "stat.sh.prevalence",
+      "type": "Stat",
+      "label": "Mức độ phổ biến của hành vi tự hại ở lứa tuổi học sinh",
+      "agents": ["agent_self_harm"],
+      "priority": 0,
+      "triggers": [
+        "chỉ mình em", "có ai như em không", "em có bị điên không", "em có bình thường không",
+        "chắc không ai như em", "em kỳ lạ lắm", "em có bị làm sao không", "em lạ lắm phải không"
+      ],
+      "summary": "Khoảng 15-25% học sinh vị thành niên trên thế giới từng tự làm tổn thương bản thân ít nhất một lần; ở nhóm 8-14 tuổi tỷ lệ này tới ~19%. Tại Việt Nam, SAVY 2 ghi nhận 7,5% thanh thiếu niên 14-25 tuổi có hành vi tự hại, tăng mạnh từ 2,7% ở SAVY 1. Ít nhất 10% người trẻ từng có hành vi tự sát; tự sát là nguyên nhân tử vong đứng thứ ba ở nhóm 15-24 tuổi (WHO).",
+      "guidance": "TUYỆT ĐỐI KHÔNG đọc các con số này cho học sinh — nghe như một bài giảng, và nói với em rằng nhiều người cũng chết vì chuyện này là điều nguy hiểm. Chỉ dùng để trả lời đúng một nhu cầu: khi em sợ mình bất thường, hãy nói ngắn gọn rằng em không phải người duy nhất trải qua điều này, có rất nhiều bạn cùng tuổi em cũng từng như vậy và đã ổn hơn.",
+      "source": "self-harm#ChươngI.2"
+    },
+    {
+      "id": "func.emotion_regulation",
+      "type": "Function",
+      "label": "Chức năng: quản lý và kiểm soát cảm xúc khó chịu",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["tức quá", "không kìm được", "ức chế", "bí bách", "không biết làm sao"],
+      "summary": "Hành vi tự hại giúp em giải toả tức giận, lo âu, tội lỗi hoặc u uất tột độ khi chưa biết cách biểu đạt cảm xúc lành mạnh.",
+      "guidance": "Khi đây là chức năng chính, thứ em thiếu là VỐN TỪ để gọi tên cảm xúc và một lối thoát an toàn — hãy đi theo hướng đó.",
+      "source": "self-harm#ChươngI.3"
+    },
+    {
+      "id": "func.pain_transfer",
+      "type": "Function",
+      "label": "Chức năng: chuyển hoá nỗi đau tinh thần thành nỗi đau thể xác",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["đau trong lòng", "trống rỗng", "không cảm thấy gì", "tê liệt", "đau mà không biết vì sao"],
+      "summary": "Em tự tạo ra nỗi đau thể xác để làm giảm hoặc tạm thời lấn át nỗi đau tinh thần vốn quá tải và mơ hồ, khó nắm bắt đối với nhận thức của các em.",
+      "guidance": "Đây là chức năng mà các kỹ thuật tạo cảm giác mạnh nhưng vô hại thay thế được tốt nhất — nắm đá lạnh, đấm gối.",
+      "source": "self-harm#ChươngI.3"
+    },
+    {
+      "id": "func.escape_reality",
+      "type": "Function",
+      "label": "Chức năng: trốn chạy thực tại",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["muốn trốn", "không muốn đối mặt", "bế tắc", "không lối thoát", "chịu hết nổi"],
+      "dangerSignals": ["suicidal"],
+      "summary": "Dùng cái chết hoặc thương tổn để bỏ chạy khỏi một khủng hoảng trầm trọng mà em đánh giá là mình không có khả năng thích ứng hay giải quyết.",
+      "guidance": "Chức năng này nguy hiểm nhất vì nó nằm gần ý định tự sát. Khi thấy nó, việc cần làm là thu nhỏ khủng hoảng xuống thành từng phần giải quyết được, và đưa người lớn vào cuộc — không phải khuyên em 'suy nghĩ tích cực lên'.",
+      "source": "self-harm#ChươngI.3"
+    },
+    {
+      "id": "func.punish_revenge",
+      "type": "Function",
+      "label": "Chức năng: tự trừng phạt và trả thù",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": [
+        "tại em", "lỗi của em", "em đáng bị vậy", "em vô dụng", "em là gánh nặng", "cho họ ân hận",
+        "để họ biết"
+      ],
+      "summary": "Em tự huỷ hoại bản thân vì tin rằng mình tội lỗi, vô giá trị (tự trừng phạt); hoặc mong cái chết của mình sẽ khiến người thân phải hối hận và đau khổ vì mặc cảm có lỗi (trả thù).",
+      "guidance": "Khi chức năng là tự trừng phạt, câu 'ĐÂY KHÔNG PHẢI LỖI CỦA EM' phải được nói rõ ràng và cụ thể vào đúng chuyện em vừa kể, chứ không phải nói chung chung.",
+      "source": "self-harm#ChươngI.3"
+    },
+    {
+      "id": "riskfactor.sh.individual",
+      "type": "RiskFactor",
+      "label": "Yếu tố rủi ro — cá nhân",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": [
+        "trầm cảm", "lo âu", "tự ti", "không tự tin", "bốc đồng", "rượu", "thuốc lá",
+        "chất kích thích", "rối loạn ăn uống"
+      ],
+      "summary": "Tiền sử trầm cảm, lo âu; lòng tự trọng thấp; kỹ năng giải quyết vấn đề kém; tính khí bốc đồng dễ kích động; sử dụng rượu bia, chất kích thích; hoặc có chẩn đoán tự kỷ, ADHD, rối loạn ăn uống.",
+      "source": "self-harm#ChươngI.4"
+    },
+    {
+      "id": "riskfactor.sh.family",
+      "type": "RiskFactor",
+      "label": "Yếu tố rủi ro — gia đình",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "bố mẹ cãi nhau", "bố mẹ ly hôn", "bố mẹ đánh", "bị bỏ bê", "không ai quan tâm",
+        "bố uống rượu", "gia đình lục đục"
+      ],
+      "dangerSignals": ["domestic_violence"],
+      "summary": "Cha mẹ gặp khó khăn về sức khoẻ tinh thần; quan hệ cha mẹ bất hoà xung đột thường xuyên; gia đình lạm dụng ma tuý hoặc rượu; em bị lạm dụng thể xác/tinh thần, bị bỏ bê; hoặc gia đình có tiền sử tự làm hại bản thân.",
+      "guidance": "Nếu nguy hiểm nằm ngay trong nhà, lời khuyên 'nói với bố mẹ' KHÔNG dùng được. Chuyển sang thầy cô, người thân khác mà em thấy an toàn, hoặc tổng đài 111.",
+      "source": "self-harm#ChươngI.4"
+    },
+    {
+      "id": "riskfactor.sh.social",
+      "type": "RiskFactor",
+      "label": "Yếu tố rủi ro — xã hội",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "bị bắt nạt", "bị cô lập", "không ai chơi", "bạn em cũng tự hại", "nhóm trên mạng",
+        "hội nhóm", "xem trên mạng"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Bị bắt nạt trực tiếp hoặc qua mạng; bị cô lập, từ chối bởi nhóm bạn đồng trang lứa; có bạn thân là người có hành vi tự hại; dễ dàng tiếp cận vật sắc nhọn hoặc chất độc hại; chịu ảnh hưởng từ các hội nhóm trực tuyến cổ vũ hành vi tự hành xác.",
+      "guidance": "Nghe thấy 'bạn em cũng làm vậy' hoặc 'em xem trên mạng' thì đó là dấu hiệu LÂY TRUYỀN — xử lý theo phần ứng phó lây truyền trong nhóm bạn, và tuyệt đối không bàn chi tiết về hành vi của bạn kia.",
+      "source": "self-harm#ChươngI.4"
+    },
+    {
+      "id": "sign.sh.unexplained_wounds",
+      "type": "Sign",
+      "label": "Vết thương không rõ nguyên nhân",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["vết cắt", "vết sẹo", "vết bỏng", "bầm tím", "xước da", "vết thương"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Các vết cắt nhỏ song song trên cổ tay, bắp tay, đùi; vết bỏng tròn do tàn thuốc hoặc que diêm; vết bầm tím, xước da liên tục kèm những lời lý giải vụng về, không thống nhất.",
+      "guidance": "Ghi nhận sự tồn tại của vết thương thì được, HỎI CHI TIẾT thì không: không hỏi sâu bao nhiêu, bằng vật gì, ở chỗ nào trên cơ thể.",
+      "source": "self-harm#ChươngII.1"
+    },
+    {
+      "id": "sign.sh.covering_clothes",
+      "type": "Sign",
+      "label": "Che giấu cơ thể bất thường",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["mặc áo dài tay", "trời nóng vẫn mặc", "không dám thay đồ", "trốn thể dục", "không đi bơi"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Mặc quần áo dài tay, quần dài, cài kín cổ bất chấp trời nóng để che vết cắt hoặc vết bầm. Kiên quyết tránh bơi lội, thể thao, thay đồ thể dục khi có người xung quanh.",
+      "source": "self-harm#ChươngII.1"
+    },
+    {
+      "id": "sign.sh.withdrawal",
+      "type": "Sign",
+      "label": "Thu mình và chán nản",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["không muốn gặp ai", "ở lì trong phòng", "bỏ học", "trốn học", "điểm kém đi", "chán mọi thứ"],
+      "summary": "Đột ngột cô lập bản thân, ngừng giao lưu với bạn bè quen thuộc, mất hào hứng với hoạt động vốn yêu thích. Kết quả học tập sa sút bất ngờ, thường xuyên bỏ giờ, trốn học.",
+      "source": "self-harm#ChươngII.2"
+    },
+    {
+      "id": "sign.sh.emotional_volatility",
+      "type": "Sign",
+      "label": "Biến động cảm xúc mãnh liệt",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["cáu vô cớ", "dễ nổi nóng", "lầm lì", "không thấy gì nữa", "vô cảm"],
+      "summary": "Dễ cáu kỉnh, giận dữ dữ dội vô cớ, phản ứng phòng vệ hoặc hung hăng bộc phát. Ngược lại, một số em đột ngột trở nên lầm lì, lãnh cảm hoàn toàn.",
+      "source": "self-harm#ChươngII.2"
+    },
+    {
+      "id": "sign.sh.self_blame",
+      "type": "Sign",
+      "label": "Tự trách bản thân quá mức",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["tại em hết", "em vô dụng", "em là gánh nặng", "em thất bại", "em ghét bản thân"],
+      "summary": "Thường xuyên bộc lộ tội lỗi sâu sắc về mọi vấn đề xung quanh. Viết hoặc nói những câu thể hiện sự thất bại, vô dụng, căm ghét bản thân, tự nhận mình là gánh nặng của người khác.",
+      "guidance": "Đáp lại theo mẫu đồng cảm khi em tự trách — ghi nhận sự dũng cảm khi em nói ra, KHÔNG tranh luận rằng em sai.",
+      "source": "self-harm#ChươngII.2"
+    },
+    {
+      "id": "sign.sh.death_intent",
+      "type": "Sign",
+      "label": "Tín hiệu về ý định muốn chết",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "em muốn biến mất", "mọi người sẽ tốt hơn nếu không có em", "không chịu đựng thêm được",
+        "viết thư để lại", "cho bạn đồ của em", "tặng lại đồ", "nếu không có em",
+        "tốt hơn khi không có em", "chán sống rồi"
+      ],
+      "dangerSignals": ["suicidal"],
+      "summary": "Lời nói hoặc tin nhắn kiểu 'Tôi muốn biến mất', 'Tôi không thể chịu đựng thêm nữa', 'Mọi người sẽ tốt hơn nếu không có tôi'; viết di thư; vẽ tranh bạo lực hoặc tự hại; dọn dẹp đồ đạc quý giá đem tặng lại cho bạn bè.",
+      "guidance": "Hành vi TẶNG LẠI ĐỒ QUÝ là tín hiệu thường bị bỏ sót nhất và cũng gần hành động nhất. Gặp tín hiệu này thì đối xử như mức NGUY CƠ CAO ngay, không chờ xác nhận thêm.",
+      "source": "self-harm#ChươngII.2"
+    },
+    {
+      "id": "level.sh.high",
+      "type": "RiskLevel",
+      "label": "NGUY CƠ CAO — khẩn cấp",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "em định làm hôm nay", "em đã chuẩn bị", "em không muốn sống nữa", "vừa uống thuốc",
+        "em định làm", "em chuẩn bị rồi", "tối nay em"
+      ],
+      "dangerSignals": ["suicidal"],
+      "summary": "Chỉ báo: em bộc lộ rõ suy nghĩ hoặc kế hoạch tự tử ở hiện tại; vết thương thể xác nghiêm trọng cần cấp cứu; tuyệt vọng tột độ kèm uống quá liều thuốc hoặc rượu, chất kích thích; hoặc vừa có biến cố mất mát lớn (người thân mất, gia đình phá sản).",
+      "guidance": "Hành động: giữ kết nối liên tục với em, không để cuộc trò chuyện đóng lại; nói ngay với người lớn tin cậy và tổng đài 111; nếu có dấu hiệu quá liều hay vết cắt sâu thì 115. TUYỆT ĐỐI KHÔNG hứa giữ bí mật ở mức này.",
+      "source": "self-harm#ChươngII.3"
+    },
+    {
+      "id": "level.sh.low_medium",
+      "type": "RiskLevel",
+      "label": "NGUY CƠ THẤP / TRUNG BÌNH",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["hồi trước em có", "lâu rồi em không", "em chỉ nghĩ thôi", "em muốn làm nhưng chưa"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Chỉ báo: có vết thương tự hại cũ nhưng không có kế hoạch hay ý định tự tử hiện tại; căng thẳng, u uất quá tải nhưng chưa có ý nghĩ muốn chết; muốn tự làm đau mình để đối phó với áp lực học tập hoặc xung đột gia đình.",
+      "guidance": "Hành động: chuyển sang huấn luyện kỹ năng kiểm soát cảm xúc và vượt qua cơn thúc đẩy; giúp em xác định nguyên nhân và cảm xúc kích hoạt hành vi; khuyến khích em chia sẻ với cha mẹ và phòng tham vấn tâm lý học đường.",
+      "source": "self-harm#ChươngII.3"
+    },
+    {
+      "id": "principle.sh.never_ignore",
+      "type": "Principle",
+      "label": "Không bao giờ phớt lờ bất kỳ tín hiệu nào",
+      "agents": ["agent_self_harm"],
+      "priority": 3,
+      "triggers": [],
+      "summary": "Dù chỉ là một câu nói bâng quơ hay dấu hiệu nhỏ nhất, phải ghi nhận nghiêm túc ý định tự hại của em. Hỏi TRỰC TIẾP nhưng thấu cảm về ý định tự hại giúp em giải toả áp lực và KHÔNG làm nảy sinh thêm ý định tự sát.",
+      "guidance": "Đây là điểm trái trực giác quan trọng nhất trong toàn bộ tài liệu: nỗi sợ 'hỏi ra thì em nghĩ đến' là sai. Im lặng mới là thứ khiến em thấy chuyện này không nói được với ai.",
+      "source": "self-harm#ChươngIV.1"
+    },
+    {
+      "id": "principle.sh.calm_empathic",
+      "type": "Principle",
+      "label": "Bình tĩnh, thấu cảm chân thật, không phán xét",
+      "agents": ["agent_self_harm"],
+      "priority": 3,
+      "triggers": [],
+      "summary": "Em chỉ cởi mở khi thấy sự quan tâm, tôn trọng sâu sắc, và sự chấp nhận nỗi đau khổ của mình mà không kèm bất kỳ phán xét đạo đức nào.",
+      "source": "self-harm#ChươngIV.1"
+    },
+    {
+      "id": "principle.sh.no_labeling",
+      "type": "Principle",
+      "label": "Không gán nhãn tiêu cực",
+      "agents": ["agent_self_harm"],
+      "priority": 3,
+      "triggers": [],
+      "summary": "Tuyệt đối tránh mọi hàm ý rằng em tự hại để 'gây sự chú ý' (attention-seeking) hoặc để 'điều khiển người khác' (manipulative).",
+      "avoid": "Mọi cách diễn đạt ám chỉ em làm vậy để được chú ý, để làm mình làm mẩy, để doạ người khác.",
+      "guidance": "Các từ này gây tổn thương nặng nề và ngăn em tìm kiếm sự giúp đỡ về sau. Kể cả khi em tự nói ra ('chắc mọi người nghĩ em làm màu'), cũng phải phản bác điều đó chứ không im lặng đồng tình.",
+      "source": "self-harm#ChươngIV.1"
+    },
+    {
+      "id": "script.sh.open_concern",
+      "type": "Script",
+      "label": "Mở lời khi thấy em lo lắng, bế tắc ngầm",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["em mệt", "em chán", "không có gì đâu", "em không sao"],
+      "summary": "Mẫu: \"Thầy/cô nhận thấy cảm xúc của con gần đây dường như có rất nhiều lo lắng và mệt mỏi. Thầy/cô luôn ở đây để lắng nghe con; con có đang gặp phải điều gì khó khăn hiện tại không?\"",
+      "guidance": "Chức năng lâm sàng: mở đầu cởi mở bằng sự quan tâm chân thành DỰA TRÊN QUAN SÁT HÀNH VI cụ thể, khích lệ em mở lòng. Hãy đổi lời cho hợp giọng Larry và hợp đúng thứ em vừa kể, đừng chép nguyên văn.",
+      "source": "self-harm#ChươngIV.2"
+    },
+    {
+      "id": "script.sh.notice_wounds",
+      "type": "Script",
+      "label": "Khi nghi ngờ em đang tự làm đau bản thân",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["vết cắt", "vết sẹo", "tay em", "em có làm", "vết thương"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Mẫu: \"Thầy/cô thấy trên tay con có một số vết thương. Thầy/cô biết đây đôi khi là dấu hiệu khi một người tự làm đau bản thân mình. Không biết có phải con đang tự làm đau bản thân không? Thầy/cô rất lo cho con.\"",
+      "guidance": "Chức năng lâm sàng: hỏi TRỰC TIẾP nhưng thấu cảm. Hỏi về tự hại giúp em thấy được quan tâm và không hề làm tăng nguy cơ hành động. Dừng ở câu hỏi 'có phải không' — không đi tiếp sang 'bằng gì', 'sâu không', 'ở đâu'.",
+      "source": "self-harm#ChươngIV.2"
+    },
+    {
+      "id": "script.sh.explore_cause",
+      "type": "Script",
+      "label": "Khám phá nguyên nhân phía sau hành vi",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["vì sao em làm vậy", "em không biết nữa", "em chỉ muốn hết đau"],
+      "summary": "Mẫu: \"Thầy/cô hiểu có nhiều lý do để một người chọn cách tự làm đau bản thân. Thường họ đã phải trải qua những cảm xúc khó khăn vô cùng. Con có thể chia sẻ để giúp thầy/cô hiểu điều gì khiến con tự làm đau bản thân không?\"",
+      "guidance": "Chức năng lâm sàng: chấp nhận nỗi đau khổ của em, bình thường hoá việc em đang dùng tự hại như một cách đối phó TẠM THỜI, rồi mới khuyến khích em kể nguyên nhân sâu xa. Bình thường hoá CHỨC NĂNG, không bao giờ bình thường hoá HÀNH VI.",
+      "source": "self-harm#ChươngIV.2"
+    },
+    {
+      "id": "script.sh.self_blame_empathy",
+      "type": "Script",
+      "label": "Khi em tự trách móc bản thân",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["tại em", "lỗi của em", "em tệ lắm", "em đáng bị thế"],
+      "summary": "Mẫu: \"Con chắc chắn đã cảm thấy rất thất vọng và đau lòng về điều gì đó đúng không? Thầy/cô rất muốn được hỗ trợ con. Việc con nói ra điều này thể hiện con đã cực kỳ dũng cảm rồi. Hãy chia sẻ với thầy/cô nhé.\"",
+      "guidance": "Chức năng lâm sàng: nâng lòng tự trọng, ghi nhận sự dũng cảm khi em nói ra, tránh làm em thấy có lỗi thêm.",
+      "source": "self-harm#ChươngIV.2"
+    },
+    {
+      "id": "script.sh.suicidal_disclosure",
+      "type": "Script",
+      "label": "Khi em bộc lộ suy nghĩ muốn tự tử",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["muốn chết", "không muốn sống nữa", "muốn biến mất"],
+      "dangerSignals": ["suicidal"],
+      "summary": "Mẫu: \"Thầy/cô nhận thấy con đang phải trải qua cảm xúc tột cùng đau khổ, và suy nghĩ này thể hiện con đang bế tắc thế nào. Con không phải đối mặt với chuyện này một mình đâu. Thầy/cô và nhà trường sẽ luôn sát cánh để bảo vệ an toàn cho con.\"",
+      "guidance": "Chức năng lâm sàng: tiếp nhận ý tưởng tự tử một cách nghiêm túc, loại bỏ hoàn toàn phán xét, nhấn mạnh sự đồng hành khẩn cấp. Sau câu này phải có ngay: nói với người lớn tin cậy + tổng đài 111.",
+      "source": "self-harm#ChươngIV.2"
+    },
+    {
+      "id": "skill.sh.ice_cube",
+      "type": "Skill",
+      "label": "Nắm chặt đá viên",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["muốn cắt", "muốn làm đau", "thèm làm", "kìm không được", "cơn muốn"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Nắm chặt một hoặc hai viên đá lạnh trong tay cho đến khi tan hết. Cảm giác lạnh buốt tột độ tạo ra kích thích vật lý mạnh, lấn át được cơn thúc đẩy mà hoàn toàn không để lại tổn thương.",
+      "guidance": "Nói như MỘT LỰA CHỌN để thử, không phải mệnh lệnh. Đây là kỹ thuật thay thế trực tiếp cho chức năng chuyển hoá nỗi đau.",
+      "source": "self-harm#ChươngV.1"
+    },
+    {
+      "id": "skill.sh.pillow_punch",
+      "type": "Skill",
+      "label": "Giải toả lực cơ học",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["muốn đập phá", "tức không chịu được", "muốn hét", "bực quá"],
+      "summary": "Đấm hoặc đá thật mạnh vào gối, chăn, nệm mềm, hoặc gào hét vào những vật mềm này để xả bớt năng lượng u uất tích tụ.",
+      "source": "self-harm#ChươngV.1"
+    },
+    {
+      "id": "skill.sh.write_emotions",
+      "type": "Skill",
+      "label": "Viết và gọi tên cảm xúc",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["không biết nói sao", "khó tả lắm", "trong lòng rối", "không diễn tả được"],
+      "summary": "Viết, vẽ hoặc miêu tả cụ thể cảm xúc lên giấy. Gọi tên chính xác cảm xúc (buồn, phẫn nộ, uất ức, sợ hãi) giúp thuỳ trán hoạt động tốt hơn và giảm độ nhạy của hạch hạnh nhân. Em có thể viết một bức thư bày tỏ hết tức giận mà không cần gửi đi.",
+      "guidance": "Biến thể mà trẻ hay thích: viết hết ra giấy rồi xé đi.",
+      "source": "self-harm#ChươngV.2"
+    },
+    {
+      "id": "skill.sh.safe_distraction",
+      "type": "Skill",
+      "label": "Hoạt động phân tán an toàn — quy tắc 15-20 phút",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "cơn muốn", "lúc nào cũng nghĩ đến", "không thoát ra được", "muốn làm ngay", "nghĩ đến suốt",
+        "không dứt ra được"
+      ],
+      "summary": "Lập tức làm một việc đòi hỏi tập trung nhẹ nhàng để TRÌ HOÃN cơn thúc đẩy: đi bộ nhanh, chạy bộ, đọc truyện, nghe nhạc, xem phim hài, dắt chó đi dạo, chăm thú cưng, tắm nước ấm. Trì hoãn được 15-20 phút đầu tiên là cơn thúc đẩy giảm xuống đáng kể.",
+      "guidance": "Con số 15-20 phút chính là thông điệp cần nói với em: em không phải chiến đấu mãi mãi, em chỉ cần vượt qua 15 phút.",
+      "source": "self-harm#ChươngV.2"
+    },
+    {
+      "id": "skill.sh.safe_environment",
+      "type": "Skill",
+      "label": "Tạo môi trường vật lý an toàn",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["trong phòng em", "em vẫn giữ", "để sẵn", "cất trong ngăn kéo"],
+      "dangerSignals": ["self_injury", "suicidal"],
+      "summary": "Cùng em dọn phòng riêng, chủ động loại bỏ khỏi không gian sống những vật có thể dùng để tự hại và các loại thuốc không cần thiết.",
+      "guidance": "Nói ở mức KHÁI QUÁT như trên. Không liệt kê tên từng loại vật dụng — liệt kê ra là đang gợi ý cách làm cho em nào chưa nghĩ tới.",
+      "source": "self-harm#ChươngV.3"
+    },
+    {
+      "id": "skill.sh.safety_plan",
+      "type": "Skill",
+      "label": "Kế hoạch An toàn (Safety Plan)",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["lần sau thì sao", "nếu lại thấy vậy", "em sợ lặp lại"],
+      "summary": "Cùng em và chuyên viên tâm lý lập một kế hoạch ghi rõ ba phần: 1) các dấu hiệu kích hoạt cảm xúc tiêu cực của riêng em; 2) các kỹ thuật tự xoa dịu em thấy hợp; 3) danh sách và số điện thoại của những người đáng tin cậy nhất (cha mẹ, thầy cô, tổng đài 111) để gọi ngay khi cơn thúc đẩy vượt kiểm soát.",
+      "guidance": "Đây là thứ nên hướng tới ở CUỐI một cuộc trò chuyện đã ổn định, không phải mở đầu. Có thể làm dần từng phần qua nhiều lượt.",
+      "source": "self-harm#ChươngV.3"
+    },
+    {
+      "id": "skill.sh.hope_box",
+      "type": "Skill",
+      "label": "Hộp Hy vọng (Hope Box)",
+      "agents": ["agent_self_harm"],
+      "priority": 1,
+      "triggers": ["chẳng có gì vui", "không còn gì", "vô nghĩa", "chán hết"],
+      "summary": "Em tự làm một 'Hộp hy vọng' — hộp giấy thật hoặc một thư mục riêng trên điện thoại — để cất kỷ vật tích cực, ảnh vui, lời khen mọi người dành cho em, những ký ức ấm áp nhất. Lúc tuyệt vọng, mở hộp ra giúp em tái kết nối với những điều đáng sống.",
+      "guidance": "Kỹ thuật này hợp nhất khi em đã bình tĩnh hơn. Có thể rủ em bắt đầu ngay trong lượt trò chuyện: hỏi em một thứ đầu tiên em muốn cho vào hộp.",
+      "source": "self-harm#ChươngV.3"
+    },
+    {
+      "id": "protocol.sh.confidentiality",
+      "type": "Protocol",
+      "label": "Giới hạn của bảo mật — an toàn đứng trên bí mật",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [
+        "đừng nói với ai", "giữ bí mật", "đừng mách", "đừng kể cho bố mẹ", "hứa đi", "đừng kể ai",
+        "giữ kín giúp em", "em xin đừng nói"
+      ],
+      "summary": "Nguyên tắc tối thượng: SỰ AN TOÀN CỦA HỌC SINH LUÔN ĐƯỢC ƯU TIÊN HÀNG ĐẦU, đứng trên việc giữ bí mật.",
+      "guidance": "Khi em xin đừng nói với ai: KHÔNG hứa. Nhẹ nhàng cho em biết chuyện này cần một người lớn biết để giúp em, rằng em sẽ được tham gia vào việc chọn nói với ai và nói thế nào, và rằng Larry ở cùng em. Ngoại lệ duy nhất là khi chính gia đình là nơi nguy hiểm — lúc đó chuyển sang thầy cô, người thân an toàn khác, hoặc tổng đài 111.",
+      "detail": "Ba quy định gốc dành cho nhà trường: (1) Không hứa hẹn bảo mật tuyệt đối — khi biết em có nguy cơ nghiêm trọng, bắt buộc phải chia sẻ với ban giám hiệu và cha mẹ để cùng bảo vệ em. (2) Thông báo và thảo luận với em TRƯỚC khi liên lạc phụ huynh, để em không thấy bị phản bội; giải thích vì sao việc đó là bắt buộc và lắng nghe nỗi sợ của em về phản ứng gia đình. (3) Ngoại lệ không báo phụ huynh ngay: chỉ khi có căn cứ rõ rằng chia sẻ với cha mẹ sẽ làm tăng nguy cơ tổn hại cho em (em bị bạo hành, lạm dụng tại nhà) — khi đó kích hoạt quy trình an toàn khẩn cấp, phối hợp công an, y tế hoặc cơ quan bảo vệ trẻ em địa phương.",
+      "source": "self-harm#ChươngIII.2"
+    },
+    {
+      "id": "protocol.sh.contagion",
+      "type": "Protocol",
+      "label": "Ứng phó với hiện tượng lây truyền trong nhóm bạn",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["bạn em cũng vậy", "cả nhóm", "bọn em đều", "bạn em rủ", "xem trên mạng rồi làm"],
+      "dangerSignals": ["self_injury"],
+      "summary": "Hành vi tự hại có tính lây truyền rất cao ở lứa tuổi trung học, xuất phát từ mong muốn gắn kết, tìm sự đồng cảm hoặc được nhóm chấp nhận.",
+      "guidance": "Với agent nghĩa là: KHÔNG bàn chi tiết về hành vi của bạn kia, KHÔNG so sánh giữa các em, KHÔNG biến chuyện thành đề tài chung. Nếu em lo cho bạn mình, hãy khẳng định việc em nói ra để bảo vệ bạn là hành động của một người bạn tốt thật sự, rồi hướng em báo cho thầy cô.",
+      "detail": "Nguyên tắc gốc cho nhà trường: can thiệp CÁ NHÂN, không can thiệp nhóm lớn — tách riêng từng em để hỗ trợ độc lập, tuyệt đối không tổ chức thảo luận hay trị liệu nhóm về chủ đề tự hại, không tuyên truyền diện rộng trước toàn trường. Ba chiến lược giảm lây truyền: (1) ngăn mọi hình thức chia sẻ, bàn tán chi tiết về hành vi tự hại giữa các thành viên; (2) không lan truyền, phơi bày hình ảnh vết thương, vết sẹo lên mạng xã hội hoặc trước lớp; (3) khích lệ bạn bè báo ngay với thầy cô khi lo ngại bạn mình tự hại.",
+      "source": "self-harm#ChươngIII.3"
+    },
+    {
+      "id": "protocol.sh.first_aid",
+      "type": "Protocol",
+      "label": "Sơ cấp cứu và kiểm soát tức thì",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["đang chảy máu", "vừa mới làm", "đau lắm", "vết thương của em"],
+      "dangerSignals": ["self_injury", "suicidal"],
+      "summary": "Nếu em vừa tự làm đau mình: hỏi xem em đang đau ở đâu và có ai lớn ở gần không, hướng em tới người lớn hoặc y tế ngay. Nếu có bất kỳ nghi ngờ nào về uống thuốc quá liều, nuốt chất độc, hoặc vết cắt sâu — gọi 115 lập tức.",
+      "guidance": "Trẻ tự hại có thể muốn tự gây đau lúc thực hiện hành vi, nhưng điều đó KHÔNG có nghĩa là em muốn tiếp tục chịu đau sau đó. Luôn hỏi em đang đau ở đâu và giúp em được giảm đau — đừng bỏ qua phần cơ thể vì mải nói chuyện cảm xúc.",
+      "source": "self-harm#ChươngIII.1"
+    },
+    {
+      "id": "taboo.sh.wound_details",
+      "type": "Taboo",
+      "label": "Không hỏi chi tiết về vết thương",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không hỏi vết thương sâu bao nhiêu, bằng vật gì, ở chỗ nào trên cơ thể, bao nhiêu vết.",
+      "avoid": "Mọi câu hỏi đào sâu vào đặc điểm vật lý của vết thương.",
+      "guidance": "Được phép ghi nhận rằng em đang bị thương và hỏi em có đau không, có cần giúp không. Ranh giới nằm ở chỗ: quan tâm tới CƠ THỂ em thì được, thu thập THÔNG TIN về hành vi thì không.",
+      "source": "self-harm#roles/selfHarm.js"
+    },
+    {
+      "id": "taboo.sh.method_mention",
+      "type": "Taboo",
+      "label": "Không nhắc tới bất kỳ cách tự làm đau nào",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không mô tả, không gợi ý, không nhắc lại bất kỳ cách tự làm đau hay tự sát nào — kể cả khi mục đích là để nói rằng nó nguy hiểm.",
+      "avoid": "Gọi tên phương thức, dụng cụ, liều lượng, vị trí — dưới mọi hình thức.",
+      "guidance": "Nhắc tên một cách làm cũng chính là đang chỉ cách. Khi cần nói về việc loại bỏ vật nguy hiểm, nói khái quát: cùng em dọn phòng và bỏ đi những thứ có thể dùng để tự hại, không liệt kê tên từng thứ.",
+      "source": "self-harm#roles/selfHarm.js, ChươngIII.3"
+    },
+    {
+      "id": "taboo.sh.panic_or_threaten",
+      "type": "Taboo",
+      "label": "Không hoảng hốt, không doạ, không giảng đạo",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không tỏ ra hoảng loạn, không doạ ('em có biết như thế là nguy hiểm đến tính mạng không'), không mắng, không giảng đạo, không bắt em hứa hẹn.",
+      "avoid": "Giọng điệu hốt hoảng, cảnh cáo, ra điều kiện, hoặc yêu cầu em cam kết dừng lại.",
+      "source": "self-harm#roles/selfHarm.js, ChươngIII.1"
+    },
+    {
+      "id": "taboo.sh.guilt_trip",
+      "type": "Taboo",
+      "label": "Không làm em thấy có lỗi",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không nói những câu như 'làm vậy bố mẹ em buồn lắm đấy', 'em nghĩ cho người khác một chút đi'.",
+      "avoid": "Mọi lập luận dùng nỗi đau của người khác làm lý do để em dừng lại.",
+      "guidance": "Rất nhiều em tự hại CHÍNH VÌ đang tự trừng phạt mình. Thêm tội lỗi vào là đổ thêm dầu vào đúng thứ đang cháy.",
+      "source": "self-harm#roles/selfHarm.js"
+    },
+    {
+      "id": "taboo.sh.no_diagnosis",
+      "type": "Taboo",
+      "label": "Không chẩn đoán, không khuyên thuốc",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không tự chẩn đoán ('em bị trầm cảm rồi'), không đưa lời khuyên y tế, không nhắc tên thuốc.",
+      "avoid": "Đặt tên bệnh cho em, dù em có tự hỏi mình có bị bệnh gì không.",
+      "guidance": "Nếu em hỏi thẳng 'em có bị trầm cảm không', trả lời trung thực rằng Larry không phải bác sĩ và không thể kết luận điều đó, nhưng những gì em đang trải qua là thật và xứng đáng được một người lớn giúp.",
+      "source": "self-harm#roles/selfHarm.js"
+    },
+    {
+      "id": "taboo.sh.minimize_or_dramatize",
+      "type": "Taboo",
+      "label": "Không coi nhẹ, cũng không thổi phồng",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không coi nhẹ ('ai chẳng có lúc buồn', 'rồi sẽ qua thôi'), cũng không thổi phồng thành thảm kịch.",
+      "avoid": "Hai thái cực: gạt đi chuyện của em, hoặc biến nó thành chuyện kinh khủng khiến em sợ chính mình.",
+      "source": "self-harm#roles/selfHarm.js"
+    },
+    {
+      "id": "taboo.sh.false_recovery",
+      "type": "Taboo",
+      "label": "Em nói đang vui không có nghĩa là chuyện đã qua",
+      "agents": ["agent_self_harm"],
+      "priority": 2,
+      "triggers": ["em ổn rồi", "em hết rồi", "giờ em vui mà", "không sao nữa đâu"],
+      "summary": "Khi em nói mình đã ổn hơn: mừng cùng em một cách chân thành, nhưng vẫn nhẹ nhàng hỏi lại gần đây em còn làm đau mình nữa không.",
+      "avoid": "Kết luận rằng nguy cơ đã hết chỉ vì em nói mình đang vui, rồi đóng chủ đề lại.",
+      "guidance": "Đây chính là lý do hệ thống không bao giờ tự gỡ nhóm tự hại khỏi một em đã từng lộ dấu hiệu, dù em nói mình đã ổn. Cách nói của bạn phải khớp với luật đó.",
+      "source": "self-harm#roles/selfHarm.js"
+    }
+  ],
+  "edges": [
+    { "from": "concept.nssi", "rel": "CONTRASTS_WITH", "to": "concept.toan_tu_sat" },
+    { "from": "concept.y_tuong_tu_sat", "rel": "ESCALATES_TO", "to": "concept.toan_tu_sat" },
+    { "from": "concept.nssi", "rel": "ESCALATES_TO", "to": "concept.y_tuong_tu_sat" },
+    { "from": "concept.nssi", "rel": "SERVES_FUNCTION", "to": "func.emotion_regulation" },
+    { "from": "concept.nssi", "rel": "SERVES_FUNCTION", "to": "func.pain_transfer" },
+    { "from": "concept.nssi", "rel": "SERVES_FUNCTION", "to": "func.punish_revenge" },
+    { "from": "concept.toan_tu_sat", "rel": "SERVES_FUNCTION", "to": "func.escape_reality" },
+    { "from": "concept.toan_tu_sat", "rel": "SERVES_FUNCTION", "to": "func.punish_revenge" },
+    { "from": "concept.y_tuong_tu_sat", "rel": "SERVES_FUNCTION", "to": "func.escape_reality" },
+    { "from": "skill.sh.ice_cube", "rel": "REPLACES_FUNCTION", "to": "func.pain_transfer" },
+    { "from": "skill.sh.pillow_punch", "rel": "REPLACES_FUNCTION", "to": "func.emotion_regulation" },
+    {
+      "from": "skill.sh.write_emotions",
+      "rel": "REPLACES_FUNCTION",
+      "to": "func.emotion_regulation"
+    },
+    { "from": "skill.breath_4_4_6", "rel": "REPLACES_FUNCTION", "to": "func.emotion_regulation" },
+    { "from": "skill.sh.safe_distraction", "rel": "REPLACES_FUNCTION", "to": "func.pain_transfer" },
+    { "from": "skill.sh.safe_distraction", "rel": "REPLACES_FUNCTION", "to": "func.escape_reality" },
+    { "from": "skill.sh.hope_box", "rel": "REPLACES_FUNCTION", "to": "func.escape_reality" },
+    { "from": "skill.cognitive_reframe", "rel": "REPLACES_FUNCTION", "to": "func.punish_revenge" },
+    { "from": "sign.sh.unexplained_wounds", "rel": "INDICATES", "to": "concept.nssi" },
+    { "from": "sign.sh.covering_clothes", "rel": "INDICATES", "to": "concept.nssi" },
+    { "from": "sign.sh.withdrawal", "rel": "INDICATES", "to": "concept.y_tuong_tu_sat" },
+    { "from": "sign.sh.emotional_volatility", "rel": "INDICATES", "to": "concept.nssi" },
+    { "from": "sign.sh.self_blame", "rel": "INDICATES", "to": "func.punish_revenge" },
+    { "from": "sign.sh.death_intent", "rel": "INDICATES", "to": "concept.y_tuong_tu_sat" },
+    { "from": "riskfactor.sh.individual", "rel": "INCREASES_RISK_OF", "to": "concept.nssi" },
+    { "from": "riskfactor.sh.family", "rel": "INCREASES_RISK_OF", "to": "concept.nssi" },
+    { "from": "riskfactor.sh.social", "rel": "INCREASES_RISK_OF", "to": "concept.nssi" },
+    { "from": "riskfactor.sh.family", "rel": "INCREASES_RISK_OF", "to": "concept.y_tuong_tu_sat" },
+    { "from": "riskfactor.sh.social", "rel": "INCREASES_RISK_OF", "to": "concept.y_tuong_tu_sat" },
+    { "from": "riskfactor.sh.social", "rel": "RELATED_TO", "to": "protocol.sh.contagion" },
+    { "from": "riskfactor.sh.family", "rel": "RELATED_TO", "to": "hotline.ngoi_nha_binh_yen" },
+    { "from": "riskfactor.sh.social", "rel": "RELATED_TO", "to": "concept.bao_luc_hoc_duong" },
+    { "from": "sign.sh.death_intent", "rel": "APPLIES_AT", "to": "level.sh.high" },
+    { "from": "concept.toan_tu_sat", "rel": "APPLIES_AT", "to": "level.sh.high" },
+    { "from": "concept.y_tuong_tu_sat", "rel": "APPLIES_AT", "to": "level.sh.high" },
+    { "from": "concept.nssi", "rel": "APPLIES_AT", "to": "level.sh.low_medium" },
+    { "from": "sign.sh.unexplained_wounds", "rel": "APPLIES_AT", "to": "level.sh.low_medium" },
+    { "from": "level.sh.high", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "level.sh.high", "rel": "REFER_TO", "to": "hotline.115" },
+    { "from": "level.sh.high", "rel": "REFER_TO", "to": "hotline.ngay_mai" },
+    { "from": "level.sh.high", "rel": "RELATED_TO", "to": "protocol.sh.confidentiality" },
+    { "from": "level.sh.high", "rel": "RELATED_TO", "to": "protocol.sh.first_aid" },
+    { "from": "level.sh.low_medium", "rel": "RELATED_TO", "to": "skill.sh.safety_plan" },
+    { "from": "level.sh.low_medium", "rel": "ESCALATES_TO", "to": "level.sh.high" },
+    { "from": "script.sh.open_concern", "rel": "RESPONDS_TO", "to": "sign.sh.withdrawal" },
+    { "from": "script.sh.notice_wounds", "rel": "RESPONDS_TO", "to": "sign.sh.unexplained_wounds" },
+    { "from": "script.sh.explore_cause", "rel": "RESPONDS_TO", "to": "concept.nssi" },
+    { "from": "script.sh.self_blame_empathy", "rel": "RESPONDS_TO", "to": "sign.sh.self_blame" },
+    { "from": "script.sh.suicidal_disclosure", "rel": "RESPONDS_TO", "to": "sign.sh.death_intent" },
+    {
+      "from": "script.sh.suicidal_disclosure",
+      "rel": "RESPONDS_TO",
+      "to": "concept.y_tuong_tu_sat"
+    },
+    { "from": "skill.sh.ice_cube", "rel": "RESPONDS_TO", "to": "concept.nssi" },
+    { "from": "skill.sh.safe_distraction", "rel": "RESPONDS_TO", "to": "concept.nssi" },
+    { "from": "skill.sh.safety_plan", "rel": "RESPONDS_TO", "to": "level.sh.low_medium" },
+    { "from": "skill.sh.safe_environment", "rel": "RESPONDS_TO", "to": "level.sh.high" },
+    { "from": "protocol.sh.contagion", "rel": "RESPONDS_TO", "to": "riskfactor.sh.social" },
+    {
+      "from": "taboo.sh.wound_details",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "sign.sh.unexplained_wounds"
+    },
+    {
+      "from": "taboo.sh.wound_details",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "script.sh.notice_wounds"
+    },
+    { "from": "taboo.sh.method_mention", "rel": "CONTRAINDICATED_FOR", "to": "concept.toan_tu_sat" },
+    { "from": "taboo.sh.method_mention", "rel": "CONTRAINDICATED_FOR", "to": "concept.nssi" },
+    {
+      "from": "taboo.sh.method_mention",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "skill.sh.safe_environment"
+    },
+    { "from": "taboo.sh.guilt_trip", "rel": "CONTRAINDICATED_FOR", "to": "func.punish_revenge" },
+    { "from": "taboo.sh.panic_or_threaten", "rel": "CONTRAINDICATED_FOR", "to": "level.sh.high" },
+    { "from": "taboo.sh.false_recovery", "rel": "CONTRAINDICATED_FOR", "to": "level.sh.low_medium" },
+    {
+      "from": "taboo.sh.no_diagnosis",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "riskfactor.sh.individual"
+    },
+    {
+      "from": "taboo.sh.minimize_or_dramatize",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "principle.sh.calm_empathic"
+    },
+    { "from": "principle.sh.never_ignore", "rel": "RELATED_TO", "to": "script.sh.notice_wounds" },
+    { "from": "principle.sh.no_labeling", "rel": "RELATED_TO", "to": "sign.sh.self_blame" },
+    { "from": "protocol.sh.confidentiality", "rel": "RELATED_TO", "to": "riskfactor.sh.family" },
+    { "from": "protocol.sh.first_aid", "rel": "REFER_TO", "to": "hotline.115" },
+    { "from": "stat.sh.prevalence", "rel": "RELATED_TO", "to": "concept.nssi" },
+    { "from": "stat.sh.prevalence", "rel": "RESPONDS_TO", "to": "sign.sh.self_blame" }
+  ]
+}

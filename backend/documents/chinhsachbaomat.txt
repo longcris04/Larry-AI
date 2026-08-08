@@ -1,0 +1,158 @@
+CHÍNH SÁCH BẢO MẬT LARRY AI
+Cập nhật lần cuối: 26/07/2026
+
+Larry trò chuyện với học sinh về những chuyện rất riêng tư, nên chúng tôi cố
+gắng thu thập càng ít dữ liệu càng tốt. Văn bản này nói rõ: lấy gì, để làm gì,
+ai xem được, lưu bao lâu và em có quyền gì.
+
+
+1. NGUYÊN TẮC LỚN NHẤT: KHÔNG LƯU NGUYÊN VĂN CUỘC TRÒ CHUYỆN
+
+Hệ thống KHÔNG lưu lại từng câu em đã nhắn với Larry.
+
+Sau mỗi phiên, một mô hình AI đọc lại cuộc trò chuyện và viết một BẢN TÓM TẮT
+2-4 câu. Chỉ bản tóm tắt đó được lưu, còn nội dung gốc thì không được ghi vào
+đâu cả. Thầy cô mở trang quản trị cũng chỉ thấy bản tóm tắt, không thấy nguyên
+văn lời em nói.
+
+Đây là lựa chọn có chủ đích, để nhật ký tâm sự của em không bị lưu lại trên máy
+chủ của nhà trường.
+
+
+2. NHỮNG GÌ ĐƯỢC THU THẬP
+
+a) Khi em đăng ký tài khoản
+   - Họ tên, email, mật khẩu.
+   - Không bắt buộc: tên gọi, khối, lớp, trường.
+   Mật khẩu KHÔNG được lưu nguyên dạng. Hệ thống chỉ lưu bản băm (bcrypt), nghĩa
+   là kể cả người quản trị cũng không đọc lại được mật khẩu của em.
+
+b) Camera nhận diện cảm xúc
+   - Hình ảnh, video từ camera được xử lý HOÀN TOÀN TRÊN MÁY của em, bằng thư
+     viện chạy trong trình duyệt.
+   - KHÔNG có ảnh hay video nào được gửi lên máy chủ. KHÔNG có ảnh nào được lưu.
+   - Thứ duy nhất rời khỏi máy em là MỘT TỪ mô tả cảm xúc, ví dụ "happy", "sad".
+   - Em có thể từ chối quyền camera, ứng dụng vẫn dùng được.
+
+c) Phiếu cảm xúc đầu phiên chat
+   - Các ô em chọn sẵn (mức cảm xúc, từ cảm xúc, điều đang tác động) được lưu
+     lại dưới dạng MỘT DÒNG mô tả ngắn, để thầy cô hiểu vì sao phiên bị đánh dấu.
+   - Phần em TỰ VIẾT ở câu cuối được gửi cho AI để hiểu tình huống, nhưng KHÔNG
+     được ghi vào máy chủ.
+   - Em có thể bấm "Bỏ qua" để không điền phiếu.
+
+d) Nội dung trò chuyện
+   - Được gửi tới nhà cung cấp mô hình AI để sinh câu trả lời (xem mục 4).
+   - Được AI đọc để viết bản tóm tắt và chấm mức độ nguy cơ.
+   - Không được lưu nguyên văn, như đã nói ở mục 1.
+
+e) Kết quả đánh giá của mỗi phiên
+   - Thời gian bắt đầu / kết thúc, số tin nhắn.
+   - Bản tóm tắt, mức độ (Cần chú ý / Đáng lo / Khẩn cấp), nhóm dấu hiệu, danh
+     sách dấu hiệu cụ thể.
+   - Lịch sử các email cảnh báo đã gửi cho giáo viên chủ nhiệm.
+
+f) Khi em dùng chế độ khách ("Trò chuyện với Larry ngay!")
+   - KHÔNG tạo tài khoản, KHÔNG lưu bất kỳ phiên nào, thầy cô KHÔNG thấy gì cả.
+
+
+3. DỮ LIỆU ĐƯỢC DÙNG ĐỂ LÀM GÌ
+
+- Để Larry trả lời đúng hoàn cảnh và cảm xúc của em.
+- Để phát hiện sớm học sinh có dấu hiệu bị bắt nạt, bị xâm hại, bạo hành, suy
+  sụp tinh thần, sợ hãi, suy nhược thể chất... và báo cho thầy cô kịp thời giúp.
+- Để nhà trường quản lý tài khoản học sinh.
+
+Dữ liệu KHÔNG được dùng để:
+- Quảng cáo, tiếp thị.
+- Bán hoặc trao đổi cho bên thứ ba vì mục đích thương mại.
+- Chấm điểm, xếp hạng hay đánh giá thi đua học sinh.
+
+
+4. NHỮNG BÊN THỨ BA CÓ THỂ NHẬN DỮ LIỆU
+
+a) Nhà cung cấp mô hình AI (qua OpenRouter)
+   Nội dung trò chuyện và phiếu cảm xúc được gửi tới đây để sinh câu trả lời,
+   viết tóm tắt và soạn email cảnh báo. Việc lưu trữ phía họ tuân theo chính
+   sách riêng của nhà cung cấp.
+
+b) Google (Gmail)
+   Chỉ dùng để GỬI email cảnh báo cho giáo viên chủ nhiệm. Email đó chỉ chứa
+   bản tóm tắt và các dấu hiệu, KHÔNG chứa nguyên văn lời em nói.
+
+c) Scratch (scratch.mit.edu)
+   Chỉ khi em mở trang game. Trang này nhúng nội dung trực tiếp từ Scratch, và
+   Scratch có chính sách riêng của họ.
+
+d) Đơn vị cung cấp máy chủ nơi ứng dụng được cài đặt.
+
+
+5. AI XEM ĐƯỢC DỮ LIỆU CỦA EM
+
+- Quản trị viên (thầy cô phụ trách do nhà trường chỉ định) xem được: danh sách
+  tài khoản, thông tin trường/lớp/khối, và với từng phiên trò chuyện là bản tóm
+  tắt, mức độ, nhóm dấu hiệu, dòng mô tả phiếu cảm xúc.
+- Giáo viên chủ nhiệm nhận được email cảnh báo, khi quản trị viên bấm gửi.
+  Email do AI soạn, quản trị viên đọc lại và sửa được trước khi gửi. Không có
+  email nào tự động gửi đi.
+- Quyền quản trị KHÔNG cấp được qua giao diện web. Chỉ người có quyền truy cập
+  trực tiếp máy chủ mới tạo được tài khoản quản trị.
+- Học sinh không xem được dữ liệu của học sinh khác.
+
+
+6. DỮ LIỆU ĐƯỢC BẢO VỆ THẾ NÀO
+
+- Mật khẩu lưu dạng băm bcrypt, không thể đọc ngược.
+- Đăng nhập bằng JWT có hạn 7 ngày (khách 1 ngày).
+- Mọi trang quản trị đều kiểm tra vai trò ở phía máy chủ, không chỉ ẩn nút ở
+  giao diện.
+- Nội dung em tự nhập được lọc trước khi đưa vào AI, để chặn các câu ra lệnh cho
+  AI bỏ qua quy tắc an toàn.
+- Các khoá bí mật (API key, mật khẩu email) nằm trong file cấu hình của máy chủ,
+  không nằm trong mã nguồn công khai.
+
+Dù vậy, không hệ thống nào an toàn tuyệt đối. Nếu xảy ra sự cố lộ dữ liệu, nhà
+trường sẽ thông báo cho học sinh và phụ huynh liên quan sớm nhất có thể.
+
+
+7. LƯU BAO LÂU
+
+- Tài khoản và bản tóm tắt các phiên: lưu cho tới khi tài khoản bị xoá.
+- Khi tài khoản bị xoá, TOÀN BỘ phiên của tài khoản đó bị xoá cùng lúc và không
+  khôi phục được.
+- Phiên của khách không đăng nhập: không được lưu ngay từ đầu.
+
+
+8. QUYỀN CỦA EM VÀ CỦA PHỤ HUYNH
+
+Em hoặc bố mẹ em có quyền:
+- Biết hệ thống đang lưu gì về em.
+- Yêu cầu sửa thông tin sai (tên, lớp, trường, email).
+- Yêu cầu xoá tài khoản và toàn bộ dữ liệu.
+- Từ chối camera, từ chối phiếu cảm xúc mà vẫn dùng được ứng dụng.
+- Ngừng sử dụng bất cứ lúc nào.
+
+Để thực hiện, hãy nói với thầy cô phụ trách hoặc gửi email tới lanmc2k13@gmail.com.
+
+
+9. VỚI PHỤ HUYNH
+
+Ứng dụng dành cho học sinh tiểu học và THCS, tức là trẻ em theo quy định pháp
+luật. Chúng tôi đề nghị nhà trường chỉ triển khai sau khi đã thông báo và nhận
+được sự đồng ý của phụ huynh.
+
+Điểm quan trọng phụ huynh cần biết: Larry KHÔNG hứa giữ bí mật tuyệt đối với
+học sinh. Khi hệ thống ghi nhận dấu hiệu đáng lo, thầy cô sẽ được báo để kịp
+thời hỗ trợ. Điều này được nói rõ với học sinh ngay trong Điều khoản sử dụng.
+
+
+10. THAY ĐỔI CHÍNH SÁCH
+
+Chính sách này có thể được cập nhật khi ứng dụng thay đổi cách xử lý dữ liệu.
+Ngày cập nhật luôn ghi ở đầu văn bản.
+
+
+11. LIÊN HỆ
+
+- Email: lanmc2k13@gmail.com
+- Hoặc gặp trực tiếp thầy cô phụ trách phòng tư vấn tâm lý của trường.

@@ -1,0 +1,452 @@
+.checkin-overlay{
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:1000;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:20px;
+
+    background:rgba(30,42,70,.45);
+
+    backdrop-filter:blur(4px);
+}
+
+.checkin-card{
+
+    position:relative;
+
+    width:100%;
+
+    max-width:560px;
+
+    max-height:90vh;
+
+    overflow-y:auto;
+
+    background:white;
+
+    border-radius:28px;
+
+    padding:36px 32px 26px;
+
+    box-shadow:0 24px 60px rgba(40,60,100,.28);
+
+    text-align:center;
+
+    animation:checkin-pop .28s ease-out;
+}
+
+@keyframes checkin-pop{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(18px) scale(.97);
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0) scale(1);
+    }
+}
+
+.checkin-close{
+
+    position:absolute;
+
+    top:14px;
+
+    right:18px;
+
+    border:none;
+
+    background:none;
+
+    font-size:30px;
+
+    line-height:1;
+
+    color:#B4BDCE;
+
+    cursor:pointer;
+}
+
+.checkin-close:hover{
+
+    color:#7A859C;
+}
+
+.checkin-emoji{
+
+    font-size:46px;
+
+    margin-bottom:10px;
+}
+
+.checkin-title{
+
+    margin:0 0 6px;
+
+    font-size:22px;
+
+    font-weight:800;
+
+    line-height:1.5;
+
+    color:#2D3553;
+}
+
+.checkin-hint{
+
+    margin:0 0 18px;
+
+    font-size:15px;
+
+    color:#8A94AB;
+}
+
+/* --- Câu hỏi 1 --- */
+
+.checkin-options{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+
+    margin-top:22px;
+}
+
+.checkin-option{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+    width:100%;
+
+    padding:18px 20px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:18px;
+
+    background:#F9FBFF;
+
+    font-size:17px;
+
+    font-weight:600;
+
+    color:#3C4763;
+
+    text-align:left;
+
+    cursor:pointer;
+
+    transition:.22s;
+}
+
+.checkin-option:hover{
+
+    border-color:#56C6FF;
+
+    background:white;
+
+    transform:translateY(-2px);
+}
+
+.checkin-option__icon{
+
+    font-size:26px;
+}
+
+/* --- Câu hỏi 2: thanh trượt --- */
+
+.checkin-level-label{
+
+    margin:14px 0 20px;
+
+    font-size:21px;
+
+    font-weight:800;
+
+    color:#4A93D6;
+}
+
+.checkin-slider{
+
+    width:100%;
+
+    height:10px;
+
+    border-radius:999px;
+
+    appearance:none;
+
+    -webkit-appearance:none;
+
+    background:linear-gradient(90deg,#FFA9A9,#FFD98E,#BFE6A8,#8DD5FF);
+
+    outline:none;
+
+    cursor:pointer;
+}
+
+.checkin-slider::-webkit-slider-thumb{
+
+    appearance:none;
+
+    -webkit-appearance:none;
+
+    width:30px;
+
+    height:30px;
+
+    border-radius:50%;
+
+    background:white;
+
+    border:4px solid #56C6FF;
+
+    box-shadow:0 3px 10px rgba(60,90,140,.28);
+
+    cursor:pointer;
+}
+
+.checkin-slider::-moz-range-thumb{
+
+    width:26px;
+
+    height:26px;
+
+    border-radius:50%;
+
+    background:white;
+
+    border:4px solid #56C6FF;
+
+    box-shadow:0 3px 10px rgba(60,90,140,.28);
+
+    cursor:pointer;
+}
+
+.checkin-slider-ends{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    margin-top:10px;
+
+    font-size:14px;
+
+    color:#95A0B6;
+}
+
+/* --- Câu hỏi 3 & 4: chip nhiều lựa chọn --- */
+
+.checkin-chips{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    justify-content:center;
+
+    gap:10px;
+
+    margin-bottom:16px;
+}
+
+.checkin-chip{
+
+    padding:10px 16px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:999px;
+
+    background:#F9FBFF;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    color:#4A5570;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.checkin-chip:hover{
+
+    border-color:#8DD5FF;
+}
+
+.checkin-chip--on{
+
+    border-color:#56C6FF;
+
+    background:#56C6FF;
+
+    color:white;
+}
+
+.checkin-input,
+.checkin-textarea{
+
+    width:100%;
+
+    padding:14px 16px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:16px;
+
+    font-size:16px;
+
+    font-family:inherit;
+
+    color:#333;
+
+    outline:none;
+
+    transition:.2s;
+
+    resize:vertical;
+}
+
+.checkin-input:focus,
+.checkin-textarea:focus{
+
+    border-color:#56C6FF;
+
+    box-shadow:0 0 0 5px rgba(86,198,255,.15);
+}
+
+.checkin-input::placeholder,
+.checkin-textarea::placeholder{
+
+    color:#B8C0D1;
+}
+
+/* --- Nút điều hướng --- */
+
+.checkin-actions{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:12px;
+
+    margin-top:24px;
+}
+
+.checkin-back{
+
+    padding:12px 18px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:#F1F4FA;
+
+    font-size:15px;
+
+    font-weight:700;
+
+    color:#6B7690;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.checkin-back:hover{
+
+    background:#E4E9F4;
+}
+
+.checkin-next{
+
+    flex:1;
+
+    padding:14px 20px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:linear-gradient(135deg,#56C6FF,#8B63FF);
+
+    font-size:16px;
+
+    font-weight:700;
+
+    color:white;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.checkin-next:hover{
+
+    filter:brightness(1.05);
+
+    transform:translateY(-1px);
+}
+
+.checkin-skip{
+
+    margin-top:18px;
+
+    border:none;
+
+    background:none;
+
+    font-size:15px;
+
+    color:#95A0B6;
+
+    text-decoration:underline;
+
+    cursor:pointer;
+}
+
+.checkin-skip:hover{
+
+    color:#6B7690;
+}
+
+@media(max-width:600px){
+
+    .checkin-card{
+
+        padding:30px 20px 22px;
+    }
+
+    .checkin-title{
+
+        font-size:19px;
+    }
+}

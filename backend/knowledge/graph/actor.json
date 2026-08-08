@@ -1,0 +1,515 @@
+{
+  "$comment": "Khung lý thuyết cho agent_actor (🧩 Larry Thấu hiểu). Tài liệu gốc viết cho GIÁO VIÊN can thiệp; ở đây mọi node đều đã được diễn giải lại thành thứ agent nói được TRỰC TIẾP với học sinh. Phần nào chỉ người lớn làm được (kỷ luật, mời phụ huynh) thì để trong detail và ghi rõ trong guidance rằng agent không tự thực hiện.",
+  "source": {
+    "id": "actor",
+    "title": "Học sinh gây ra bạo lực học đường — khung lý thuyết, kỷ luật tích cực và kịch bản can thiệp",
+    "file": "backend/documents/hoc-sinh-gay-bao-luc-giao-duc-hanh-vi.docx"
+  },
+  "nodes": [
+    {
+      "id": "riskfactor.a.individual",
+      "type": "RiskFactor",
+      "label": "Yếu tố thúc đẩy — cá nhân",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "không kìm được", "máu nóng", "muốn thể hiện", "cho nó biết tay", "dằn mặt",
+        "không ai coi trọng em", "em cũng từng bị"
+      ],
+      "summary": "Ở tuổi dậy thì hệ thần kinh chưa ổn định, em dễ hưng phấn và khó kiềm chế cảm xúc tiêu cực. Thường có mong muốn thể hiện cái Tôi, chứng tỏ bản lĩnh 'người lớn', hoặc kiểm soát người khác để khoả lấp sự thiếu tự tin và lòng tự tôn thấp của chính mình. Nhiều em gây bạo lực thực chất có kỹ năng giao tiếp kém và khó cảm thông với sự khác biệt. Khoảng 10% trong số đó BẢN THÂN TỪNG LÀ NẠN NHÂN của bạo lực gia đình hoặc học đường.",
+      "guidance": "Con số 10% là chìa khoá của cả agent này: đằng sau hành vi gây hấn rất thường là một em từng bị làm đau. Hỏi được điều đó ra (nhẹ nhàng, không gợi ý sẵn) là bước ngoặt của cuộc trò chuyện.",
+      "source": "actor#PhầnI.1.3"
+    },
+    {
+      "id": "riskfactor.a.family",
+      "type": "RiskFactor",
+      "label": "Yếu tố thúc đẩy — gia đình",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "bố mẹ đánh em", "ở nhà em cũng bị", "bố mẹ cãi nhau", "bố mẹ không quan tâm",
+        "muốn gì được nấy", "không ai quản em"
+      ],
+      "dangerSignals": ["domestic_violence"],
+      "summary": "Phong cách giáo dục quá khắc nghiệt, cứng nhắc, dùng bạo lực — hoặc ngược lại, quá nuông chiều, bàng quan, thiếu giám sát và chia sẻ. Em sống trong gia đình thường xuyên cãi vã, có bạo lực giữa bố mẹ, hoặc có người lạm dụng chất gây nghiện, sẽ học theo hành vi bạo lực và mang vào trường học.",
+      "guidance": "Nếu em kể mình bị đánh ở nhà, đó KHÔNG còn là chuyện của riêng agent này nữa — đó là tín hiệu bạo lực gia đình, phải ghi nhận nghiêm túc và đưa em tới người lớn an toàn ngoài gia đình, hoặc tổng đài 111.",
+      "source": "actor#PhầnI.1.3"
+    },
+    {
+      "id": "riskfactor.a.school",
+      "type": "RiskFactor",
+      "label": "Yếu tố thúc đẩy — nhà trường",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": [
+        "cô thiên vị", "thầy không công bằng", "áp lực điểm", "học nặng quá", "chỗ khuất",
+        "sau nhà vệ sinh"
+      ],
+      "summary": "Kỷ cương nề nếp lỏng lẻo; trường có những khu vực thiếu an toàn (nhà vệ sinh vắng, góc khuất là nơi tụ tập); thầy cô đối xử thiếu công bằng; áp lực thi cử điểm số quá cao mà thiếu nâng đỡ tâm lý và quy tắc ứng xử rõ ràng.",
+      "source": "actor#PhầnI.1.3"
+    },
+    {
+      "id": "riskfactor.a.society",
+      "type": "RiskFactor",
+      "label": "Yếu tố thúc đẩy — xã hội và truyền thông",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": ["trong game", "xem trên mạng", "phim", "clip", "trên tiktok", "ai cũng làm thế"],
+      "summary": "Mạng xã hội tạo điều kiện cho bắt nạt trực tuyến phát triển ẩn danh. Em dễ bắt chước trò chơi điện tử, phim ảnh, sách báo có tính bạo lực mà không nhận thức được hậu quả thực tế đối với nạn nhân.",
+      "guidance": "Điểm cần làm rõ với em: trong game nhân vật đứng dậy được, ngoài đời thì không. Nói cụ thể vào hậu quả thật chứ đừng cấm em chơi game.",
+      "source": "actor#PhầnI.1.3"
+    },
+    {
+      "id": "protocol.a.intervention_5steps",
+      "type": "Protocol",
+      "label": "Quy trình 5 bước can thiệp và giáo dục",
+      "agents": ["agent_actor"],
+      "priority": 3,
+      "triggers": [],
+      "summary": "Khung xử lý cho toàn bộ trường hợp em gây bạo lực, theo đúng thứ tự: (1) tìm hiểu sự việc, (2) giúp em nhận thức hậu quả, (3) áp dụng kỷ luật tích cực, (4) lập kế hoạch hoà giải và sửa lỗi, (5) giám sát và phòng ngừa tái diễn.",
+      "guidance": "Thứ tự này là bắt buộc và là thứ hay bị làm ngược nhất. Nhảy thẳng sang bước 2 (chỉ ra hậu quả) khi chưa làm xong bước 1 (nghe em kể) sẽ khiến em phòng thủ và đóng lại hoàn toàn. Mục tiêu tối thượng là GIÁO DỤC NHẬN THỨC và ĐIỀU CHỈNH HÀNH VI, tuyệt đối không dùng biện pháp bạo lực hay sỉ nhục.",
+      "source": "actor#PhầnII"
+    },
+    {
+      "id": "step.a.1_interview",
+      "type": "Step",
+      "label": "Bước 1 — Tìm hiểu sự việc, không phán xét",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["em không làm gì sai", "tại bạn ấy trước", "em chỉ trêu thôi", "em bị oan"],
+      "summary": "Tiếp cận em một cách bình tĩnh, không phán xét, hỏi riêng để em không phải phòng vệ trước mặt bạn bè. Bộ câu hỏi gợi mở: 'Thầy/cô thấy gần đây con có vẻ hay cáu gắt và lo lắng, không biết con đang gặp khó khăn gì?'; 'Con kể lại chuyện hôm đó theo góc nhìn của con được không? Điều gì đã dẫn đến hành động đó?'; 'Trước đây con đã từng gặp chuyện tương tự, hay có ai cư xử bạo lực với con chưa?'",
+      "guidance": "Câu hỏi thứ ba là câu quan trọng nhất và hay bị bỏ qua nhất. Tránh mọi từ chụp mũ như 'kẻ bạo lực', 'lạm dụng', 'hành hạ' — tập trung vào HÀNH VI CỤ THỂ đã xảy ra.",
+      "source": "actor#PhầnII.Bước1"
+    },
+    {
+      "id": "step.a.2_consequences",
+      "type": "Step",
+      "label": "Bước 2 — Giúp em nhận thức hậu quả",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["chỉ đùa thôi", "có gì đâu", "bạn ấy làm quá", "em đâu có đánh mạnh"],
+      "summary": "Em gây bạo lực thường có cơ chế giảm nhẹ hành vi ('con chỉ trêu bạn thôi', 'tại bạn trêu con trước'). Cần chỉ rõ tác động THẬT lên bạn kia — về thể chất: vết bầm, chấn thương, đau đớn; về tâm lý và học tập: bạn phải chịu sợ hãi, lo âu, mất ngủ, bỏ học, học sút, thậm chí chán ghét bản thân và có ý nghĩ tự tử. Đồng thời chỉ ra hậu quả với chính em: bị bạn bè xa lánh, hình ảnh bản thân méo mó, hổng kiến thức khi bắt bạn làm bài hộ, bị kỷ luật đình chỉ học, nặng hơn là sự can thiệp của pháp luật.",
+      "guidance": "Nói hậu quả với NẠN NHÂN trước, hậu quả với EM sau — đảo thứ tự lại thì thành ra dạy em sợ bị phạt chứ không phải biết thương người.",
+      "source": "actor#PhầnII.Bước2"
+    },
+    {
+      "id": "step.a.3_positive_discipline",
+      "type": "Step",
+      "label": "Bước 3 — Áp dụng kỷ luật tích cực",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["em bị phạt", "cô phạt em", "chép phạt", "đình chỉ"],
+      "summary": "Thay thế hoàn toàn hình phạt trừng phạt thân thể và tinh thần (mắng nhiếc trước lớp, cô lập, sỉ nhục) bằng hệ quả lôgíc liên quan trực tiếp đến lỗi, hoặc thời gian tạm lắng để em bình tĩnh tự kiểm điểm.",
+      "guidance": "Agent KHÔNG ra hình phạt và không thay mặt nhà trường quyết định kỷ luật. Việc của agent là giúp em HIỂU vì sao một hệ quả là hợp lý, và cùng em nghĩ ra cách sửa lỗi để em tự đề xuất với thầy cô.",
+      "source": "actor#PhầnII.Bước3"
+    },
+    {
+      "id": "step.a.4_repair",
+      "type": "Step",
+      "label": "Bước 4 — Hoà giải và sửa lỗi",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "em muốn xin lỗi", "làm sao để sửa", "bạn ấy có tha cho em không", "em hối hận",
+        "tha cho em", "xin lỗi bạn", "sửa sai"
+      ],
+      "summary": "Hướng dẫn em hành động cụ thể để sửa chữa: viết thư hoặc trực tiếp nói lời xin lỗi nạn nhân theo cấu trúc quyết đoán — NHẬN TRÁCH NHIỆM, KHÔNG ĐỔ LỖI; thực hiện bồi thường vật chất nếu làm hỏng đồ hoặc lấy tiền, hoặc bồi thường công sức (ví dụ giúp bạn dọn phần việc mà mình đã cậy quyền bắt bạn làm một mình).",
+      "guidance": "Câu chốt phải nói với em, gần như nguyên văn: 'Con đã làm một việc sai, nhưng con KHÔNG PHẢI là một đứa trẻ xấu. Larry tin sự tử tế và trách nhiệm của con sẽ giúp con sửa được lỗi lầm này.' Đây là câu giữ cho em không tự đồng nhất mình với hành vi.",
+      "source": "actor#PhầnII.Bước4"
+    },
+    {
+      "id": "step.a.5_monitor",
+      "type": "Step",
+      "label": "Bước 5 — Giám sát và phòng ngừa tái diễn",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": ["em lại làm rồi", "em không giữ được", "lần này nữa", "em lại đánh bạn"],
+      "summary": "Theo dõi sau can thiệp để chắc chắn hành vi không tái diễn; rèn các kỹ năng xã hội: kiểm soát tức giận, thấu cảm, chọn bạn tốt.",
+      "guidance": "LƯU Ý ĐẶC BIỆT: nếu hành vi vẫn tái diễn với tần suất và mức độ CAO HƠN, đây là ngưỡng phải chuyển tuyến tới chuyên gia tâm thần hoặc nhà tâm lý lâm sàng. Với agent, nghe em kể lần tái diễn nặng hơn nghĩa là phải nói rõ rằng em cần một người lớn chuyên môn đồng hành, chứ không tiếp tục tư vấn như cũ.",
+      "source": "actor#PhầnII.Bước5"
+    },
+    {
+      "id": "method.a.natural_consequence",
+      "type": "Method",
+      "label": "Hệ quả tự nhiên",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 0,
+      "triggers": [],
+      "summary": "Những gì xảy ra một cách tự nhiên, không có sự can thiệp của người lớn: không học bài thì bị điểm kém, quên mặc ấm thì bị lạnh.",
+      "source": "actor#PhầnIII.3.1"
+    },
+    {
+      "id": "method.a.logical_consequence",
+      "type": "Method",
+      "label": "Hệ quả lôgíc và ba quy tắc vàng",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 2,
+      "triggers": ["phạt thế nào", "em phải làm gì để chuộc", "chép phạt", "phạt có đúng không"],
+      "summary": "Hệ quả lôgíc cần sự can thiệp của người lớn để rèn ý thức trách nhiệm, và chỉ hiệu quả khi bảo đảm đủ BA QUY TẮC: (1) LIÊN QUAN — hệ quả phải dính trực tiếp đến hành vi sai; (2) TÔN TRỌNG — người lớn không quát mắng, doạ nạt hay làm em bẽ mặt trước lớp; (3) HỢP LÝ — vừa sức, hợp lứa tuổi và mức độ lỗi, có giải thích rõ ràng và có sự đồng thuận.",
+      "detail": "Ví dụ đúng: em vẽ bậy lên bàn thì tự lau chùi bàn sạch sẽ; em cậy thế bắt nhóm bạn dọn một mình thì phải tự trực nhật bù trong tuần tiếp theo. Ví dụ SAI: phạt dọn nhà vệ sinh hoặc quét sân trường vì hành vi vẽ bậy — không liên quan trực tiếp, nên đó là trừng phạt chứ không phải hệ quả. Nếu kèm lời sỉ nhục, hệ quả lập tức biến thành trừng phạt và mất toàn bộ tác dụng giáo dục.",
+      "guidance": "Đây là công cụ hữu ích nhất khi em hỏi 'em phải làm gì bây giờ'. Đừng đưa đáp án sẵn — hỏi em nghĩ hệ quả nào hợp lý, rồi cùng em kiểm lại theo ba quy tắc.",
+      "source": "actor#PhầnIII.3.1"
+    },
+    {
+      "id": "method.a.timeout",
+      "type": "Method",
+      "label": "Thời gian tạm lắng (Time-out) đúng cách",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 1,
+      "triggers": ["em không kìm được", "đang tức", "sắp đánh nhau", "muốn đập phá"],
+      "summary": "Tách em ra khỏi hoạt động đang tham gia khi em đang hoặc có nguy cơ cao làm tổn thương người khác hay chính mình. Trong lúc tạm lắng em ngồi yên một chỗ, không chơi, không trò chuyện.",
+      "detail": "Quy tắc để không biến tướng thành trừng phạt: không áp dụng với trẻ quá nhỏ, không dùng phòng kín hoàn toàn gây hoảng sợ; thời gian ngắn và tương ứng số tuổi (học sinh 11 tuổi thì tối đa 11 phút); tuyệt đối không mang tính nhục mạ (bắt quỳ trên sỏi, úp mặt vào tường trước cả lớp suốt tiết, đứng ngoài trời nắng). Sau khi em bình tĩnh, người lớn phải giải thích rõ hành vi nào không chấp nhận được, vì sao em bị tạm lắng, và hướng dẫn cách cư xử phù hợp.",
+      "guidance": "Với agent, đây chuyển thành một kỹ năng em TỰ dùng được: khi thấy mình sắp không kiềm chế nổi, chủ động rời khỏi chỗ đó vài phút. Gợi ý em tự đặt ra 'chỗ tạm lắng' của riêng mình.",
+      "source": "actor#PhầnIII.3.2"
+    },
+    {
+      "id": "method.a.positive_reinforcement",
+      "type": "Method",
+      "label": "Khích lệ và củng cố tích cực",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 2,
+      "triggers": [
+        "ai cũng nghĩ em hư", "em là đứa xấu", "chẳng ai tin em", "em có làm được gì tốt đâu",
+        "em chẳng làm được gì", "em toàn làm sai"
+      ],
+      "summary": "Nhiều em 'hư' hoặc gây bạo lực thực chất đang chán nản về bản thân và mất động cơ phấn đấu lành mạnh. Cần chủ động tìm những hành vi đúng đắn của em để củng cố, thay vì chỉ rình bắt lỗi. Bốn nguyên tắc: khen NGỢI CỤ THỂ VÀ CÓ THẬT (tránh khen sáo rỗng hoặc 'khen đểu'); GỌI TÊN PHẨM CHẤT cụ thể ('Thầy thích cách con chủ động giúp bạn thu dọn đồ dùng hôm nay — con đã thể hiện sự quan tâm và hợp tác rất tốt'); CỦNG CỐ NGAY LẬP TỨC khi hành vi tốt mới xuất hiện; LUÔN ĐỂ LẠI CẢM XÚC TÍCH CỰC.",
+      "guidance": "Cạm bẫy hay mắc nhất: khen nửa vời kèm chỉ trích quá khứ — 'Hôm nay con làm tốt lắm, giá như ngày nào con cũng ngoan thế này'. Câu đó xoá sạch toàn bộ cảm xúc tích cực vừa tạo ra. Tuyệt đối không dùng cấu trúc đó.",
+      "source": "actor#PhầnIII.3.3"
+    },
+    {
+      "id": "protocol.a.anger_control",
+      "type": "Protocol",
+      "label": "Chế ngự cơn tức giận — 3 bước",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 2,
+      "triggers": [
+        "máu nóng bốc lên", "muốn lao vào đánh", "không kìm được", "nóng tính", "tức là em đánh",
+        "mất kiểm soát"
+      ],
+      "summary": "Sự tức giận ngoài tầm kiểm soát là ngòi nổ trực tiếp của bạo lực thân thể và ngôn từ bôi nhọ.",
+      "guidance": "Đây là kỹ năng lõi của agent này. Làm đủ ba bước theo thứ tự, và làm CÙNG em ngay trong lượt trò chuyện chứ không mô tả suông.",
+      "source": "actor#PhầnIII.3.4"
+    },
+    {
+      "id": "step.a.anger_1",
+      "type": "Step",
+      "label": "Bước 1 — Nhận diện dấu hiệu cơ thể và nguồn gốc cảm xúc",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["tim đập nhanh", "nóng bừng", "thở dốc", "nắm chặt tay", "tay chân cứng đờ"],
+      "summary": "Nhận biết cơ thể bắt đầu nóng bừng, tim đập nhanh, thở dốc, tay nắm chặt. Rồi nhận ra cơn giận này bắt nguồn từ đâu: lo lắng, cảm thấy không được tôn trọng, ghen tị, hay bị tổn thương.",
+      "guidance": "Phần thứ hai mới là phần chữa được: tức giận gần như luôn là lớp vỏ của một cảm xúc khác. Hỏi em xem bên dưới cơn giận đó là gì.",
+      "source": "actor#PhầnIII.3.4"
+    },
+    {
+      "id": "step.a.anger_2",
+      "type": "Step",
+      "label": "Bước 2 — Hạ nhiệt cảm xúc",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["làm sao để hết tức", "bình tĩnh lại kiểu gì"],
+      "summary": "Tạm tránh ra khỏi môi trường hoặc đối tượng gây ức chế. Thực hiện thở hình vuông. Dùng các câu tự trấn an: 'Bình tĩnh lại nào', 'Mọi chuyện rồi sẽ ổn thôi'.",
+      "source": "actor#PhầnIII.3.4"
+    },
+    {
+      "id": "step.a.anger_3",
+      "type": "Step",
+      "label": "Bước 3 — Tái cấu trúc nhận thức",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["lúc nào cũng thế", "chẳng bao giờ", "ai cũng chống lại em", "tại nó hết"],
+      "summary": "Phá vỡ lối suy nghĩ thiên lệch: bỏ kiểu trắng-đen tuyệt đối, khái quát hoá quá mức ('Lúc nào bạn cũng chống đối mình', 'Chẳng bao giờ họ coi trọng mình'), và thói quen chụp mũ đổ lỗi cho người khác. Thay bằng suy nghĩ tích cực và khách quan hơn.",
+      "guidance": "Bắt đúng những từ tuyệt đối trong lời em vừa nói — 'lúc nào cũng', 'chẳng bao giờ', 'ai cũng' — rồi hỏi em một trường hợp ngoại lệ. Đó là cách làm cụ thể nhất.",
+      "source": "actor#PhầnIII.3.4"
+    },
+    {
+      "id": "principle.a.active_listening",
+      "type": "Principle",
+      "label": "Lắng nghe tích cực và thấu cảm",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 3,
+      "triggers": [],
+      "summary": "Dành trọn tâm trí cho cuộc trò chuyện. Tránh ngắt lời, phán xét đạo đức, chỉ trích nặng nề hoặc đổ lỗi. Phản hồi lại CẢM XÚC ĐẰNG SAU lời nói của em: 'Thầy hiểu là con cảm thấy rất bực mình và bất công khi bạn nói lời không hay về con'.",
+      "guidance": "Hai cạm bẫy đối xứng phải tránh cùng lúc: đồng tình kiểu thương hại làm em yếu đuối hơn, và ra lệnh hay doạ kỷ luật cứng nhắc ngay từ đầu.",
+      "source": "actor#PhầnIII.3.5"
+    },
+    {
+      "id": "script.a.defensive_denial",
+      "type": "Script",
+      "label": "Khi em phòng thủ, chối bỏ, đổ lỗi ngược",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [
+        "em chẳng làm gì sai", "tại bạn ấy trước", "em chỉ dằn mặt", "bạn ấy đáng bị thế",
+        "ai bảo nó", "em bị oan"
+      ],
+      "summary": "Mẫu: \"Thầy/cô hiểu là con đang thấy rất bực mình, bất công và tổn thương vì con cảm nhận bạn ấy đang cố tình làm mọi người hiểu lầm về con. Bất kỳ ai rơi vào hoàn cảnh đó cũng khó tránh khỏi cảm giác muốn phản ứng lại mạnh mẽ. Con đã rất dũng cảm khi thẳng thắn nói ra cảm xúc của mình. Nhưng con có thể cùng thầy/cô nghĩ xem, sau khi con làm vậy, con có thực sự thấy thoải mái hơn không, hay tình hình lại căng thẳng hơn?\" Khi em kể tiếp rằng mình bị cả lớp nhìn như kẻ đầu gấu: \"Thầy/cô thấy là con thực sự muốn bảo vệ hình ảnh của mình trước tập thể, chứ không phải muốn mọi người nhìn con như một kẻ đáng sợ. Việc con phản ứng mạnh bạo vô tình đã che mất sự đúng đắn ban đầu của con, biến con thành người có lỗi trong mắt mọi người. Chúng ta tìm cách khác dứt khoát hơn mà vẫn tôn trọng bạn được không?\"",
+      "guidance": "Cấu trúc ba nhịp cần giữ nguyên: (1) công nhận cảm xúc là CHÍNH ĐÁNG, (2) bình thường hoá phản ứng, (3) chỉ hỏi về HIỆU QUẢ của hành vi chứ không kết tội. Không bao giờ mở đầu bằng việc phủ nhận lời em kể.",
+      "source": "actor#PhầnIV.4.1"
+    },
+    {
+      "id": "script.a.anger_recognition",
+      "type": "Script",
+      "label": "Hướng dẫn em nhận diện cơn giận và tự xoa dịu",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["máu nóng bốc lên", "muốn lao vào đập", "thở gấp", "tay chân cứng"],
+      "summary": "Mẫu: \"Cảm ơn con đã chia sẻ thật lòng cảm giác đó. Sự tức giận giống như một cơn bão bất ngờ tràn qua cơ thể con. Khi bão đến, tim con sẽ đập dồn dập, cơ thể nóng bừng và tay muốn đập phá. Con có cảm nhận thấy những thay đổi đó của cơ thể mình lúc tức giận không?\" Sau khi em xác nhận: \"Đúng vậy. Lúc đó cơn giận đang nắm quyền kiểm soát bộ não con. Lần tới khi thấy các dấu hiệu này, con hãy dừng lại, hít sâu đếm nhẩm 1-2-3-4, nhịn thở 1-2-3-4, thở ra từ từ 1-2-3-4. Sau 3-5 chu kỳ, con sẽ thấy mát hơn và sáng suốt hơn để nói lời từ chối hoặc thương lượng lành mạnh thay vì dùng nắm đấm.\"",
+      "guidance": "Hình ảnh 'cơn bão' và 'cơn giận đang nắm quyền kiểm soát bộ não' là cách nói đúng lứa tuổi — nó tách EM ra khỏi CƠN GIẬN, nên em không thấy mình bị gọi là đứa xấu.",
+      "source": "actor#PhầnIV.4.2"
+    },
+    {
+      "id": "script.a.logical_consequence_talk",
+      "type": "Script",
+      "label": "Cùng em bàn về hệ quả lôgíc cho lỗi đã gây ra",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": ["em làm hỏng đồ của bạn", "em lấy của bạn", "làm sao đền", "em phải chịu phạt gì"],
+      "summary": "Mẫu: chỉ rõ hành vi và tác động (\"Hành vi con giấu vở bài tập của bạn và đổ nước lên bàn đã làm hỏng tài sản cá nhân và khiến bạn không làm được bài kiểm tra\"), rồi HỎI EM: \"Theo con, hệ quả lôgíc phù hợp để con sửa chữa sai lầm này là gì?\" Khi em đề xuất một hình phạt không liên quan (chép phạt 100 lần), giải thích vì sao nó không liên quan trực tiếp, rồi đưa hệ quả đúng: xin lỗi bạn thẳng thắn; tự tay lau sạch bàn; dùng tiền tiết kiệm hoặc xin phép cha mẹ mua đền vở mới và giúp bạn chép lại bài bị ướt. Kết bằng câu hỏi đồng thuận: \"Con thấy phương án này có công bằng và hợp lý không?\"",
+      "guidance": "Điểm mấu chốt: HỎI EM TRƯỚC, đừng tuyên án. Và luôn kết bằng câu hỏi xin sự đồng thuận — hệ quả mà em tự gật đầu là hệ quả em thực hiện.",
+      "source": "actor#PhầnIV.4.3"
+    },
+    {
+      "id": "script.a.peer_pressure",
+      "type": "Script",
+      "label": "Khi em bị nhóm bạn xấu ép tham gia",
+      "agents": ["agent_actor", "agent_victim"],
+      "priority": 2,
+      "triggers": [
+        "nhóm bạn rủ em", "không tham gia thì bị đuổi khỏi nhóm", "bị chê yếu đuối", "sợ bị mỉa mai",
+        "bọn nó bắt em đi cùng", "rủ đi chặn đường", "rủ em đi", "bị đuổi khỏi nhóm",
+        "chê em yếu đuối", "ép em tham gia", "cả nhóm rủ"
+      ],
+      "dangerSignals": ["school_violence"],
+      "summary": "Mẫu: \"Thầy/cô hiểu là con đang chịu áp lực đồng trang lứa rất lớn. Con sợ bị lạc lõng, cô độc và bị chối bỏ nếu không nghe theo nhóm bạn. Nhưng con có nghĩ đến hậu quả nếu con nhượng bộ không? Hành vi xin tiền bạn lớp dưới là vi phạm pháp luật nghiêm trọng, con có thể bị đình chỉ học và cha mẹ con sẽ rất đau khổ. Sức mạnh đích thực không nằm ở việc bắt nạt kẻ yếu hơn.\" Rồi hướng dẫn em quy trình nói KHÔNG 4 bước.",
+      "guidance": "Phải công nhận nỗi sợ bị loại khỏi nhóm là CÓ THẬT và rất lớn ở lứa tuổi này trước khi nói tới hậu quả — bỏ qua bước đó thì em nghe như một bài giảng đạo đức. Câu chốt: nói KHÔNG với cái xấu chính là sự dũng cảm cao nhất để em tự chủ cuộc sống của mình.",
+      "source": "actor#PhầnIV.4.4"
+    },
+    {
+      "id": "case.a.tuan",
+      "type": "Case",
+      "label": "Tuấn — cậy thế sai khiến học tập và đánh bạn dằn mặt",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": ["bắt bạn làm bài hộ", "em sai bạn", "đánh dằn mặt", "doạ bạn không được mách"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Tuấn học lực kém, gia đình nuông chiều cho nhiều tiền tiêu vặt, lôi kéo nhóm bạn nghe lời để thể hiện quyền lực. Cô giáo xếp Phong ngồi cạnh giúp Tuấn học, nhưng Tuấn ép Phong làm bài tập và làm bài kiểm tra hộ. Phong từ chối thì bị Tuấn sai hai bạn đóng cửa lớp, dồn vào cuối lớp đánh dằn mặt, kèm đe doạ sẽ thuê người trừng trị nặng hơn nếu mách.",
+      "guidance": "Hướng làm việc với em: ghi nhận tính chủ động muốn đạt kết quả tốt, nhưng chỉ rõ đánh bạn, sai khiến học tập và đe doạ bằng vũ lực là hoàn toàn sai. Chỉ ra hậu quả kép — Phong bị tổn hại thể xác và sợ đi học, còn chính em thì hổng kiến thức nghiêm trọng vì không tự làm bài.",
+      "detail": "Phần việc của nhà trường: tách ngay nạn nhân khỏi nhóm để bảo đảm an toàn, phối hợp giám thị bảo vệ trên đường đi học và tan học. Hệ quả lôgíc: chịu kỷ luật của trường, mua đền sách vở bị hỏng, trực nhật bù phần việc đã bắt bạn làm, gia đình bồi thường chi phí điều trị. Với phụ huynh: mời cả phụ huynh những em tham gia, thống nhất cắt nguồn tiền tiêu vặt quá mức và tăng giám sát sau giờ học.",
+      "source": "actor#PhầnVI.6.1"
+    },
+    {
+      "id": "case.a.tung",
+      "type": "Case",
+      "label": "Tùng — ăn cắp tiền, ép bạn nhận tội và tống tiền bằng ảnh",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": ["em lấy tiền của bạn", "ép bạn nhận tội", "em có ảnh của bạn", "doạ gửi ảnh"],
+      "dangerSignals": ["school_violence"],
+      "summary": "Tùng là trưởng nhóm thí nghiệm, cậy thế bắt bạn Hương ở lại dọn phòng một mình với lý do 'con gái không làm thì ai làm'. Tùng ham chơi điện tử, làm mất tiền bố mẹ đưa nên ăn cắp 200.000 đồng của Minh, rồi ép Hương nhận tội thay. Hương không chịu thì Tùng doạ sẽ gửi cho bố mẹ Hương một tấm ảnh riêng tư của Hương mà Tùng lấy được từ máy tính của bạn khác.",
+      "guidance": "Ba điều phải làm rõ với em: bắt bạn dọn phòng vì giới tính là định kiến giới sai lệch; ăn cắp tiền và ép bạn nhận tội thay là hành vi vi phạm pháp luật; dùng ảnh riêng tư để ép buộc là xâm phạm đời tư và cưỡng đoạt tài sản — mức độ hình sự. Nói bằng ngôn ngữ em hiểu được, nhưng không giảm nhẹ.",
+      "detail": "Ngăn chặn khẩn cấp: yêu cầu xoá vĩnh viễn tấm ảnh khỏi mọi thiết bị, thu thập bằng chứng tin nhắn tống tiền để bảo vệ nạn nhân. Hệ quả lôgíc: hoàn trả đủ 200.000 đồng và xin lỗi công khai, tự trực nhật phòng thí nghiệm một mình 2 tuần để bù phần việc đã đùn cho bạn, nhận kỷ luật của trường. Với gia đình: thông báo trung thực, hướng dẫn phụ huynh KHÔNG dùng đòn roi mà bình tĩnh hỗ trợ em cai nghiện game và giáo dục lại giá trị đạo đức.",
+      "source": "actor#PhầnVI.6.2"
+    },
+    {
+      "id": "case.a.group_isolation",
+      "type": "Case",
+      "label": "Nhóm bắt nạt gián tiếp — mỉa mai và cô lập lớp trưởng",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": [
+        "bọn em chỉ nói đùa", "nó cậy thế cô giáo", "con cưng của cô", "cả lớp cùng cười",
+        "em ghét bạn ấy", "ghen tị"
+      ],
+      "summary": "L. là lớp trưởng học giỏi, được cô chủ nhiệm tín nhiệm và luôn hoàn thành việc đốc thúc bài tập của lớp. Một nhóm bạn ghen tị, cho rằng L. cậy thế giáo viên để khoe khoang. Một lần L. mệt nên quên làm bài, nhóm này lập tức mỉa mai công khai: 'Tưởng lớp trưởng gương mẫu thế nào', 'Con cưng của cô nên cô không phạt đâu', 'Nói nhỏ thôi kẻo nó lại mách cô'. Cả lớp cười hùa theo khiến L. sốc, tủi thân, tự ti và thu mình lại.",
+      "guidance": "Với em thuộc nhóm này: chỉ rõ rằng mỉa mai lỗi lầm và cô lập là BẠO LỰC TINH THẦN VÀ XÃ HỘI THẦM LẶNG, dù không ai động tay. Gọi tên gốc rễ là lòng đố kỵ, không muốn người khác hơn mình. Rồi giáo dục sự thấu cảm: ai cũng có lúc mệt và mắc sai lầm, và bạn ấy đã nỗ lực cho việc chung của lớp.",
+      "detail": "Phần việc của giáo viên: tinh tế điều chỉnh cách giao việc cho lớp trưởng để cả lớp không thấy có sự thiên vị, khuyến khích luân phiên việc kiểm tra bài tập thay vì dồn hết lên một em. Hỗ trợ nạn nhân: động viên em tiếp tục tự tin, khẳng định em không có lỗi khi bị ốm mệt, giúp em mở rộng quan hệ đồng đẳng tích cực.",
+      "source": "actor#PhầnVI.6.3"
+    },
+    {
+      "id": "protocol.a.parent_work",
+      "type": "Protocol",
+      "label": "Làm việc với phụ huynh của học sinh gây bạo lực",
+      "agents": ["agent_actor"],
+      "priority": 1,
+      "triggers": [
+        "bố mẹ em biết thì chết", "sợ bố mẹ đánh", "cô gọi bố mẹ em rồi", "về nhà em bị đòn",
+        "bố mẹ em biết", "sợ bố mẹ biết"
+      ],
+      "dangerSignals": ["domestic_violence"],
+      "summary": "Sự đồng hành của gia đình quyết định phần lớn kết quả chuyển hoá hành vi. Quy trình: trấn tĩnh phụ huynh trước (họ thường sốc, tức giận, xấu hổ và phòng thủ); trình bày sự việc khách quan dựa trên bằng chứng, KHÔNG quy kết nhân cách của trẻ mà tập trung vào hành vi cụ thể; thảo luận trách nhiệm khắc phục, nếu nghiêm trọng thì hướng dẫn hai bên phụ huynh gặp nhau ôn hoà để bồi thường và xin lỗi; thống nhất kế hoạch giáo dục ở trường và ở nhà.",
+      "guidance": "Agent KHÔNG liên hệ phụ huynh và không hứa hẹn thay mặt nhà trường. Khi em sợ bố mẹ biết: ghi nhận nỗi sợ đó là thật, giải thích rằng người lớn cần biết để giúp em sửa chứ không phải để phạt em, và nếu em sợ BỊ ĐÁNH ở nhà thì đó là điều phải nói ra ngay với thầy cô — không được bỏ qua.",
+      "source": "actor#PhầnV.5.1"
+    },
+    {
+      "id": "guide.a.parenting_style",
+      "type": "Method",
+      "label": "Định hướng thay đổi phong cách làm cha mẹ",
+      "agents": ["agent_actor"],
+      "priority": 0,
+      "triggers": [
+        "bố mẹ đánh em vì chuyện này", "về nhà bị mắng", "bố mẹ không nghe em nói", "bố mẹ đánh em",
+        "bị đòn ở nhà"
+      ],
+      "dangerSignals": ["domestic_violence"],
+      "summary": "Ba định hướng cho phụ huynh: TRÁNH HOÀN TOÀN BẠO LỰC GIA ĐÌNH — nếu cha mẹ dùng đòn roi, mắng chửi tàn nhẫn khi biết con bắt nạt bạn, trẻ càng tin rằng bạo lực là cách duy nhất để kiểm soát và giải quyết mâu thuẫn, dẫn tới tăng cường bắt nạt để trả thù âm thầm; DÀNH THỜI GIAN CHẤT LƯỢNG — tối thiểu 15 phút mỗi ngày trò chuyện trọn vẹn với con; LÀM GƯƠNG — giao tiếp ôn hoà, giải quyết mâu thuẫn gia đình bằng thương lượng trên cơ sở tôn trọng.",
+      "guidance": "Nội dung này dành cho người lớn, không phải để nói với học sinh. Chỉ dùng khi em kể mình bị đánh ở nhà vì chuyện này — khi đó điều em cần nghe là: việc bố mẹ đánh em KHÔNG phải là cách đúng, và em nên nói với thầy cô.",
+      "source": "actor#PhầnV.5.2"
+    },
+    {
+      "id": "taboo.a.labeling",
+      "type": "Taboo",
+      "label": "Không chụp mũ, không gán nhãn nhân cách",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Tránh mọi từ chụp mũ trực tiếp: 'kẻ bạo lực', 'kẻ bắt nạt', 'đứa hư', 'lạm dụng', 'hành hạ'. Luôn tập trung vào HÀNH VI CỤ THỂ đã xảy ra.",
+      "avoid": "Mọi cách diễn đạt mô tả CON NGƯỜI em thay vì việc em đã làm.",
+      "guidance": "Nguyên tắc gốc: tách hành vi khỏi nhân cách. 'Con đã làm một việc sai, nhưng con không phải là một đứa trẻ xấu' — đó là ranh giới phải giữ trong từng câu.",
+      "source": "actor#PhầnII.Bước1, PhầnII.Bước4"
+    },
+    {
+      "id": "taboo.a.punishment",
+      "type": "Taboo",
+      "label": "Không trừng phạt thân thể và tinh thần",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không mắng nhiếc trước lớp, không cô lập, không sỉ nhục, không bắt quỳ, không úp mặt vào tường trước cả lớp, không phạt đứng ngoài trời nắng.",
+      "avoid": "Mọi hình thức làm em bẽ mặt trước tập thể, và mọi hình phạt không liên quan tới lỗi.",
+      "guidance": "Nếu em kể mình đang bị phạt theo kiểu này, đừng bênh hình phạt đó. Ghi nhận rằng em thấy tổn thương, đồng thời vẫn giữ nguyên việc hành vi của em là sai và cần sửa — hai điều đó không mâu thuẫn nhau.",
+      "source": "actor#PhầnII.Bước3, PhầnIII.3.2"
+    },
+    {
+      "id": "taboo.a.half_praise",
+      "type": "Taboo",
+      "label": "Không khen nửa vời kèm chỉ trích quá khứ",
+      "agents": ["agent_actor", "agent_homeroom"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Không dùng cấu trúc 'Hôm nay con làm tốt lắm, giá như ngày nào con cũng ngoan thế này'.",
+      "avoid": "Mọi lời khen có mệnh đề 'giá như', 'nếu lúc nào cũng', 'sao trước đây không'.",
+      "guidance": "Câu đó xoá sạch cảm xúc tích cực vừa tạo ra. Khen thì dừng lại ở lời khen — phần cần sửa để sang lượt khác.",
+      "source": "actor#PhầnIII.3.3"
+    },
+    {
+      "id": "taboo.a.pity_or_command",
+      "type": "Taboo",
+      "label": "Không thương hại, cũng không ra lệnh doạ kỷ luật",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Tránh đồng tình kiểu thương hại làm em yếu đuối hơn, và tránh ra lệnh hay doạ kỷ luật cứng nhắc ngay từ đầu cuộc trò chuyện.",
+      "avoid": "Hai thái cực: 'tội nghiệp con quá' và 'con sẽ bị đình chỉ học đấy'.",
+      "source": "actor#PhầnIII.3.5"
+    },
+    {
+      "id": "taboo.a.justify_violence",
+      "type": "Taboo",
+      "label": "Không bao giờ hợp thức hoá hành vi bạo lực",
+      "agents": ["agent_actor"],
+      "priority": 2,
+      "triggers": [],
+      "summary": "Thấu cảm với CẢM XÚC của em là bắt buộc; nhưng tuyệt đối không được để lời thấu cảm trở thành sự đồng tình rằng hành vi đó là chấp nhận được, dù em có lý do chính đáng đến đâu.",
+      "avoid": "Các câu kiểu 'ai vào hoàn cảnh đó cũng làm vậy thôi', 'bạn ấy cũng có phần sai mà'.",
+      "guidance": "Công thức an toàn: công nhận cảm xúc là chính đáng → nói rõ hành vi vẫn là sai → chuyển sang cách khác đạt được điều em muốn. Không bỏ vế giữa.",
+      "source": "actor#PhầnIV.4.1"
+    }
+  ],
+  "edges": [
+    { "from": "riskfactor.a.individual", "rel": "INCREASES_RISK_OF", "to": "vtype.physical" },
+    { "from": "riskfactor.a.individual", "rel": "INCREASES_RISK_OF", "to": "vtype.emotional" },
+    { "from": "riskfactor.a.family", "rel": "INCREASES_RISK_OF", "to": "vtype.physical" },
+    { "from": "riskfactor.a.school", "rel": "INCREASES_RISK_OF", "to": "vtype.physical" },
+    { "from": "riskfactor.a.society", "rel": "INCREASES_RISK_OF", "to": "vtype.cyber" },
+    { "from": "riskfactor.a.individual", "rel": "RELATED_TO", "to": "protocol.a.anger_control" },
+    { "from": "riskfactor.a.family", "rel": "RELATED_TO", "to": "guide.a.parenting_style" },
+    { "from": "riskfactor.a.family", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "protocol.a.intervention_5steps", "rel": "HAS_STEP", "to": "step.a.1_interview" },
+    { "from": "protocol.a.intervention_5steps", "rel": "HAS_STEP", "to": "step.a.2_consequences" },
+    {
+      "from": "protocol.a.intervention_5steps",
+      "rel": "HAS_STEP",
+      "to": "step.a.3_positive_discipline"
+    },
+    { "from": "protocol.a.intervention_5steps", "rel": "HAS_STEP", "to": "step.a.4_repair" },
+    { "from": "protocol.a.intervention_5steps", "rel": "HAS_STEP", "to": "step.a.5_monitor" },
+    { "from": "protocol.a.anger_control", "rel": "HAS_STEP", "to": "step.a.anger_1" },
+    { "from": "protocol.a.anger_control", "rel": "HAS_STEP", "to": "step.a.anger_2" },
+    { "from": "protocol.a.anger_control", "rel": "HAS_STEP", "to": "step.a.anger_3" },
+    { "from": "step.a.anger_2", "rel": "RELATED_TO", "to": "skill.box_breathing" },
+    { "from": "step.a.anger_3", "rel": "RELATED_TO", "to": "skill.cognitive_reframe" },
+    { "from": "step.a.anger_2", "rel": "RELATED_TO", "to": "method.a.timeout" },
+    { "from": "step.a.1_interview", "rel": "RELATED_TO", "to": "principle.a.active_listening" },
+    { "from": "step.a.1_interview", "rel": "RELATED_TO", "to": "riskfactor.a.individual" },
+    { "from": "step.a.1_interview", "rel": "RELATED_TO", "to": "riskfactor.a.family" },
+    {
+      "from": "step.a.3_positive_discipline",
+      "rel": "RELATED_TO",
+      "to": "method.a.logical_consequence"
+    },
+    { "from": "step.a.3_positive_discipline", "rel": "RELATED_TO", "to": "method.a.timeout" },
+    {
+      "from": "step.a.3_positive_discipline",
+      "rel": "RELATED_TO",
+      "to": "method.a.natural_consequence"
+    },
+    { "from": "step.a.4_repair", "rel": "RELATED_TO", "to": "protocol.v.assertive_5steps" },
+    { "from": "step.a.5_monitor", "rel": "RELATED_TO", "to": "method.a.positive_reinforcement" },
+    { "from": "step.a.5_monitor", "rel": "REFER_TO", "to": "clinic.vien_suc_khoe_tam_than" },
+    { "from": "step.a.5_monitor", "rel": "REFER_TO", "to": "clinic.mai_huong" },
+    { "from": "script.a.defensive_denial", "rel": "RESPONDS_TO", "to": "step.a.1_interview" },
+    { "from": "script.a.defensive_denial", "rel": "RESPONDS_TO", "to": "step.a.2_consequences" },
+    { "from": "script.a.anger_recognition", "rel": "RESPONDS_TO", "to": "protocol.a.anger_control" },
+    {
+      "from": "script.a.logical_consequence_talk",
+      "rel": "RESPONDS_TO",
+      "to": "method.a.logical_consequence"
+    },
+    { "from": "script.a.logical_consequence_talk", "rel": "RESPONDS_TO", "to": "step.a.4_repair" },
+    { "from": "script.a.peer_pressure", "rel": "RESPONDS_TO", "to": "riskfactor.a.society" },
+    { "from": "script.a.peer_pressure", "rel": "RELATED_TO", "to": "protocol.v.refusal_4steps" },
+    {
+      "from": "method.a.logical_consequence",
+      "rel": "CONTRASTS_WITH",
+      "to": "method.a.natural_consequence"
+    },
+    {
+      "from": "method.a.positive_reinforcement",
+      "rel": "RESPONDS_TO",
+      "to": "riskfactor.a.individual"
+    },
+    { "from": "case.a.tuan", "rel": "EXEMPLIFIES", "to": "vtype.physical" },
+    { "from": "case.a.tuan", "rel": "EXEMPLIFIES", "to": "method.a.logical_consequence" },
+    { "from": "case.a.tung", "rel": "EXEMPLIFIES", "to": "vtype.economic" },
+    { "from": "case.a.tung", "rel": "EXEMPLIFIES", "to": "vtype.cyber" },
+    { "from": "case.a.group_isolation", "rel": "EXEMPLIFIES", "to": "vtype.emotional" },
+    { "from": "case.a.group_isolation", "rel": "RELATED_TO", "to": "concept.bat_nat_hoc_duong" },
+    { "from": "protocol.a.parent_work", "rel": "RELATED_TO", "to": "guide.a.parenting_style" },
+    { "from": "protocol.a.parent_work", "rel": "RELATED_TO", "to": "step.a.4_repair" },
+    { "from": "guide.a.parenting_style", "rel": "REFER_TO", "to": "hotline.111" },
+    { "from": "taboo.a.labeling", "rel": "CONTRAINDICATED_FOR", "to": "step.a.1_interview" },
+    { "from": "taboo.a.labeling", "rel": "CONTRAINDICATED_FOR", "to": "step.a.2_consequences" },
+    {
+      "from": "taboo.a.punishment",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "step.a.3_positive_discipline"
+    },
+    { "from": "taboo.a.punishment", "rel": "CONTRAINDICATED_FOR", "to": "method.a.timeout" },
+    {
+      "from": "taboo.a.half_praise",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "method.a.positive_reinforcement"
+    },
+    {
+      "from": "taboo.a.pity_or_command",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "principle.a.active_listening"
+    },
+    {
+      "from": "taboo.a.justify_violence",
+      "rel": "CONTRAINDICATED_FOR",
+      "to": "script.a.defensive_denial"
+    }
+  ]
+}

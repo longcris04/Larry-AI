@@ -1,0 +1,309 @@
+/* Bảng "Larry dựa vào đâu" — đứng chỗ khung webcam sau khi camera nhận diện xong.
+
+   Khác khung webcam ở chỗ đây là mặt chữ để ĐỌC, nên không có animation nổi bồng
+   bềnh, chữ to hơn và nền dịu. Vẫn giữ đúng bộ màu và bo góc của Larry để nó
+   không giống một bảng debug lạc vào giao diện trẻ em. */
+
+.knowledge-panel {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 14px;
+  border-radius: var(--radius-lg);
+  border: 5px solid var(--purple);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  /* Chừa chỗ cho UserMenu ngay bên dưới trong cùng cột */
+  max-height: calc(100vh - 170px);
+  min-height: 0;
+}
+
+.knowledge-panel__head {
+  flex-shrink: 0;
+}
+
+.knowledge-panel__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.knowledge-panel__sub {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.knowledge-panel__emotion {
+  margin: 10px 0 0;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  background: #f3eeff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+/* --- Trạng thái đang tra --------------------------------------------------- */
+
+.knowledge-panel__searching {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 14px;
+  border-radius: var(--radius-md);
+  background: #f6f2ff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+.kg-spinner {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 3px solid var(--purple);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.knowledge-panel__count {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.knowledge-panel__agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--agent-color, var(--purple)) 12%, white);
+  border: 2px solid color-mix(in srgb, var(--agent-color, var(--purple)) 35%, white);
+  color: var(--agent-color, var(--purple));
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.knowledge-panel__empty {
+  margin: 0;
+  padding: 20px 14px;
+  border-radius: var(--radius-md);
+  background: #f8fcff;
+  border: 2px dashed rgba(167, 139, 250, 0.4);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+/* --- Danh sách mẩu tri thức ------------------------------------------------ */
+
+.knowledge-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.knowledge-list:empty {
+  display: none;
+}
+
+.knowledge-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.knowledge-list::-webkit-scrollbar-track {
+  background: #f3eeff;
+  border-radius: var(--radius-pill);
+}
+
+.knowledge-list::-webkit-scrollbar-thumb {
+  background: var(--purple);
+  border-radius: var(--radius-pill);
+}
+
+.kg-card {
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 2px solid #ece5ff;
+  background: #fcfaff;
+  animation: bounce-in 0.4s ease-out both;
+}
+
+.kg-card--open {
+  border-color: var(--purple);
+  background: var(--white);
+}
+
+.kg-card__main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kg-card__main:disabled {
+  cursor: default;
+}
+
+.kg-card__chips {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kg-card__type,
+.kg-card__match {
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.kg-card__type {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.kg-card__match {
+  background: #e8f9ff;
+  color: #0369a1;
+}
+
+.kg-card__label {
+  grid-column: 1;
+  margin-top: 6px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.kg-card__chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 0.9rem;
+  color: var(--purple);
+}
+
+.kg-card__summary {
+  margin: 8px 0 0;
+  font-size: 0.87rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.kg-card__summary--clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kg-card__more {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 2px dashed rgba(167, 139, 250, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kg-card__note,
+.kg-card__why {
+  margin: 0;
+  font-size: 0.83rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.kg-card__note strong,
+.kg-card__why strong {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.kg-card__note--avoid {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.kg-card__note--avoid strong {
+  color: #9f1239;
+}
+
+.kg-card__why {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.kg-card__why strong {
+  color: #14532d;
+}
+
+.kg-card__source {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #94a3b8;
+  word-break: break-word;
+}
+
+.kg-card__part {
+  color: var(--purple);
+}
+
+.knowledge-panel__foot {
+  flex-shrink: 0;
+  padding-top: 8px;
+  border-top: 2px dashed rgba(167, 139, 250, 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .knowledge-panel {
+    /* Ở màn hình hẹp hai cột xếp chồng, khoá theo chiều cao màn hình sẽ để lại
+       một khoảng trống lớn phía dưới bảng */
+    max-height: 52vh;
+  }
+}

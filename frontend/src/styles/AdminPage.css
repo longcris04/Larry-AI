@@ -1,0 +1,576 @@
+.admin-page{
+
+    min-height:100vh;
+
+    padding:28px 26px 60px;
+
+    background:#F5F8FF;
+}
+
+.admin-topbar{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:16px;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    margin-bottom:22px;
+}
+
+.admin-topbar__title{
+
+    margin:0;
+
+    font-size:28px;
+
+    font-weight:800;
+
+    color:#2D3553;
+}
+
+.admin-topbar__subtitle{
+
+    margin:6px 0 0;
+
+    font-size:15px;
+
+    color:#7A859C;
+}
+
+.admin-topbar__actions{
+
+    display:flex;
+
+    gap:10px;
+}
+
+.admin-btn{
+
+    padding:11px 18px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#56C6FF;
+
+    color:white;
+
+    font-size:15px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.admin-btn:hover{
+
+    filter:brightness(1.06);
+}
+
+.admin-btn:disabled{
+
+    opacity:.6;
+
+    cursor:not-allowed;
+}
+
+.admin-btn--sm{
+
+    padding:8px 13px;
+
+    font-size:14px;
+}
+
+.admin-btn--ghost{
+
+    background:#E9EEF8;
+
+    color:#5A6480;
+}
+
+.admin-btn--primary{
+
+    background:linear-gradient(135deg,#56C6FF,#8B63FF);
+}
+
+.admin-btn--danger{
+
+    background:#FF6B6B;
+}
+
+.admin-error{
+
+    padding:14px 18px;
+
+    margin-bottom:18px;
+
+    border-radius:14px;
+
+    background:#FFECEC;
+
+    color:#C0392B;
+
+    font-weight:600;
+}
+
+.admin-panel{
+
+    background:white;
+
+    border-radius:22px;
+
+    padding:24px;
+
+    margin-bottom:22px;
+
+    box-shadow:0 10px 30px rgba(70,90,140,.08);
+}
+
+.admin-panel__title{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    margin:0 0 18px;
+
+    font-size:20px;
+
+    font-weight:800;
+
+    color:#2D3553;
+}
+
+.admin-empty{
+
+    margin:0;
+
+    padding:24px 0;
+
+    text-align:center;
+
+    color:#93A0B8;
+}
+
+.admin-muted{
+
+    color:#8A94AB;
+
+    font-size:14px;
+}
+
+/* --- Bảng tài khoản --- */
+
+.admin-table-wrap{
+
+    overflow-x:auto;
+}
+
+.admin-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    font-size:15px;
+}
+
+.admin-table th{
+
+    text-align:left;
+
+    padding:12px 14px;
+
+    border-bottom:2px solid #EDF1F9;
+
+    color:#6B7690;
+
+    font-size:14px;
+
+    white-space:nowrap;
+}
+
+.admin-table td{
+
+    padding:14px;
+
+    border-bottom:1px solid #F1F4FA;
+
+    vertical-align:top;
+
+    color:#3C4763;
+}
+
+.admin-row--editing td{
+
+    background:#F8FBFF;
+}
+
+.admin-tag{
+
+    display:inline-block;
+
+    padding:4px 12px;
+
+    border-radius:999px;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    background:#EAF4FF;
+
+    color:#3E86C4;
+
+    white-space:nowrap;
+}
+
+.admin-tag--admin{
+
+    background:#FFF3D6;
+
+    color:#B8860B;
+}
+
+.admin-flag{
+
+    margin-left:8px;
+
+    font-size:14px;
+
+    font-weight:700;
+
+    color:#B5651D;
+
+    white-space:nowrap;
+}
+
+.admin-flag--high{
+
+    color:#D64545;
+}
+
+.admin-actions{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+}
+
+/* --- Form sửa --- */
+
+.admin-edit__grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+    gap:14px;
+}
+
+.admin-edit__grid label{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:6px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#5A6480;
+}
+
+.admin-edit__grid input,
+.admin-edit__grid select{
+
+    padding:11px 13px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:12px;
+
+    font-size:15px;
+
+    font-family:inherit;
+
+    color:#333;
+
+    outline:none;
+}
+
+.admin-edit__grid input:focus,
+.admin-edit__grid select:focus{
+
+    border-color:#56C6FF;
+}
+
+.admin-edit__actions{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:18px;
+}
+
+/* --- Danh sách phiên hội thoại --- */
+
+.admin-sessions{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+}
+
+.admin-session{
+
+    padding:18px 20px;
+
+    border:2px solid #EDF1F9;
+
+    border-radius:18px;
+
+    background:#FBFCFF;
+}
+
+.admin-session--flagged{
+
+    border-color:#FFC9C9;
+
+    background:#FFF7F7;
+}
+
+/* Mức độ tăng dần: chú ý (vàng) → đáng lo (cam) → khẩn cấp (đỏ) */
+.admin-session--low{
+
+    border-color:#FFE2A8;
+
+    background:#FFFBF2;
+}
+
+.admin-session--medium{
+
+    border-color:#FFCF9E;
+
+    background:#FFF8F1;
+}
+
+.admin-session--high{
+
+    border-color:#FFB3B3;
+
+    background:#FFF4F4;
+}
+
+.admin-session__head{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+    justify-content:space-between;
+
+    font-size:14px;
+
+    color:#8A94AB;
+}
+
+.admin-session__status{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:8px;
+
+    margin:12px 0 10px;
+}
+
+.admin-session__tags{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:6px;
+}
+
+.admin-risk-tag{
+
+    padding:4px 10px;
+
+    border-radius:999px;
+
+    border:1px solid #E1E7F5;
+
+    background:#F4F7FF;
+
+    color:#4A5875;
+
+    font-size:13px;
+
+    font-weight:600;
+}
+
+.admin-badge{
+
+    display:inline-block;
+
+    padding:6px 14px;
+
+    border-radius:999px;
+
+    background:#E8F5E9;
+
+    color:#3B7A45;
+
+    font-size:14px;
+
+    font-weight:700;
+}
+
+.admin-badge--danger,
+.admin-badge--high{
+
+    background:#FFE3E3;
+
+    color:#C0392B;
+}
+
+.admin-badge--medium{
+
+    background:#FFEBD6;
+
+    color:#B5651D;
+}
+
+.admin-badge--low{
+
+    background:#FFF4D1;
+
+    color:#8A6A16;
+}
+
+.admin-session__checkin{
+
+    margin:0 0 8px;
+
+    font-size:14px;
+
+    line-height:1.6;
+
+    color:#5A6580;
+}
+
+.admin-session__summary{
+
+    margin:0;
+
+    font-size:15px;
+
+    line-height:1.7;
+
+    color:#3C4763;
+}
+
+.admin-session__concerns{
+
+    margin:12px 0 0;
+
+    padding-left:20px;
+
+    font-size:14px;
+
+    color:#B5651D;
+}
+
+.admin-session__foot{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:10px;
+
+    margin-top:14px;
+}
+
+.admin-session__sent{
+
+    font-size:13px;
+
+    color:#2F8B4F;
+}
+
+@media(max-width:768px){
+
+    .admin-page{
+
+        padding:20px 14px 40px;
+    }
+
+    .admin-panel{
+
+        padding:18px 14px;
+    }
+}
+
+.admin-self{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#4A93D6;
+}
+
+.admin-note{
+
+    margin:-8px 0 18px;
+
+    padding:12px 16px;
+
+    border-radius:12px;
+
+    background:#F5F8FF;
+
+    color:#6B7690;
+
+    font-size:14px;
+}
+
+.admin-note code{
+
+    padding:2px 7px;
+
+    border-radius:6px;
+
+    background:#E4ECFA;
+
+    color:#3E5C86;
+
+    font-size:13px;
+}

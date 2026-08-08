@@ -1,0 +1,117 @@
+.guide-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px);
+  border: 5px solid var(--blue);
+
+  border-radius: var(--radius-lg);
+}
+
+.guide-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.guide-panel__bulb {
+  font-size: 22px;
+}
+
+.guide-panel__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.guide-panel__text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+}
+
+.guide-panel__illustration {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+  padding: 20px 12px 14px;
+  margin-bottom: 20px;
+}
+
+.guide-panel__glow {
+  position: absolute;
+  top: 10px;
+  width: 90px;
+  height: 90px;
+  border-radius: var(--radius-circle);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  filter: blur(24px);
+  opacity: 0.3;
+  animation: pulse-soft 3.5s ease-in-out infinite;
+}
+
+.guide-panel__robot {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-circle);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  box-shadow: var(--shadow-lift);
+}
+
+.guide-panel__sparkle {
+  position: absolute;
+  font-size: 16px;
+  animation: float 4s ease-in-out infinite;
+}
+
+.guide-panel__sparkle--1 {
+  top: 12px;
+  right: 30px;
+}
+
+.guide-panel__sparkle--2 {
+  bottom: 40px;
+  left: 26px;
+  animation-delay: 1s;
+}
+
+.guide-panel__caption {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.guide-panel__footer {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.guide-panel__footer .user-menu {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .guide-panel {
+    width: 100%;
+    height: auto;
+  }
+}

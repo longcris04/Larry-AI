@@ -1,0 +1,654 @@
+
+.auth-container{
+    position:relative;
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at top left,#FFF7D9 0%,transparent 30%),
+        radial-gradient(circle at bottom right,#F5D5FF 0%,transparent 30%),
+        linear-gradient(135deg,#FDFDFE,#EAF7FF);
+    font-family:'Poppins',sans-serif;
+}
+
+.auth-card{
+
+    position:relative;
+    z-index:10;
+
+    width:100%;
+    max-width:560px;
+    padding:55px 55px 40px;
+    background:rgba(255,255,255,.93);
+    backdrop-filter:blur(12px);
+
+    border-radius:38px;
+
+    border:2px solid rgba(122,208,255,.45);
+
+    box-shadow:
+        0 25px 60px rgba(112,155,255,.15);
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    animation:slide-up .45s ease;
+
+    margin: 0 auto;
+}
+
+.auth-card__avatar{
+
+    width:115px;
+    height:115px;
+
+    border-radius:50%;
+
+    background:linear-gradient(
+        135deg,
+        #64C8FF,
+        #A56CFF
+    );
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:58px;
+
+    margin-bottom:18px;
+
+    box-shadow:
+        0 20px 35px rgba(118,132,255,.28);
+}
+
+.auth-card__avatar--pink{
+
+    background:linear-gradient(
+        135deg,
+        #FF7DB7,
+        #A56CFF
+    );
+}
+
+.auth-title{
+
+    font-size:48px;
+
+    font-weight:800;
+
+    color:#2D3553;
+
+    margin:0;
+}
+
+.auth-title span{
+
+    color:#FFC83D;
+}
+
+.auth-subtitle{
+
+    margin-top:10px;
+    margin-bottom:35px;
+
+    color:#7A859C;
+
+    line-height:1.7;
+
+    font-size:18px;
+
+    text-align:center;
+
+    max-width:340px;
+}
+
+.auth-form{
+
+    width:100%;
+}
+
+.form-group{
+
+    margin-bottom:22px;
+}
+
+.form-group label{
+
+    display:block;
+
+    margin-bottom:10px;
+
+    font-size:18px;
+
+    font-weight:700;
+
+    color:#323E60;
+}
+
+.form-field-icon{
+
+    display:flex;
+
+    align-items:center;
+
+    height:62px;
+
+    border-radius:18px;
+
+    background:white;
+
+    border:2px solid #E7EEF9;
+
+    transition:.3s;
+
+    padding:0 18px;
+}
+
+.form-field-icon:hover{
+
+    border-color:#8DD5FF;
+}
+
+.form-field-icon:focus-within{
+
+    border-color:#56C6FF;
+
+    box-shadow:
+        0 0 0 5px rgba(86,198,255,.15);
+}
+
+.form-field-icon__left{
+
+    width:26px;
+
+    display:flex;
+
+    justify-content:center;
+
+    color:#A5B0C6;
+
+    font-size:20px;
+}
+
+.form-field-icon input{
+
+    flex:1;
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    height:100%;
+
+    font-size:17px;
+
+    padding:0 16px;
+
+    color:#333;
+}
+
+.form-field-icon input::placeholder{
+
+    color:#B8C0D1;
+}
+
+.form-field-icon__right{
+
+    border:none;
+
+    background:none;
+
+    cursor:pointer;
+
+    color:#8A95AF;
+
+    font-size:20px;
+}
+
+/* Dropdown dùng chung khung với ô nhập, xem AuthSelect.jsx */
+.form-field-icon select{
+
+    flex:1;
+
+    width:100%;
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    height:100%;
+
+    font-size:17px;
+
+    font-family:inherit;
+
+    padding:0 16px;
+
+    color:#333;
+
+    cursor:pointer;
+
+    appearance:none;
+
+    -webkit-appearance:none;
+}
+
+/* Chưa chọn gì thì chữ mờ như placeholder của ô nhập */
+.form-field-icon--empty select{
+
+    color:#B8C0D1;
+}
+
+.form-field-icon select option{
+
+    color:#333;
+}
+
+.form-field-icon__caret{
+
+    color:#8A95AF;
+
+    font-size:16px;
+
+    pointer-events:none;
+}
+
+/* Khối + lớp đứng cạnh nhau cho gọn */
+.form-row{
+
+    display:flex;
+
+    gap:14px;
+}
+
+.form-row > *{
+
+    flex:1;
+
+    min-width:0;
+}
+
+@media(max-width:480px){
+
+    .form-row{
+
+        flex-direction:column;
+
+        gap:0;
+    }
+}
+
+.auth-remember-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin:8px 0 28px;
+}
+
+.auth-remember-row label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    font-size:15px;
+
+    color:#69758D;
+}
+
+.auth-remember-row input{
+
+    width:18px;
+
+    height:18px;
+
+    accent-color:#61C7FF;
+}
+
+.auth-remember-row button{
+
+    background:none;
+
+    border:none;
+
+    color:#8F68FF;
+
+    font-size:15px;
+
+    cursor:pointer;
+}
+
+.auth-terms{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:10px;
+
+    margin:10px 0 28px;
+
+    font-size:15px;
+
+    color:#707C95;
+}
+
+.auth-terms input{
+
+    margin-top:3px;
+
+    accent-color:#A56CFF;
+}
+
+/* Là <button> chứ không phải <a>: bấm vào mở hộp thoại, không rời khỏi form */
+.auth-terms__link{
+
+    padding:0;
+
+    border:none;
+
+    background:none;
+
+    font:inherit;
+
+    color:#4A93D6;
+
+    font-weight:700;
+
+    text-decoration:underline;
+
+    cursor:pointer;
+}
+
+.auth-terms__link:hover{
+
+    color:#2F7CC0;
+}
+
+.auth-btn{
+
+    width:100%;
+
+    height:62px;
+
+    border:none;
+
+    border-radius:18px;
+
+    background:linear-gradient(
+        90deg,
+        #49BFFF,
+        #A56CFF
+    );
+
+    color:white;
+
+    font-size:19px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.auth-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:
+        0 15px 30px rgba(118,132,255,.28);
+}
+
+.auth-btn:active{
+
+    transform:scale(.98);
+}
+
+.auth-switch{
+
+    margin-top:32px;
+
+    font-size:16px;
+
+    color:#7D88A0;
+}
+
+.auth-switch button{
+
+    border:none;
+
+    background:none;
+
+    color:#8B63FF;
+
+    cursor:pointer;
+
+    font-weight:700;
+
+    font-size:16px;
+}
+
+.auth-switch button:hover{
+
+    color:#4ABEFF;
+}
+
+.auth-error{
+
+    width:100%;
+
+    padding:14px;
+
+    border-radius:14px;
+
+    margin-bottom:20px;
+
+    background:#FFF0F0;
+
+    color:#E34B4B;
+
+    border:1px solid #FFD0D0;
+
+    text-align:center;
+}
+
+/* Thông báo đăng ký thành công, hiện ở màn hình đăng nhập */
+.auth-success{
+
+    width:100%;
+
+    padding:14px;
+
+    border-radius:14px;
+
+    margin-bottom:20px;
+
+    background:#EFFAF1;
+
+    color:#2F8B4F;
+
+    border:1px solid #C9EBD4;
+
+    font-weight:600;
+
+    text-align:center;
+}
+
+@keyframes slide-up{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(30px);
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+    }
+}
+
+@media(max-width:768px){
+
+    .auth-card{
+
+        max-width:100%;
+
+        padding:35px 28px;
+    }
+
+    .auth-title{
+
+        font-size:38px;
+    }
+
+    .auth-subtitle{
+
+        font-size:16px;
+    }
+
+}
+/* --- Vào chat không cần đăng nhập --- */
+
+.auth-divider{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+    width:100%;
+
+    margin:24px 0 18px;
+
+    color:#9AA4B8;
+
+    font-size:15px;
+
+    font-weight:600;
+}
+
+.auth-divider::before,
+.auth-divider::after{
+
+    content:"";
+
+    flex:1;
+
+    height:1px;
+
+    background:#E4E8F0;
+}
+
+.auth-guest-hint{
+
+    margin-top:12px;
+
+    text-align:center;
+
+    font-size:15px;
+
+    color:#7A859C;
+}
+
+/* --- Dropdown "Bạn là" --- */
+
+.form-field-icon .auth-select{
+
+    flex:1;
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    height:100%;
+
+    font-size:17px;
+
+    padding:0 16px;
+
+    color:#333;
+
+    cursor:pointer;
+
+    appearance:none;
+
+    -webkit-appearance:none;
+}
+
+.form-field-icon .auth-select:focus{
+
+    outline:none;
+}
+
+/* --- Khối thông tin không bắt buộc lúc đăng ký --- */
+
+.auth-optional-block{
+
+    width:100%;
+
+    margin:8px 0 4px;
+
+    padding:20px 18px 4px;
+
+    border:2px dashed #E7EEF9;
+
+    border-radius:18px;
+
+    background:rgba(247,250,255,.6);
+}
+
+.auth-optional-title{
+
+    margin:0 0 16px;
+
+    font-size:16px;
+
+    font-weight:700;
+
+
+    color:#5A6480;
+}
+
+.auth-optional-tag{
+
+    display:inline-block;
+
+    margin-left:6px;
+
+    padding:3px 10px;
+
+    border-radius:999px;
+
+    background:#EAF4FF;
+
+    color:#4A93D6;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    vertical-align:middle;
+}
