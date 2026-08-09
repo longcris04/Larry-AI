@@ -14,6 +14,10 @@ const { agentById } = require("./registry");
 
 // Mỗi kịch bản: phiếu cảm xúc (hoặc null) + danh sách câu học sinh nhắn.
 // Câu đầu tiên là null = học sinh chưa nhắn gì, Larry mở lời trước.
+//
+// `camera` là cảm xúc camera nhận diện được; bỏ trống thì mặc định "neutral".
+// Đặt camera: "" để mô phỏng máy KHÔNG có tín hiệu camera — học sinh từ chối quyền
+// hoặc máy không có webcam. Đây là ca dễ bị bỏ quên nhất khi sửa prompt.
 const SCENARIOS = {
   1: {
     name: "Bỏ qua phiếu, chỉ chào — supervisor phải hỏi khai thác, chưa gọi agent",
@@ -133,6 +137,12 @@ const SCENARIOS = {
     name: "GỌI TÊN + PHÂN LOẠI — phải nói rõ đây là bạo lực học đường dạng thể chất",
     checkin: null,
     turns: [null, "hôm qua bạn A đẩy em ngã và giật tóc em ở sân trường"]
+  },
+  16: {
+    name: "KHÔNG CAMERA, KHÔNG PHIẾU — Larry phải hỏi để khai thác cảm xúc, KHÔNG đoán bừa",
+    checkin: null,
+    camera: "",
+    turns: [null, "em chào", "hôm nay cũng bình thường thôi"]
   }
 };
 
@@ -170,7 +180,7 @@ async function runScenario(key) {
       input.sessionId = threadId;
       input.student = { username: "Bạn nhỏ", grade: "7" };
       input.checkin = checkin;
-      input.cameraEmotion = "neutral";
+      input.cameraEmotion = scenario.camera ?? "neutral";
       first = false;
     }
 

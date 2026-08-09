@@ -17,8 +17,12 @@ function newSessionId() {
   return `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+// `emotion` là cảm xúc camera đọc được, có thể null. `emotionReady` mới là thứ
+// cho biết BƯỚC camera đã xong hay chưa: em không cho quyền camera thì bước đó
+// xong với kết quả rỗng, và cuộc trò chuyện vẫn phải mở ra bình thường.
 export default function ChatBox({
   emotion,
+  emotionReady = true,
   checkin = null,
   checkinReady = true,
   onKnowledge
@@ -78,7 +82,8 @@ export default function ChatBox({
           sessionId,
           history,
           checkin: checkinRef.current,
-          emotion: emotionRef.current
+          // Không có camera thì gửi chuỗi rỗng, đúng như mọi lượt chat đã gửi
+          emotion: emotionRef.current || ""
         })
         .catch(() => {
           /* Không chặn điều hướng nếu chốt phiên thất bại */
@@ -86,10 +91,12 @@ export default function ChatBox({
     };
   }, []);
 
-  // Chờ học sinh trả lời xong (hoặc bỏ qua) phiếu cảm xúc rồi Larry mới chào,
-  // để lời chào đầu tiên đã có sẵn thông tin vừa thu thập.
+  // Chờ xong CẢ HAI bước thu thập (camera và phiếu cảm xúc) rồi Larry mới chào, để
+  // lời chào đầu tiên đã có sẵn thông tin vừa thu thập. Bước nào không có kết quả
+  // thì gửi rỗng — backend đã xử lý được cả hai chỗ trống, và khi không có tín hiệu
+  // nào thì Larry hỏi để khai thác cảm xúc ngay trong chat.
   useEffect(() => {
-    if (!emotion || !checkinReady || greetingSentRef.current) return;
+    if (!emotionReady || !checkinReady || greetingSentRef.current) return;
 
     greetingSentRef.current = true;
     setChatStarted(true);
@@ -98,13 +105,13 @@ export default function ChatBox({
     runTurn({
       sessionId: sessionIdRef.current,
       text: "",
-      emotion,
+      emotion: emotion || "",
       checkin
     });
-  }, [emotion, checkinReady, checkin, runTurn]);
+  }, [emotionReady, emotion, checkinReady, checkin, runTurn]);
 
   const sendMessage = () => {
-    if (!input.trim() || busy || !emotion) return;
+    if (!input.trim() || busy) return;
 
     const text = input.trim();
     setInput("");
@@ -112,7 +119,7 @@ export default function ChatBox({
     runTurn({
       sessionId: sessionIdRef.current,
       text,
-      emotion,
+      emotion: emotion || "",
       checkin
     });
   };
@@ -125,7 +132,7 @@ export default function ChatBox({
       <ChatHeader />
 
       <div ref={chatRef} className="chat-messages">
-        {!emotion && (
+        {!emotionReady && (
           <p className="waiting-hint">
             👀 Larry đang chờ nhìn thấy bạn qua camera...
           </p>

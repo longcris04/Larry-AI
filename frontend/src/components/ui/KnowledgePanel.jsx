@@ -80,7 +80,7 @@ function KnowledgeCard({ item }) {
   );
 }
 
-export default function KnowledgePanel({ knowledge, busy, emotion }) {
+export default function KnowledgePanel({ knowledge, busy, emotion, cameraOff = false }) {
   const items = knowledge?.items || [];
   const agent = knowledge?.agent ? getAgent(knowledge.agent) : null;
   const emotionInfo = emotion ? EMOTION_CONFIG[emotion] : null;
@@ -105,6 +105,15 @@ export default function KnowledgePanel({ knowledge, busy, emotion }) {
           <p className="knowledge-panel__emotion">
             <span aria-hidden="true">{emotionInfo.icon}</span> Larry đã ghi nhận cảm
             xúc của bạn — camera tắt rồi nhé.
+          </p>
+        )}
+
+        {/* Không có camera thì cũng không sao, và không được để em thấy như mình vừa
+            làm hỏng việc gì — Larry hỏi thẳng trong lúc trò chuyện là đủ. */}
+        {!emotionInfo && cameraOff && (
+          <p className="knowledge-panel__emotion">
+            <span aria-hidden="true">💬</span> Lần này mình không dùng camera. Larry sẽ
+            hỏi bạn vài câu để hiểu cảm xúc của bạn nhé!
           </p>
         )}
       </header>

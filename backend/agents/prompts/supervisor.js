@@ -9,6 +9,7 @@ const {
   renderStudent,
   renderCamera,
   renderCheckin,
+  renderNoEmotionSignal,
   renderDanger,
   renderTranscript,
   joinBlocks
@@ -25,6 +26,11 @@ Bạn KHÔNG nói chuyện với học sinh, KHÔNG viết lời khuyên, KHÔNG
 NHIỆM VỤ 1 — Rút ra CẢM XÚC và HÀNH VI/BIỂU HIỆN của học sinh.
 - emotions: các cảm xúc học sinh đang có, viết bằng TIẾNG VIỆT, mỗi mục 1-2 từ
   (ví dụ: "buồn", "sợ hãi", "tức giận", "cô đơn", "vui").
+  CHỈ ghi cảm xúc có CĂN CỨ trong lời CHÍNH HỌC SINH nói, trong phiếu em điền, hoặc
+  trong cảm xúc camera. TUYỆT ĐỐI KHÔNG suy ra cảm xúc từ lời của LARRY: Larry đoán
+  "trông bạn hơi buồn" mà em chưa xác nhận thì đó KHÔNG phải căn cứ, ghi vào là biến
+  một câu đoán của máy thành sự thật về em. Em mới chỉ chào hỏi, chưa kể gì và không
+  có phiếu → để emotions RỖNG, đừng cố đoán cho có.
 - behaviors: hành vi và biểu hiện CỤ THỂ quan sát được, bằng TIẾNG VIỆT, mỗi mục
   một mệnh đề ngắn. Gồm cả hành vi CỦA EM và hành vi NGƯỜI KHÁC LÀM VỚI EM
   (ví dụ: "bị các bạn trong lớp đánh", "cào tay bằng compa khi buồn", "không dám đến lớp").
@@ -136,19 +142,37 @@ function buildProbeMessages(state, assessment) {
   const missing = (assessment?.missing || []).filter(Boolean);
   const isFirstTurn = !state.messages.some((m) => m.role === "assistant");
 
-  const task = isFirstTurn
-    ? `Đây là tin nhắn ĐẦU TIÊN của bạn trong cuộc trò chuyện.
+  const noSignal = !state.checkin && !state.cameraEmotion;
+
+  // Không có tín hiệu nào thì lời mở đầu được khoá thành một KHUÔN hai câu. Model
+  // nhỏ làm theo khuôn tốt hơn nhiều so với làm theo một danh sách điều cấm — thả
+  // tự do là nó mở lời bằng một câu đoán tâm trạng cho "ấm áp".
+  const firstTurnTask = noSignal
+    ? `Đây là tin nhắn ĐẦU TIÊN của bạn trong cuộc trò chuyện, và bạn CHƯA BIẾT GÌ về
+  cảm xúc của em. Tin nhắn này gồm ĐÚNG HAI câu, không hơn:
+  1. Một câu chào thật ấm áp, xưng là Larry.
+  2. MỘT câu hỏi mở và trung tính về hôm nay của em — ví dụ "Hôm nay của bạn thế nào?"
+     hoặc "Hôm nay ở lớp của bạn có gì vui không?".
+  KHÔNG có câu thứ ba. Trong hai câu đó KHÔNG được có nhận xét nào về tâm trạng của
+  em, và KHÔNG nhắc tới camera hay phiếu cảm xúc.`
+    : `Đây là tin nhắn ĐẦU TIÊN của bạn trong cuộc trò chuyện.
   - Chào hỏi thật ấm áp.
   - ${
     state.checkin
       ? "Học sinh vừa điền phiếu cảm xúc — hãy mở lời DỰA TRÊN PHIẾU, cho em thấy bạn đã nghe điều em chia sẻ. KHÔNG mở lời bằng cảm xúc camera."
-      : state.cameraEmotion
-        ? "Học sinh chưa điền phiếu — hãy nhắc nhẹ về cảm xúc camera vừa thấy, nhưng nói như một phỏng đoán nhẹ nhàng chứ không phải kết luận."
-        : "Học sinh chưa điền phiếu và chưa có cảm xúc camera — cứ chào hỏi bình thường."
+      : "Học sinh chưa điền phiếu — hãy nhắc nhẹ về cảm xúc camera vừa thấy, nhưng nói như một phỏng đoán nhẹ nhàng chứ không phải kết luận."
   }
-  - Rồi hỏi MỘT câu mở để em bắt đầu kể.`
+  - Rồi hỏi MỘT câu mở để em bắt đầu kể.`;
+
+  const task = isFirstTurn
+    ? firstTurnTask
     : `Bạn cần hiểu rõ hơn tình trạng của em trước khi tư vấn.
-  Hãy hỏi thêm ĐÚNG MỘT câu, đi vào điều còn thiếu quan trọng nhất.`;
+  Hãy hỏi thêm ĐÚNG MỘT câu, đi vào điều còn thiếu quan trọng nhất.${
+    noSignal
+      ? `
+  Chưa biết em đang thấy thế nào thì CẢM XÚC là điều cần hỏi trước tiên.`
+      : ""
+  }`;
 
   const missingBlock = missing.length
     ? `Những điều bạn còn chưa rõ (chọn MỘT điều quan trọng nhất để hỏi):
@@ -159,6 +183,9 @@ ${missing.map((m) => `  - ${m}`).join("\n")}`
     // Bình thường có tín hiệu nguy hiểm thì đã định tuyến chứ không hỏi khai thác.
     // Vẫn ghép vào đây để nếu luật định tuyến có đổi thì bước này không hở.
     renderDanger(assessment?.dangerSignals),
+    // Đặt gần đầu, không phải cuối: model nhỏ đọc lướt phần giữa của prompt dài, và
+    // "đừng đoán cảm xúc" chôn ở giữa là bị bỏ qua — đã thấy đúng như vậy khi chạy thử.
+    renderNoEmotionSignal(state),
     PERSONA,
     `VAI TRÒ LÚC NÀY: bạn đang LẮNG NGHE để hiểu em, chưa phải lúc đưa lời khuyên.
 
@@ -180,7 +207,13 @@ ${missing.map((m) => `  - ${m}`).join("\n")}`
     `CUỘC TRÒ CHUYỆN ĐẾN LÚC NÀY:\n${renderTranscript(state.messages)}`,
     missingBlock,
     task,
-    `Chỉ viết đúng nội dung Larry nói. Không ghi "Larry:", không giải thích gì thêm.`
+    `Chỉ viết đúng nội dung Larry nói. Không ghi "Larry:", không giải thích gì thêm.`,
+    // Vị trí cuối cùng — chỗ model đọc kỹ nhất. Nhắc lại đúng một dòng, vì cấm đoán
+    // cảm xúc đặt ở system vẫn bị model nhỏ bỏ qua khi nó muốn mở lời cho "ấm áp".
+    noSignal
+      ? `NHẮC LẠI: em chưa cho bạn biết em đang thấy thế nào, nên tin nhắn này KHÔNG
+  được chứa nhận xét nào về tâm trạng của em. Chỉ ghi nhận điều em đã nói, rồi hỏi.`
+      : ""
   );
 
   return [

@@ -25,16 +25,24 @@ const ScratchGamePage = React.lazy(
   () => import("./components/ui/ScratchGamePage"),
 );
 
-// Máy không có webcam (hoặc học sinh từ chối quyền camera) thì Camera không bao
-// giờ khoá được cảm xúc, và ChatBox sẽ đợi mãi không mở lời. Đặt biến này trong
-// frontend/.env để bỏ qua bước camera khi demo hoặc chạy thử tự động:
+// Đặt biến này trong frontend/.env để BỎ HẲN bước camera khi demo hoặc chạy thử
+// tự động:
 //   REACT_APP_FAKE_EMOTION=neutral
-// Đặt biến này là BỎ HẲN bước camera: có sẵn cảm xúc nghĩa là bước nhận diện coi
-// như xong, nên cột trái vào thẳng bảng tri thức và webcam không bật lần nào.
+// Có sẵn cảm xúc nghĩa là bước nhận diện coi như xong, nên cột trái vào thẳng bảng
+// tri thức và webcam không bật lần nào.
+//
+// Đây KHÔNG phải cách xử lý việc học sinh từ chối quyền camera — trường hợp đó
+// Camera tự báo về qua onUnavailable và cuộc trò chuyện đi tiếp không cần cảm xúc.
 const FAKE_EMOTION = process.env.REACT_APP_FAKE_EMOTION || "";
 
 const ProtectedApp = () => {
   const [emotion, setEmotion] = useState(FAKE_EMOTION || null);
+
+  // Camera không dùng được: học sinh không cho quyền, máy không có webcam, model
+  // nhận diện hỏng, hoặc em chủ động bỏ qua. Bước camera vẫn tính là XONG — chỉ là
+  // xong mà không có tín hiệu nào. Không tách khỏi `emotion` thì màn hình đứng lại
+  // ở "Larry đang chờ nhìn thấy bạn" mãi mãi vì cảm xúc không bao giờ về.
+  const [cameraOff, setCameraOff] = useState(false);
 
   // Phiếu cảm xúc hỏi lúc vừa vào chat. null = chưa trả lời / đã bỏ qua,
   // lúc đó system prompt giữ nguyên như cũ.
@@ -48,6 +56,15 @@ const ProtectedApp = () => {
   const handleEmotionDetected = useCallback((detectedEmotion) => {
     setEmotion(detectedEmotion);
   }, []);
+
+  const handleCameraUnavailable = useCallback((reason) => {
+    console.info(`Bỏ qua bước camera (${reason}) — Larry sẽ hỏi để hiểu cảm xúc.`);
+    setCameraOff(true);
+  }, []);
+
+  // Bước nhận diện đã kết thúc, dù chốt được cảm xúc hay không. Đây mới là thứ
+  // quyết định lúc nào mở khung chat — KHÔNG phải bản thân cảm xúc.
+  const emotionStepDone = Boolean(emotion) || cameraOff;
 
   const handleCheckinComplete = useCallback((answers) => {
     setCheckin(answers);
@@ -73,17 +90,22 @@ const ProtectedApp = () => {
         <div className="app-layout">
           <section className="panel-left">
             <div className="camera-stack">
-              {/* Camera chỉ sống tới lúc chốt được cảm xúc. Xong việc thì gỡ hẳn
-                  component (webcam tắt theo) và nhường chỗ cho bảng tri thức —
-                  chỗ cho thấy Larry lấy câu trả lời từ tài liệu nào. */}
-              {emotion ? (
+              {/* Camera chỉ sống tới lúc xong bước nhận diện — chốt được cảm xúc,
+                  hoặc xác định là không dùng được. Xong việc thì gỡ hẳn component
+                  (webcam tắt theo) và nhường chỗ cho bảng tri thức — chỗ cho thấy
+                  Larry lấy câu trả lời từ tài liệu nào. */}
+              {emotionStepDone ? (
                 <KnowledgePanel
                   knowledge={knowledgeView.knowledge}
                   busy={knowledgeView.busy}
                   emotion={emotion}
+                  cameraOff={cameraOff}
                 />
               ) : (
-                <Camera onEmotionDetected={handleEmotionDetected} />
+                <Camera
+                  onEmotionDetected={handleEmotionDetected}
+                  onUnavailable={handleCameraUnavailable}
+                />
               )}
               <div className="camera-stack__menu">
                 <UserMenu />
@@ -93,6 +115,7 @@ const ProtectedApp = () => {
           <section className="panel-right">
             <ChatBox
               emotion={emotion}
+              emotionReady={emotionStepDone}
               checkin={checkin}
               checkinReady={!checkinOpen}
               onKnowledge={setKnowledgeView}

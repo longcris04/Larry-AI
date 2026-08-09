@@ -1,23 +1,63 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import * as faceapi from "face-api.js";
 import EmotionBadge from "./EmotionBadge";
 
-export default function Camera({ onEmotionDetected }) {
+// Trình duyệt KHÔNG báo lỗi khi học sinh cứ để yên hộp xin quyền camera, và cũng
+// có máy webcam bật được nhưng chẳng bao giờ thấy mặt (ngược sáng, che ống kính).
+// Sau chừng này thì hiện nút bỏ qua, để bước camera không giam em ở màn hình chờ.
+const SKIP_BUTTON_DELAY_MS = 8000;
+
+export default function Camera({ onEmotionDetected, onUnavailable }) {
   const webcamRef = useRef(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState(null);
   // Nhận diện xong lần đầu là khoá lại, giữ nguyên cảm xúc đó suốt phiên chat
   const [emotionLocked, setEmotionLocked] = useState(false);
+  const [canSkip, setCanSkip] = useState(false);
+
+  // Bước camera chỉ được báo kết quả ĐÚNG MỘT LẦN. onUserMediaError có thể nổ
+  // nhiều lần, và lỗi camera đến sau khi đã chốt được cảm xúc thì không còn nghĩa
+  // lý gì nữa — báo lại sẽ ghi đè kết quả tốt bằng một lần bỏ qua.
+  const settledRef = useRef(false);
+
+  // Camera không dùng được → KHÔNG chặn đường vào khung chat. Cuộc trò chuyện đi
+  // tiếp mà không có tín hiệu camera, phần cảm xúc để Larry hỏi trong chat.
+  const giveUp = useCallback(
+    (reason) => {
+      if (settledRef.current) return;
+      settledRef.current = true;
+      onUnavailable?.(reason);
+    },
+    [onUnavailable]
+  );
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadModels() {
-      await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
-      await faceapi.nets.faceExpressionNet.loadFromUri("/models");
-      setModelsLoaded(true);
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        await faceapi.nets.faceExpressionNet.loadFromUri("/models");
+        if (!cancelled) setModelsLoaded(true);
+      } catch (err) {
+        // Thiếu file trong /models hoặc mạng hỏng: cũng là camera không dùng được
+        console.warn("Không tải được model nhận diện:", err.message);
+        if (!cancelled) giveUp("model");
+      }
     }
+
     loadModels();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [giveUp]);
+
+  useEffect(() => {
+    if (emotionLocked) return;
+    const timer = setTimeout(() => setCanSkip(true), SKIP_BUTTON_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [emotionLocked]);
 
   useEffect(() => {
     if (!modelsLoaded || emotionLocked) return;
@@ -72,6 +112,7 @@ export default function Camera({ onEmotionDetected }) {
 
       setCurrentEmotion(emotion);
       setEmotionLocked(true);
+      settledRef.current = true;
       onEmotionDetected?.(emotion);
     }, 1000);
 
@@ -98,6 +139,17 @@ export default function Camera({ onEmotionDetected }) {
             audio={false}
             screenshotFormat="image/jpeg"
             videoConstraints={{ facingMode: "user" }}
+            // Học sinh bấm "Chặn", máy không có webcam, hoặc trang không chạy trên
+            // HTTPS: getUserMedia hỏng ở đây và sẽ KHÔNG bao giờ có khung hình nào.
+            onUserMediaError={(err) => {
+              const name = typeof err === "string" ? err : err?.name || "";
+              console.warn("Không mở được camera:", name || err);
+              giveUp(
+                name === "NotAllowedError" || name === "PermissionDeniedError"
+                  ? "denied"
+                  : "unavailable"
+              );
+            }}
           />
         </div>
       </div>
@@ -105,6 +157,12 @@ export default function Camera({ onEmotionDetected }) {
       <EmotionBadge emotion={currentEmotion} />
 
       <p className="camera-status">{statusText}</p>
+
+      {canSkip && !emotionLocked && (
+        <button type="button" className="camera-skip" onClick={() => giveUp("skipped")}>
+          Bỏ qua camera, mình muốn chat luôn
+        </button>
+      )}
     </div>
   );
 }

@@ -266,6 +266,24 @@
   animation: blink 2s ease-in-out infinite;
 }
 
+/* Lối thoát khi camera không chịu chạy (chưa bấm cho phép, che ống kính...) */
+.camera-skip {
+  margin: 0;
+  border: none;
+  background: none;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.camera-skip:hover {
+  color: var(--text);
+}
+
 .emotion-badge {
   width: 100%;
   padding: 18px 24px;

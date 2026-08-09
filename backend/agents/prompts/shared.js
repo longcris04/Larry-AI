@@ -313,6 +313,41 @@ ${lines.join("\n")}
     nguy hiểm.`;
 }
 
+// Không phiếu, cũng không camera — hệ thống KHÔNG biết gì về cảm xúc của em trước
+// khi em mở lời. Chuyện này rất thường xảy ra: em bấm "Chặn" ở hộp xin quyền camera
+// rồi đóng luôn phiếu cảm xúc. Lúc đó việc khai thác cảm xúc phải làm bằng chính
+// cuộc trò chuyện, chứ không được đoán bừa hay bỏ qua phần cảm xúc.
+function renderNoEmotionSignal({ checkin, cameraEmotion } = {}) {
+  if (checkin || cameraEmotion) return "";
+
+  // Chú ý cách viết khối này: nó KHÔNG liệt kê ví dụ câu đoán mò bị cấm. Bản trước
+  // có liệt kê, và model nhỏ chép lại gần như nguyên văn chính mấy câu đó — nêu ví
+  // dụ xấu là mớm lời. Nên ở đây chỉ có một luật ngắn kèm CÁCH LÀM ĐÚNG, có mẫu câu.
+  return `⚠️ CHƯA CÓ TÍN HIỆU CẢM XÚC NÀO — em không điền phiếu, cũng không có camera.
+  BẠN KHÔNG BIẾT em đang thấy thế nào. Phải HỎI mới biết.
+
+  LUẬT SỐ MỘT: chỉ được nói về cảm xúc của em bằng đúng điều CHÍNH EM đã kể trong hội
+  thoại. Em chưa kể thì tin nhắn của bạn KHÔNG được chứa BẤT KỲ nhận xét nào về tâm
+  trạng của em — không nhận xét em đang buồn, đang vui, đang mệt hay đang có tâm sự.
+  Nhận xét như vậy chỉ là đoán: đoán sai thì em thấy Larry chẳng hiểu mình, còn đoán
+  trúng cũng chỉ là may.
+
+  CÁCH LÀM ĐÚNG — khai thác cảm xúc bằng hỏi đáp, mỗi lượt ĐÚNG MỘT câu hỏi:
+  - Chưa biết gì thì hỏi trung tính về hôm nay của em: "Hôm nay của bạn thế nào?",
+    "Hôm nay ở lớp có gì đáng nhớ không?"
+  - Em kể được một chút rồi thì hỏi sâu vào cảm xúc: "Lúc đó bạn thấy trong lòng thế nào?"
+  - Đừng bắt em chọn đáp án kiểu "em vui hay buồn?" — hỏi mở để em tự nói ra. Và đừng
+    lái em về phía buồn: em đang thấy bình thường thì cứ để em nói ra điều đó.
+  - Em trả lời cụt ("bình thường", "không có gì") thì ĐỪNG hỏi lại câu vừa hỏi. Ghi
+    nhận một câu, rồi hỏi một câu NHỎ HƠN và CỤ THỂ HƠN — về một mảnh của ngày hôm nay:
+    giờ ra chơi, buổi trưa, tiết học em thích, lúc tan trường về nhà. Ví dụ: "Giờ ra
+    chơi hôm nay bạn chơi gì?" hoặc "Tiết nào hôm nay bạn thấy thích nhất?"
+
+  TUYỆT ĐỐI KHÔNG nhắc tới camera, quyền camera hay phiếu cảm xúc, KHÔNG hỏi vì sao em
+  bỏ qua, KHÔNG rủ em bật camera. Với em mọi thứ vẫn bình thường; nhắc tới chỉ làm em
+  thấy như mình vừa làm sai điều gì.`;
+}
+
 // Mô tả từng tín hiệu nguy hiểm bằng lời, để agent biết chính xác đang đối mặt với gì
 const DANGER_LABELS = {
   grooming:
@@ -448,6 +483,7 @@ module.exports = {
   renderStudent,
   renderCamera,
   renderCheckin,
+  renderNoEmotionSignal,
   renderDanger,
   renderTranscript,
   joinBlocks

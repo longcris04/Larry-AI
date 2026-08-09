@@ -14,6 +14,7 @@ const {
   renderStudent,
   renderCamera,
   renderCheckin,
+  renderNoEmotionSignal,
   renderDanger,
   renderTranscript,
   joinBlocks
@@ -87,9 +88,46 @@ const GROUP_ANNOUNCE_GUIDE = {
 // tư vấn) nói gần như cùng một nội dung mở đầu, và em có cảm giác bị chuyển máy
 // giữa cuộc gọi. Nay em chỉ nghe MỘT giọng mỗi lượt, và chính người sẽ đồng hành
 // với em là người nói cho em biết chuyện gì đang xảy ra.
+// Em mới chào đúng một câu, chưa kể gì, lại không có phiếu và không có camera —
+// nghĩa là CHƯA CÓ tình trạng nào để bàn giao. Không tách riêng ca này thì agent mở
+// lời bằng "mình đã nắm được tình hình của bạn rồi" trong khi em chưa kể gì cả, và
+// em nhận ra ngay là Larry nói suông. Đây chính là ca xảy ra khi em không cho phép
+// dùng camera và cũng bỏ qua phiếu cảm xúc.
+function nothingKnownYet(state) {
+  const a = state.assessment;
+  const groups = state.activeGroups || [];
+
+  return (
+    !a?.dangerSignals?.length &&
+    !a?.emotions?.length &&
+    !a?.behaviors?.length &&
+    !state.checkin &&
+    !state.cameraEmotion &&
+    groups.length === 1 &&
+    groups[0] === "general"
+  );
+}
+
 function renderHandoff(state) {
   const pending = state.pendingAnnouncement;
   if (!pending) return "";
+
+  if (nothingKnownYet(state)) {
+    return `🔔 LƯỢT LÀM QUEN — EM CHƯA KỂ GÌ VỀ MÌNH
+
+  Larry vừa giao em cho bạn, nhưng đến giờ em mới chỉ chào hỏi: chưa có chuyện nào
+  được kể, không có phiếu cảm xúc, cũng không có cảm xúc camera.
+
+  Vì vậy lượt này TUYỆT ĐỐI KHÔNG nói những câu kiểu "mình đã hiểu chuyện của bạn rồi",
+  "mình đã nắm được tình hình của bạn", "mình sẽ cùng bạn vượt qua chuyện này" — em
+  chưa kể gì để bạn hiểu cả, nói vậy là nói suông và em nhận ra ngay.
+
+  Hãy làm đúng ba việc, gọn trong 2-3 câu:
+  1. Chào lại em thật tự nhiên và vui vẻ, bằng lời của bạn — KHÔNG chép lại câu Larry
+     vừa nói ở trên, em vừa đọc nó xong rồi.
+  2. Một câu ngắn cho em biết bạn ở đây để nghe em kể bất cứ chuyện gì.
+  3. Hỏi MỘT câu mở về hôm nay của em, để em bắt đầu kể.`;
+  }
 
   const { added = [], removed = [], dangerSignals = [], groups = [] } = pending;
   const firstTime = (state.announcedGroups || []).length === 0;
@@ -174,23 +212,35 @@ function renderAdviceStage(state, agentId) {
 // Nhắc lại ở cuối phần user — vị trí model chú ý nhất. Nội dung phải khớp với
 // nhánh mà renderDanger() đã chọn, nếu không hai chỗ sẽ đòi hai kiểu trả lời khác
 // nhau và model làm theo cái nó đọc sau cùng.
-function renderFinalReminder({ danger, emergency }) {
-  if (!danger) return "";
+function renderFinalReminder({ danger, emergency, noEmotionSignal }) {
+  // Không phiếu, không camera: cấm đoán cảm xúc cũng phải được nhắc ở đây. Đây là
+  // lỗi đã thấy thật khi chạy thử — agent mở lời "mình biết bạn đang gặp chuyện buồn"
+  // với một em vừa mới chào đúng một câu.
+  const noGuessing = noEmotionSignal
+    ? `KHÔNG ĐOÁN CẢM XÚC: em chưa cho biết em đang thấy thế nào, nên câu trả lời KHÔNG
+  được chứa nhận xét nào về tâm trạng của em. Chỉ nói về cảm xúc mà CHÍNH EM đã kể;
+  chưa có thì hỏi một câu trung tính về hôm nay của em.`
+    : "";
 
-  if (emergency) {
-    return `NHẮC LẠI: đây là tình huống KHẨN CẤP. Không khen em đang vui.
-  Phải nói đủ ba ý: không phải lỗi của em → nói với người lớn tin cậy → tổng đài 111.`;
-  }
+  if (!danger) return noGuessing;
 
-  return `NHẮC LẠI: đây là bạo lực học đường. Không khen em đang vui.
+  // Nhắc về an toàn đứng SAU CÙNG — nó quan trọng hơn, và chỗ cuối là chỗ model đọc kỹ nhất
+  const dangerReminder = emergency
+    ? `NHẮC LẠI: đây là tình huống KHẨN CẤP. Không khen em đang vui.
+  Phải nói đủ ba ý: không phải lỗi của em → nói với người lớn tin cậy → tổng đài 111.`
+    : `NHẮC LẠI: đây là bạo lực học đường. Không khen em đang vui.
   Đừng dừng ở trấn an: gọi tên chuyện đang xảy ra, cho em biết nó là dạng nào,
   rồi dạy em các bước tự bảo vệ lấy từ khối tri thức, và hướng em nói với thầy cô
   hoặc bố mẹ. CHỈ nhắc tổng đài 111 nếu em bị thương tích, bị đe doạ, bị trấn lột,
   hoặc em nói em sợ cho an toàn thân thể của mình.`;
+
+  return joinBlocks(noGuessing, dangerReminder);
 }
 
-function renderAssessment(assessment, activeGroups, { pendingAnnouncement = null } = {}) {
-  if (!assessment) return "";
+function renderAssessment(assessment, activeGroups, { pendingAnnouncement = null, skip = false } = {}) {
+  // Chưa biết gì về em thì khối này chỉ còn đúng dòng "tình trạng: chuyện thường
+  // ngày" kèm lời dặn đi thông báo cho em — hai thứ đều sai ở lượt làm quen.
+  if (skip || !assessment) return "";
 
   const lines = [];
   if (assessment.emotions?.length) {
@@ -299,11 +349,16 @@ function buildAgentMessages(agentId, state) {
     renderCheckin(state.checkin),
     renderCamera(state.cameraEmotion),
     renderAssessment(state.assessment, state.activeGroups, {
-      pendingAnnouncement: state.pendingAnnouncement
+      pendingAnnouncement: state.pendingAnnouncement,
+      skip: nothingKnownYet(state)
     }),
     // Đặt sát cuối, ngay trước khối PHẠM VI: model nhỏ chú ý phần đầu và phần
     // cuối của prompt dài, chôn khối này vào giữa là coi như không có.
     knowledge.block,
+    // Không phiếu, không camera → chính agent này phải khai thác cảm xúc bằng hỏi
+    // đáp. Supervisor có thể đã bàn giao sớm (chuyện thường ngày đã rõ nhóm từ lượt
+    // đầu) nên không thể trông vào mỗi bước hỏi khai thác của nó.
+    renderNoEmotionSignal(state),
     renderScope(state, agentId)
   );
 
@@ -313,7 +368,11 @@ function buildAgentMessages(agentId, state) {
   Chỉ viết nội dung Larry nói. Không ghi "Larry:", không lặp lại lịch sử,
   không giải thích bạn đang làm gì.`,
     // Nhắc lại ở vị trí cuối cùng — chỗ model chú ý nhất
-    renderFinalReminder({ danger: Boolean(danger), emergency })
+    renderFinalReminder({
+      danger: Boolean(danger),
+      emergency,
+      noEmotionSignal: Boolean(renderNoEmotionSignal(state))
+    })
   );
 
   return {
