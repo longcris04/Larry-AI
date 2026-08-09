@@ -24,7 +24,10 @@ function makeAgentNode(agentId) {
 
     // knowledge = các node knowledge graph đã được nạp vào prompt lượt này,
     // đi vào trace để lúc rà lại một câu trả lời còn biết agent đã dựa vào đâu.
-    const { messages, knowledge, knowledgeCards } = buildAgentMessages(agentId, state);
+    const { messages, knowledge, knowledgeCards, coveredGroups, dual } = buildAgentMessages(
+      agentId,
+      state
+    );
 
     // Phát NGAY, trước khi gọi model: streamMode "updates" chỉ trả về sau khi node
     // chạy xong, nên nếu chỉ để tri thức trong `trace` thì bảng bên trái mãi tới
@@ -53,7 +56,19 @@ function makeAgentNode(agentId) {
       pendingAnnouncement: null,
       ...(state.pendingAnnouncement
         ? {
-            announcedGroups: state.activeGroups || [],
+            // CHỈ ghi nhóm lượt này thực sự có nói tới, không phải toàn bộ
+            // activeGroups. Ghi cả activeGroups là lỗi đã đo được: ca em vừa là
+            // nạn nhân vừa đánh lại bạn thì chỉ agent nạn nhân nói, nhưng `actor`
+            // vẫn bị đánh dấu "đã báo cho em rồi" — từ đó diffGroups không còn thấy
+            // gì mới và phần em đánh bạn không bao giờ được nhắc tới nữa.
+            announcedGroups: [
+              ...new Set([
+                ...(state.announcedGroups || []).filter((g) =>
+                  (state.activeGroups || []).includes(g)
+                ),
+                ...coveredGroups
+              ])
+            ],
             // Tín hiệu nguy hiểm chỉ cộng dồn, không bao giờ gỡ — cùng tinh thần
             // sàn an toàn
             announcedDangers: [
@@ -70,6 +85,11 @@ function makeAgentNode(agentId) {
           agent: agentId,
           displayName: agent.displayName,
           knowledge,
+          // Lượt vai kép: một agent nói nhưng gánh cả hai vế. Ghi vào vết chạy để
+          // lúc rà lại còn biết vì sao câu trả lời có cả phần bảo vệ lẫn phần
+          // nhìn lại hành vi.
+          coveredGroups,
+          dual,
           ms: Date.now() - startedAt
         }
       ]

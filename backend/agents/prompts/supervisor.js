@@ -15,6 +15,8 @@ const {
   joinBlocks
 } = require("./shared");
 
+const { FACT_LABELS, knownFacts } = require("../facts");
+
 // --- 1. ĐÁNH GIÁ & PHÂN NHÓM -------------------------------------------------
 
 const ASSESS_SYSTEM = `Bạn là bộ phân loại của một hệ thống tư vấn tâm lý học đường.
@@ -31,9 +33,17 @@ NHIỆM VỤ 1 — Rút ra CẢM XÚC và HÀNH VI/BIỂU HIỆN của học sin
   "trông bạn hơi buồn" mà em chưa xác nhận thì đó KHÔNG phải căn cứ, ghi vào là biến
   một câu đoán của máy thành sự thật về em. Em mới chỉ chào hỏi, chưa kể gì và không
   có phiếu → để emotions RỖNG, đừng cố đoán cho có.
-- behaviors: hành vi và biểu hiện CỤ THỂ quan sát được, bằng TIẾNG VIỆT, mỗi mục
-  một mệnh đề ngắn. Gồm cả hành vi CỦA EM và hành vi NGƯỜI KHÁC LÀM VỚI EM
-  (ví dụ: "bị các bạn trong lớp đánh", "cào tay bằng compa khi buồn", "không dám đến lớp").
+
+Hành vi phải tách làm HAI MẢNG RIÊNG theo VAI. Đây là việc quan trọng, đừng gộp:
+- victimBehaviors: hành vi NGƯỜI KHÁC LÀM VỚI EM
+  (ví dụ: "bị các bạn trong lớp đánh", "bị bạn lấy trộm ô tô đồ chơi", "bị cô lập").
+- actorBehaviors: hành vi CHÍNH EM LÀM VỚI NGƯỜI KHÁC
+  (ví dụ: "đấm vào lưng bạn", "giật cặp của bạn ném xuống sân", "rủ cả lớp tẩy chay bạn").
+  Tính cả khi em kể đó là TRẢ ĐŨA, là "bạn ấy làm em trước", hay "chỉ đùa thôi".
+- Biểu hiện của riêng em, không nhắm vào ai (bỏ ăn, không dám đến lớp, mất ngủ, cào
+  tay khi buồn) thì xếp vào victimBehaviors.
+- Không có gì ở vế nào thì để mảng đó RỖNG. Đừng nhét hành vi của em sang mảng kia:
+  hai mảng này quyết định Larry tra tài liệu nào, xếp nhầm là em bị tư vấn sai vai.
 
 NHIỆM VỤ 2 — Phân trường hợp này vào một hoặc nhiều NHÓM:
 
@@ -59,6 +69,26 @@ QUY TẮC CHỌN NHÓM:
 - Luôn phải có ít nhất một nhóm. Không chắc thì chọn "general".
 - Chỉ dựa vào điều em THỰC SỰ kể. KHÔNG suy diễn từ việc em buồn mà kết luận em bị bắt nạt.
 - Em buồn/lo/mệt/áp lực học tập nhưng không có bạo lực và không tự hại → "general".
+
+NHIỆM VỤ 2B — facts: điền BẢNG Ô DỮ KIỆN về chuyện em đang gặp.
+
+Đây là bảng mà hệ thống dùng để biết KHI NÀO thôi hỏi và bắt đầu tư vấn, nên nó phải
+phản ánh đúng những gì em ĐÃ NÓI RA. Mỗi ô là một chuỗi ngắn; CHƯA BIẾT thì để "".
+
+- what:      chuyện gì đã xảy ra với em — "bị bạn lấy trộm ô tô đồ chơi mang lên lớp"
+- where:     ở đâu — "trong lớp", "sân trường", "đường về nhà", "trên mạng"
+- when:      lúc nào — "hôm thứ ba tuần trước", "giờ ra chơi", "mấy tháng nay"
+- frequency: bao nhiêu lần / có thường xuyên không — "lần đầu", "một tuần vài lần"
+- witness:   ai chứng kiến hoặc bênh em — "một bạn khác biết và kể lại cho em"
+- toldAdult: em đã kể với người lớn nào chưa — "chưa kể ai", "đã nói với mẹ"
+- myAction:  CHÍNH EM đã làm gì với bạn khác — "đấm vào lưng bạn, giật cặp ném xuống sân"
+
+LUẬT SỐNG CÒN CỦA BẢNG NÀY — chỉ điền thứ em THẬT SỰ đã nói:
+- TUYỆT ĐỐI KHÔNG suy diễn, không đoán, không điền cho đủ ô. Em chưa nói tần suất thì
+  frequency = "", KHÔNG được viết "thường xuyên" chỉ vì nghe câu chuyện có vẻ nặng.
+- Điền bừa một ô là hệ thống tưởng đã đủ thông tin và cho Larry tư vấn dựa trên một
+  dữ kiện không có thật — hại hơn nhiều so với để trống.
+- Ô đã biết từ các lượt TRƯỚC thì cứ điền lại cho đầy đủ; hệ thống tự gộp, không xoá.
 
 NHIỆM VỤ 3 — needMoreInfo: đã đủ thông tin để chuyển sang tư vấn chưa?
 Đủ thông tin nghĩa là nắm được CẢ BỐN điều:
@@ -179,6 +209,14 @@ function buildProbeMessages(state, assessment) {
 ${missing.map((m) => `  - ${m}`).join("\n")}`
     : "";
 
+  // Bước này cũng phải biết đã hỏi được gì rồi. Không có khối này thì supervisor hỏi
+  // lại đúng điều em vừa kể ở lượt trước — cùng một lỗi với phía agent.
+  const known = knownFacts(state.facts || {});
+  const knownBlock = known.length
+    ? `ĐÃ BIẾT RỒI (TUYỆT ĐỐI KHÔNG hỏi lại những điều này):
+${known.map((key) => `  - ${FACT_LABELS[key]}: ${state.facts[key]}`).join("\n")}`
+    : "";
+
   const system = joinBlocks(
     // Bình thường có tín hiệu nguy hiểm thì đã định tuyến chứ không hỏi khai thác.
     // Vẫn ghép vào đây để nếu luật định tuyến có đổi thì bước này không hở.
@@ -205,6 +243,7 @@ ${missing.map((m) => `  - ${m}`).join("\n")}`
 
   const user = joinBlocks(
     `CUỘC TRÒ CHUYỆN ĐẾN LÚC NÀY:\n${renderTranscript(state.messages)}`,
+    knownBlock,
     missingBlock,
     task,
     `Chỉ viết đúng nội dung Larry nói. Không ghi "Larry:", không giải thích gì thêm.`,

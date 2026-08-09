@@ -7,6 +7,8 @@
 
 const { Annotation } = require("@langchain/langgraph");
 
+const { emptyFacts, mergeFacts } = require("./facts");
+
 // Nối thêm vào cuối
 const append = (current = [], incoming = []) =>
   current.concat(Array.isArray(incoming) ? incoming : [incoming]);
@@ -40,6 +42,15 @@ const LarryState = Annotation.Root({
   // --- Kết quả đánh giá của supervisor ----------------------------------------
   // Xem AssessmentSchema trong supervisor.js
   assessment: Annotation({ reducer: replace, default: () => null }),
+
+  // Bảng ô dữ kiện TÍCH LUỸ qua cả phiên: đã biết gì về chuyện của em (chuyện gì,
+  // ở đâu, lúc nào, mấy lần, em đã làm gì...). Đây là thứ quyết định lúc nào agent
+  // phải thôi hỏi và bắt đầu tư vấn — xem agents/facts.js.
+  //
+  // Reducer là GỘP chứ không ghi đè: model đánh giá lại từ đầu mỗi lượt, ghi đè
+  // thì một lượt em nói sang chuyện khác là xoá sạch thứ em đã kể ba lượt trước,
+  // và agent đi hỏi lại đúng câu đó.
+  facts: Annotation({ reducer: mergeFacts, default: emptyFacts }),
 
   // Nhóm đang hoạt động SAU KHI đã áp sàn an toàn + bộ chống rung (routing.js)
   activeGroups: Annotation({ reducer: replace, default: () => [] }),

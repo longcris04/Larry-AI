@@ -81,7 +81,7 @@ function fitToBudget(items, { budget, detailTopK }) {
   return kept;
 }
 
-function composeBlock(kept) {
+function composeBlock(kept, { heading = "", withFooter = true } = {}) {
   if (kept.length === 0) return "";
 
   const grouped = new Map();
@@ -94,6 +94,14 @@ function composeBlock(kept) {
   const body = SECTIONS.filter((s) => grouped.has(s.key))
     .map((s) => `${s.title}:\n${grouped.get(s.key).join("\n")}`)
     .join("\n\n");
+
+  // Ca vai kép cần HAI khối tri thức trong cùng một prompt (một cho vế em bị hại,
+  // một cho vế em đã làm bạn tổn thương). Khối thứ hai chỉ cần tiêu đề riêng để
+  // agent biết nó thuộc vế nào; phần "cách dùng" ở cuối thì nói một lần là đủ,
+  // lặp lại chỉ tốn chỗ trong một prompt vốn đã dài.
+  if (heading) {
+    return `${heading}\n\n${body}`;
+  }
 
   return `KHUNG LÝ THUYẾT CHUYÊN MÔN CHO ĐÚNG TÌNH HUỐNG NÀY
   (trích từ tài liệu chuyên môn của nhà trường, đã lọc theo lời em vừa kể)
@@ -136,7 +144,10 @@ function selectForPrompt(items = [], opts = {}) {
     detailTopK: opts.detailTopK ?? DETAIL_TOP_K
   });
 
-  return { block: composeBlock(kept), kept };
+  return {
+    block: composeBlock(kept, { heading: opts.heading, withFooter: opts.withFooter }),
+    kept
+  };
 }
 
 /**

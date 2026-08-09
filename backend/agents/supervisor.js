@@ -23,6 +23,7 @@ const { z } = require("zod");
 const { makeLLM } = require("./llm");
 const { SUPERVISOR_ID, modelForAgent } = require("./registry");
 const { buildAssessMessages, buildProbeMessages } = require("./prompts/supervisor");
+const { emptyFacts, sanitizeFacts, mergeFacts } = require("./facts");
 const {
   resolveGroups,
   diffGroups,
@@ -32,12 +33,41 @@ const {
   MAX_PROBE_TURNS
 } = require("./routing");
 
+// Ô dữ kiện: thứ quyết định KHI NÀO agent được phép thôi hỏi và bắt đầu tư vấn.
+//
+// Tách ra thành ô riêng chứ không để lẫn trong `behaviors` vì hai việc khác nhau:
+// behaviors là mô tả tự do để truy hồi tri thức, còn đây là bảng kiểm có/chưa mà
+// CODE đọc được (xem agents/facts.js). Không có bảng này thì agent phải tự suy từ
+// transcript xem đã biết đủ chưa, và model nhỏ suy sai về phía hỏi lại thứ đã biết.
+const FactsSchema = z.object({
+  what: z.string().describe('Chuyện gì đã xảy ra với em, 1 mệnh đề ngắn. "" nếu chưa rõ.'),
+  where: z.string().describe('Xảy ra ở đâu (trong lớp, sân trường, trên mạng...). "" nếu chưa rõ.'),
+  when: z.string().describe('Xảy ra lúc nào (hôm qua, tuần trước, giờ ra chơi...). "" nếu chưa rõ.'),
+  frequency: z
+    .string()
+    .describe('Mức thường xuyên: "lần đầu", "vài lần", "một tuần vài lần"... "" nếu chưa rõ.'),
+  witness: z.string().describe('Có ai chứng kiến / bênh em không. "" nếu chưa rõ.'),
+  toldAdult: z.string().describe('Em đã kể với người lớn nào chưa. "" nếu chưa rõ.'),
+  myAction: z
+    .string()
+    .describe('Chính EM đã làm gì với bạn khác (đánh lại, giật đồ...). "" nếu không có.')
+});
+
 const AssessmentSchema = z.object({
   emotions: z.array(z.string()).max(6).describe("Cảm xúc của học sinh, tiếng Việt, mỗi mục 1-2 từ"),
-  behaviors: z
+  // Tách đôi theo VAI. Gộp chung một mảng là nguyên nhân đã đo được của một lỗi
+  // thật: lời em kể việc mình trả đũa lọt vào truy vấn tra cứu cho vế BỊ HẠI, kéo
+  // node "bạo lực thể chất" lên đầu, và agent phán em là nạn nhân của bạo lực thể
+  // chất trong khi em chỉ bị lấy trộm đồ chơi.
+  victimBehaviors: z
     .array(z.string())
     .max(6)
-    .describe("Hành vi/biểu hiện cụ thể, tiếng Việt, mỗi mục một mệnh đề ngắn"),
+    .describe("Hành vi NGƯỜI KHÁC làm với em, tiếng Việt, mỗi mục một mệnh đề ngắn"),
+  actorBehaviors: z
+    .array(z.string())
+    .max(6)
+    .describe("Hành vi CHÍNH EM làm với người khác, tiếng Việt, mỗi mục một mệnh đề ngắn"),
+  facts: FactsSchema,
   groups: z
     .array(z.enum(["self_harm", "victim", "actor", "general"]))
     .min(1)
@@ -92,7 +122,10 @@ function cleanReply(content) {
 function emptyAssessment() {
   return {
     emotions: [],
+    victimBehaviors: [],
+    actorBehaviors: [],
     behaviors: [],
+    facts: emptyFacts(),
     groups: ["general"],
     needMoreInfo: true,
     missing: ["học sinh chưa kể gì"],
@@ -110,9 +143,19 @@ async function assess(state) {
   const result = await assessLLM().invoke(buildAssessMessages(state));
   const dangerSignals = result.dangerSignals || [];
 
+  const victimBehaviors = result.victimBehaviors || [];
+  const actorBehaviors = result.actorBehaviors || [];
+
   return {
     ...result,
     groups: normalizeGroups(result.groups),
+    victimBehaviors,
+    actorBehaviors,
+    // Bản gộp cho những chỗ chỉ cần "em có biểu hiện gì": vết chạy, trang quản trị,
+    // và truy vấn tri thức của agent chỉ có một vai. Chỗ nào cần đúng vai thì đọc
+    // hai mảng trên.
+    behaviors: [...victimBehaviors, ...actorBehaviors],
+    facts: sanitizeFacts(result.facts),
     dangerSignals,
     // Việc GỘP tín hiệu thành cờ khẩn cấp làm ở ĐÂY, không giao cho model:
     // model liệt kê đúng dấu hiệu nhưng vẫn để urgent=false là lỗi đã gặp thật.
@@ -130,6 +173,11 @@ async function supervisorNode(state) {
 
   const assessment = await assess(state);
 
+  // Dữ kiện của lượt này cộng vào những gì đã biết từ các lượt trước. Tính ngay ở
+  // đây để chính bước hỏi khai thác bên dưới cũng đọc được bảng đầy đủ — hỏi lại
+  // điều em vừa kể ở lượt trước là lỗi khó chịu nhất của bước này.
+  const facts = mergeFacts(state.facts, assessment.facts);
+
   // Sàn an toàn và bộ chống rung được áp Ở ĐÂY, không phải trong prompt — model
   // không được phép gỡ nhóm tự hại chỉ vì học sinh vừa nói mình vui, và cũng
   // không được gỡ nhóm nào chỉ vì một lượt em nói sang chuyện khác.
@@ -145,6 +193,7 @@ async function supervisorNode(state) {
     agent: SUPERVISOR_ID,
     emotions: assessment.emotions,
     behaviors: assessment.behaviors,
+    facts,
     groups: activeGroups,
     proposedGroups: assessment.groups,
     keptBySafetyFloor: kept,
@@ -198,11 +247,16 @@ async function supervisorNode(state) {
     !assessment.urgent && assessment.needMoreInfo && !probeExhausted && !settledGeneral;
 
   if (shouldProbe) {
-    const res = await speakLLM("probe").invoke(buildProbeMessages(state, assessment));
+    // Truyền bảng dữ kiện ĐÃ GỘP, không phải state.facts của lượt trước — bước này
+    // phải biết em vừa kể thêm gì để không hỏi lại đúng câu đó.
+    const res = await speakLLM("probe").invoke(
+      buildProbeMessages({ ...state, facts }, assessment)
+    );
     const text = cleanReply(res.content);
 
     return {
       assessment,
+      facts,
       activeGroups,
       groupMissStreak: missStreak,
       probeCount: state.probeCount + 1,
@@ -244,6 +298,7 @@ async function supervisorNode(state) {
 
     return {
       assessment,
+      facts,
       activeGroups,
       groupMissStreak: missStreak,
       queue: [...currentAgents],
@@ -281,6 +336,7 @@ async function supervisorNode(state) {
 
   return {
     assessment,
+    facts,
     activeGroups,
     groupMissStreak: missStreak,
     pendingAnnouncement,

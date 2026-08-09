@@ -143,6 +143,17 @@ const SCENARIOS = {
     checkin: null,
     camera: "",
     turns: [null, "em chào", "hôm nay cũng bình thường thôi"]
+  },
+  17: {
+    name: "VAI KÉP — vừa bị lấy trộm đồ vừa trả đũa; phải nói CẢ HAI vế và thôi hỏi khi đã đủ",
+    checkin: null,
+    turns: [
+      null,
+      "Bạn ấy lấy trộm ô tô đồ chơi em mang lên lớp chơi mà không nói cho em, đến lúc có một bạn khác biết được và kể với em thì em mới biết em bị mất cắp, em đã rất khó chịu và rất buồn khi đi tìm chiếc xe đồ chơi bị mất, đến lúc biết bạn em đánh cắp thì em rất cay cú và ức chế nên đã trả thù nó",
+      "Chuyện xảy ra hôm thứ ba tuần trước, trong lớp em vào giờ ra chơi. Em trả thù bằng cách em đấm vào lưng bạn ấy và giật cặp của bạn ấy ném xuống sân",
+      "Bạn ấy lấy đồ của em lần này là lần đầu tiên. Em thì mới đánh bạn ấy lần này thôi"
+    ],
+    expect: { hotline: false }
   }
 };
 
@@ -202,8 +213,17 @@ async function runScenario(key) {
                     ` (model đề xuất [${t.proposedGroups.join(", ")}])`
                   : "") +
                 `\n      cảm xúc: ${t.emotions.join(", ") || "—"}` +
-                `\n      hành vi: ${t.behaviors.join("; ") || "—"}`
+                `\n      hành vi: ${t.behaviors.join("; ") || "—"}` +
+                `\n      dữ kiện: ${
+                  Object.entries(t.facts || {})
+                    .filter(([, v]) => v)
+                    .map(([k, v]) => `${k}=${v}`)
+                    .join(" | ") || "—"
+                }`
             );
+          }
+          if (t.type === "agent.done" && t.dual) {
+            console.log(`   ⚖️  VAI KÉP — lượt này nói cả: [${(t.coveredGroups || []).join(", ")}]`);
           }
           if (t.type === "route") {
             console.log(
