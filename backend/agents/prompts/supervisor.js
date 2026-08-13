@@ -179,28 +179,28 @@ function buildProbeMessages(state, assessment) {
   // tự do là nó mở lời bằng một câu đoán tâm trạng cho "ấm áp".
   const firstTurnTask = noSignal
     ? `Đây là tin nhắn ĐẦU TIÊN của bạn trong cuộc trò chuyện, và bạn CHƯA BIẾT GÌ về
-  cảm xúc của em. Tin nhắn này gồm ĐÚNG HAI câu, không hơn:
-  1. Một câu chào thật ấm áp, xưng là Larry.
-  2. MỘT câu hỏi mở và trung tính về hôm nay của em — ví dụ "Hôm nay của bạn thế nào?"
-     hoặc "Hôm nay ở lớp của bạn có gì vui không?".
+  cảm xúc của học sinh. Tin nhắn này gồm ĐÚNG HAI câu, không hơn:
+  1. Một câu chào thật ấm áp, tự giới thiệu "Mình là Larry".
+  2. MỘT câu hỏi mở và trung tính về hôm nay của bạn ấy — ví dụ "Hôm nay của bạn thế
+     nào?" hoặc "Hôm nay ở lớp của bạn có gì vui không?".
   KHÔNG có câu thứ ba. Trong hai câu đó KHÔNG được có nhận xét nào về tâm trạng của
-  em, và KHÔNG nhắc tới camera hay phiếu cảm xúc.`
+  học sinh, và KHÔNG nhắc tới camera hay phiếu cảm xúc.`
     : `Đây là tin nhắn ĐẦU TIÊN của bạn trong cuộc trò chuyện.
-  - Chào hỏi thật ấm áp.
+  - Chào hỏi thật ấm áp, tự giới thiệu "Mình là Larry".
   - ${
     state.checkin
-      ? "Học sinh vừa điền phiếu cảm xúc — hãy mở lời DỰA TRÊN PHIẾU, cho em thấy bạn đã nghe điều em chia sẻ. KHÔNG mở lời bằng cảm xúc camera."
+      ? "Học sinh vừa điền phiếu cảm xúc — hãy mở lời DỰA TRÊN PHIẾU, cho bạn ấy thấy mình đã nghe điều bạn ấy chia sẻ. KHÔNG mở lời bằng cảm xúc camera."
       : "Học sinh chưa điền phiếu — hãy nhắc nhẹ về cảm xúc camera vừa thấy, nhưng nói như một phỏng đoán nhẹ nhàng chứ không phải kết luận."
   }
-  - Rồi hỏi MỘT câu mở để em bắt đầu kể.`;
+  - Rồi hỏi MỘT câu mở để bạn ấy bắt đầu kể.`;
 
   const task = isFirstTurn
     ? firstTurnTask
-    : `Bạn cần hiểu rõ hơn tình trạng của em trước khi tư vấn.
+    : `Bạn cần hiểu rõ hơn tình trạng của học sinh trước khi tư vấn.
   Hãy hỏi thêm ĐÚNG MỘT câu, đi vào điều còn thiếu quan trọng nhất.${
     noSignal
       ? `
-  Chưa biết em đang thấy thế nào thì CẢM XÚC là điều cần hỏi trước tiên.`
+  Chưa biết bạn ấy đang thấy thế nào thì CẢM XÚC là điều cần hỏi trước tiên.`
       : ""
   }`;
 
@@ -210,7 +210,7 @@ ${missing.map((m) => `  - ${m}`).join("\n")}`
     : "";
 
   // Bước này cũng phải biết đã hỏi được gì rồi. Không có khối này thì supervisor hỏi
-  // lại đúng điều em vừa kể ở lượt trước — cùng một lỗi với phía agent.
+  // lại đúng điều học sinh vừa kể ở lượt trước — cùng một lỗi với phía agent.
   const known = knownFacts(state.facts || {});
   const knownBlock = known.length
     ? `ĐÃ BIẾT RỒI (TUYỆT ĐỐI KHÔNG hỏi lại những điều này):
@@ -225,16 +225,18 @@ ${known.map((key) => `  - ${FACT_LABELS[key]}: ${state.facts[key]}`).join("\n")}
     // "đừng đoán cảm xúc" chôn ở giữa là bị bỏ qua — đã thấy đúng như vậy khi chạy thử.
     renderNoEmotionSignal(state),
     PERSONA,
-    `VAI TRÒ LÚC NÀY: bạn đang LẮNG NGHE để hiểu em, chưa phải lúc đưa lời khuyên.
+    `VAI TRÒ LÚC NÀY: bạn đang LẮNG NGHE để hiểu học sinh, chưa phải lúc đưa lời khuyên.
 
   QUY TẮC:
   - Trả lời ngắn: 2-3 câu, KHÔNG dài dòng.
-  - Chỉ hỏi MỘT câu hỏi, đặt ở cuối. Hai câu hỏi cùng lúc là em không biết trả lời câu nào.
-  - Trước khi hỏi, phải ghi nhận điều em vừa nói — đừng hỏi trống không như điều tra viên.
-  - KHÔNG kết luận, KHÔNG dán nhãn tình trạng của em ở bước này.
+  - Chỉ hỏi MỘT câu hỏi, đặt ở cuối. Hai câu hỏi cùng lúc là bạn ấy không biết trả lời câu nào.
+  - Trước khi hỏi, phải ghi nhận điều bạn ấy vừa nói — đừng hỏi trống không như điều tra viên.
+  - KHÔNG kết luận, KHÔNG dán nhãn tình trạng của bạn ấy ở bước này.
   - KHÔNG đưa lời khuyên, KHÔNG nhắc tổng đài, KHÔNG rủ chơi game ở bước này.
   - Hỏi bằng từ ngữ trẻ con hiểu được, không dùng từ chuyên môn.
-  - KHÔNG hỏi lại điều em đã trả lời trong phiếu cảm xúc hoặc đã kể trong hội thoại.`,
+  - KHÔNG hỏi lại điều bạn ấy đã trả lời trong phiếu cảm xúc hoặc đã kể trong hội thoại.
+  - XƯNG HÔ: tự xưng "mình", gọi học sinh là "bạn". Không "em", không "con", không "tớ",
+    và không nói về mình ở ngôi thứ ba ("Larry thấy...") — viết "Mình thấy...".`,
     SAFETY_RULES,
     renderStudent(state.student),
     renderCheckin(state.checkin),
@@ -246,12 +248,13 @@ ${known.map((key) => `  - ${FACT_LABELS[key]}: ${state.facts[key]}`).join("\n")}
     knownBlock,
     missingBlock,
     task,
-    `Chỉ viết đúng nội dung Larry nói. Không ghi "Larry:", không giải thích gì thêm.`,
+    `Chỉ viết đúng nội dung Larry nói. Không ghi "Larry:", không giải thích gì thêm.
+  Trong tin nhắn đó, xưng "mình" và gọi học sinh là "bạn".`,
     // Vị trí cuối cùng — chỗ model đọc kỹ nhất. Nhắc lại đúng một dòng, vì cấm đoán
     // cảm xúc đặt ở system vẫn bị model nhỏ bỏ qua khi nó muốn mở lời cho "ấm áp".
     noSignal
-      ? `NHẮC LẠI: em chưa cho bạn biết em đang thấy thế nào, nên tin nhắn này KHÔNG
-  được chứa nhận xét nào về tâm trạng của em. Chỉ ghi nhận điều em đã nói, rồi hỏi.`
+      ? `NHẮC LẠI: học sinh chưa cho biết mình đang thấy thế nào, nên tin nhắn này KHÔNG
+  được chứa nhận xét nào về tâm trạng của bạn ấy. Chỉ ghi nhận điều bạn ấy đã nói, rồi hỏi.`
       : ""
   );
 

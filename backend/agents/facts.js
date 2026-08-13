@@ -1,4 +1,4 @@
-// Ô DỮ KIỆN — bảng kiểm "đã biết gì về chuyện của em", và cái cổng quyết định
+// Ô DỮ KIỆN — bảng kiểm "đã biết gì về chuyện của học sinh", và cái cổng quyết định
 // KHI NÀO agent phải thôi hỏi để bắt đầu tư vấn.
 //
 // Vì sao phải có file này, thay vì để model tự đọc transcript rồi tự biết:
@@ -23,22 +23,29 @@ const FACT_LABELS = {
   when: "xảy ra lúc nào",
   where: "xảy ra ở đâu",
   frequency: "đã xảy ra bao nhiêu lần / có thường xuyên không",
-  myAction: "chính em đã làm gì với bạn ấy",
-  witness: "có ai chứng kiến hoặc bênh em không",
-  toldAdult: "em đã kể với người lớn nào chưa"
+  myAction: "chính học sinh đã làm gì với bạn kia",
+  witness: "có ai chứng kiến hoặc bênh học sinh không",
+  toldAdult: "học sinh đã kể với người lớn nào chưa"
 };
 
 // Ô BẮT BUỘC phải có trước khi được tư vấn, theo từng nhóm.
 //
-// Cố ý để NGẮN. Mỗi ô thêm vào đây là thêm một lượt em bị hỏi trước khi được giúp,
-// và một cuộc tư vấn biến thành một cuộc phỏng vấn là hỏng đúng thứ nó sinh ra để
-// làm. `witness` và `toldAdult` hữu ích nhưng KHÔNG chặn tư vấn — agent hỏi được
-// thì hỏi trong lúc đã vừa khuyên.
+// Cố ý để NGẮN. Mỗi ô thêm vào đây là thêm một lượt học sinh bị hỏi, và một cuộc tư
+// vấn biến thành một cuộc phỏng vấn là hỏng đúng thứ nó sinh ra để làm. `witness` và
+// `toldAdult` hữu ích nhưng KHÔNG chặn tư vấn — agent hỏi được thì hỏi trong lúc đã
+// vừa khuyên.
+//
+// `victim` cần đủ KHÔNG GIAN + THỜI GIAN + TẦN SUẤT vì đó chính là ba thứ dùng để
+// chấm MỨC ĐỘ theo bảng mức trong tài liệu (hiếm khi → thỉnh thoảng → khá thường
+// xuyên → thường xuyên). Không có mức thì không chọn được cách tự bảo vệ tương ứng,
+// và lời khuyên tụt về công thức chung "báo thầy cô đi". Bốn ô này KHÔNG làm chậm
+// phần giúp: khi còn thiếu, renderFactSheet bắt agent dạy bước giữ an toàn TRƯỚC
+// rồi mới hỏi đúng một câu ở cuối tin nhắn.
 //
 // self_harm cố ý rỗng: ca đó luôn urgent, không bao giờ được chặn lời khuyên lại
 // để đi hỏi thêm dữ kiện.
 const REQUIRED_FACTS = {
-  victim: ["what", "frequency"],
+  victim: ["what", "where", "when", "frequency"],
   actor: ["myAction", "what"],
   self_harm: [],
   general: []
@@ -139,8 +146,12 @@ function knownFacts(facts = {}) {
 /**
  * Đã đủ dữ kiện để chuyển sang tư vấn chưa?
  *
- * urgent thắng tất cả: em vừa nói không muốn sống nữa thì không có chuyện bắt em
+ * urgent thắng tất cả: học sinh vừa nói không muốn sống nữa thì không có chuyện bắt
  * kể thêm hoàn cảnh rồi mới giúp.
+ *
+ * Chú ý ở phía gọi: bạo lực học đường ĐƠN THUẦN không được truyền urgent=true vào
+ * đây, dù supervisor có bật cờ urgent cho nó — xem `bypassFactGate` trong
+ * prompts/agentPrompt.js.
  */
 function enoughToAdvise({ facts = {}, groups = [], urgent = false } = {}) {
   if (urgent) return true;
