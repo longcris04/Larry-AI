@@ -21,6 +21,10 @@ export const ADMIN_GUEST_MODE_URL = `${API_BASE_URL}/api/admin/settings/guest-mo
 // (STUDENT_FEEDBACK_FORM / TEACHER_FEEDBACK_FORM)
 export const FEEDBACK_LINKS_URL = `${API_BASE_URL}/api/feedback-links`;
 
+// Tài liệu hướng dẫn sử dụng, khai trong backend/.env (USER_GUIDE_URL).
+// Trang giới thiệu hỏi đường này để biết có vẽ nút "Xem hướng dẫn" hay không.
+export const GUIDE_LINK_URL = `${API_BASE_URL}/api/guide`;
+
 // Giọng nói. Micro và loa chỉ hiện ra khi VOICE_CONFIG_URL báo là backend đã khai
 // đủ model — xem backend/routes/voice.js.
 export const VOICE_CONFIG_URL = `${API_BASE_URL}/api/voice/config`;

@@ -319,6 +319,11 @@
   color: #1c2740;
 }
 
+/* Nút mở tài liệu hướng dẫn, đứng giữa danh sách các bước và dòng gợi ý bên dưới */
+.about-guide {
+  margin: 0 0 16px;
+}
+
 .about-note {
   margin: 0;
   padding: 14px 18px;

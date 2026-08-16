@@ -862,6 +862,19 @@ app.get("/api/feedback-links", (req, res) => {
   });
 });
 
+// --- Link tài liệu hướng dẫn sử dụng ------------------------------------------
+//
+// Hiện thành một nút ở mục "Dùng Larry như thế nào?" của trang giới thiệu. Để
+// trống thì nút không hiện ra — trang vẫn nguyên vẹn, chỉ thiếu đường tới tài liệu.
+//
+// Tách riêng khỏi /api/feedback-links dù cùng kiểu "link khai trong .env": hai
+// thứ này phục vụ hai trang khác nhau (đây là trang giới thiệu, kia là cột trái
+// khung chat), và trang giới thiệu đi hỏi một đường tên "feedback-links" để lấy
+// tài liệu hướng dẫn thì người đọc code sau sẽ khựng lại.
+app.get("/api/guide", (req, res) => {
+  res.json({ url: String(process.env.USER_GUIDE_URL || "").trim() });
+});
+
 // Health check — tiện để kiểm tra server đã chạy và đã nạp API key hay chưa
 app.get("/api/health", (req, res) => {
   res.json({

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import KnowledgeGraphExplorer from "./KnowledgeGraphExplorer";
 import PlayfulBackground from "./PlayfulBackground";
 import { useGuestMode } from "../../hooks/useGuestMode";
+import { useGuideLink } from "../../hooks/useGuideLink";
 import "../../styles/AboutPage.css";
 
 // Trang giới thiệu — CÔNG KHAI, ai mở đường link cũng xem được, không cần đăng
@@ -39,7 +40,7 @@ const TEAM = [
   { id: 1, name: "Nguyễn Hoàng Lân", emoji: "👩‍💻", photo: "/team/HoangLan.png" },
   { id: 2, name: "Lưu Hoàng Hiệp", emoji: "👨‍💻", photo: "/team/HoangHiep.png" },
   { id: 3, name: "Lê Hoàng Duy Lâm", emoji: "🧑‍🎨", photo: "/team/DuyLam.png" },
-  { id: 4, name: "Đoàn Hải Nam", emoji: "🧑‍🔬", photo: "" }
+  { id: 4, name: "Đoàn Hải Nam", emoji: "🧑‍🔬", photo: "/team/HaiNam.png" }
 ];
 
 // Ba nhóm cố vấn, hiện thành ba mục liền nhau ngay dưới đội phát triển.
@@ -149,7 +150,7 @@ const ADVISOR_GROUPS = [
         unit: "Tổ Khoa học tự nhiên",
         org: "Trường THCS Đoàn Thị Điểm",
         emoji: "🧑‍🏫",
-        photo: ""
+        photo: "/team/Duyen.png"
       },
       {
         id: "tien-son",
@@ -293,6 +294,9 @@ export default function AboutPage() {
   // quản trị viên bật/tắt — xem mục "Chế độ khách" trong trang quản trị.
   const { guestMode, loading: guestModeLoading } = useGuestMode();
 
+  // Link tài liệu hướng dẫn, khai bằng USER_GUIDE_URL trong backend/.env
+  const guideUrl = useGuideLink();
+
   return (
     <div className="about-page">
       <PlayfulBackground />
@@ -426,6 +430,22 @@ export default function AboutPage() {
               </li>
             ))}
           </ol>
+
+          {/* Tài liệu hướng dẫn đầy đủ. Đặt NGAY SAU năm bước: ai đọc hết tới đây
+              là người đang muốn biết cách dùng, đúng lúc đưa tài liệu chi tiết.
+              Chưa khai USER_GUIDE_URL trong backend/.env thì khối này không hiện. */}
+          {guideUrl && (
+            <p className="about-guide">
+              <a
+                className="about-btn about-btn--primary"
+                href={guideUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                📄 Xem hướng dẫn sử dụng đầy đủ ↗
+              </a>
+            </p>
+          )}
 
           {/* Chỉ nhắc tới nút vào-thẳng khi quản trị viên đang BẬT chế độ khách.
               Trang này là cửa vào của cả web, để nó mời một cái nút không còn ở
