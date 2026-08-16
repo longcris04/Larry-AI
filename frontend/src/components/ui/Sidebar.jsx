@@ -1,15 +1,8 @@
 import React from "react";
 import ScenarioCard from "./ScenarioCard";
-import GradientButton from "./GradientButton";
 import "../../styles/Sidebar.css";
 
-export default function Sidebar({
-  scenarios = [],
-  selectedId,
-  onSelect,
-  onToggleFavorite,
-  onDiscoverMore,
-}) {
+export default function Sidebar({ situations = [], selectedId, onSelect }) {
   return (
     <aside className="game-sidebar">
       <div className="game-sidebar__top">
@@ -18,22 +11,20 @@ export default function Sidebar({
       </div>
 
       <div className="game-sidebar__divider" />
-      <p className="game-sidebar__section-title">Danh sách kịch bản</p>
+      <p className="game-sidebar__section-title">Danh sách tình huống mô phỏng</p>
 
       <div className="game-sidebar__list">
-        {scenarios.map((scenario) => (
+        {situations.map((situation, i) => (
           <ScenarioCard
-            key={scenario.id}
-            icon={scenario.icon}
-            title={scenario.title}
-            version={scenario.version}
-            favorite={scenario.favorite}
-            selected={scenario.id === selectedId}
-            onSelect={() => onSelect?.(scenario.id)}
-            onToggleFavorite={() => onToggleFavorite?.(scenario.id)}
+            key={situation.id}
+            index={i + 1}
+            title={`Tình huống ${i + 1}`}
+            selected={situation.id === selectedId}
+            onSelect={() => onSelect?.(situation.id)}
           />
         ))}
       </div>
+
       <div className="game-sidebar__illustration">
         <div className="game-sidebar__glow" />
         <div className="game-sidebar__robot">🤖</div>

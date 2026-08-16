@@ -14,3 +14,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Logo Larry đặt trong các ô avatar tròn có sẵn (trang đăng nhập, đầu khung chat,
+   thanh điều hướng trang giới thiệu). Ảnh lấp đầy ô, còn nền gradient của ô lộ ra
+   thành một viền mảnh nhờ padding — giữ đúng vẻ cũ, chỉ đổi ruột.
+
+   Đặt ở index.css vì đây là class dùng chung cho nhiều màn hình; index.css luôn
+   được nạp nên không phụ thuộc màn hình nào tải trước. */
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+}

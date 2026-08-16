@@ -90,10 +90,3 @@
   color: var(--purple, #a78bfa);
   flex-shrink: 0;
 }
-
-.feedback-links__note {
-  margin: 10px 0 0;
-  font-size: 0.72rem;
-  color: var(--text-soft, #64748b);
-  text-align: center;
-}

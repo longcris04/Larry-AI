@@ -3,7 +3,9 @@
 export default function ChatHeader({ speaker = null }) {
   return (
     <header className="chat-header">
-      <div className="chat-header__avatar">🤖</div>
+      <div className="chat-header__avatar">
+        <img className="brand-logo" src={`${process.env.PUBLIC_URL}/logo_mark.png`} alt="Larry AI" />
+      </div>
       <div className="chat-header__info">
         <h1 className="chat-header__name">
           Larry

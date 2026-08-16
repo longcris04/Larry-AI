@@ -3,7 +3,10 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  
+  /* Cột giữa bị khoá chiều cao (height: calc(100vh - 48px) + overflow: hidden ở
+     .game-page__center), nên phần trong PHẢI co lại được. Thiếu min-height: 0 thì
+     khung game giữ nguyên chiều cao theo tỉ lệ và đẩy phần chân ra ngoài, bị cắt. */
+  min-height: 0;
 }
 
 .scratch-player__controls {
@@ -30,66 +33,21 @@
 
 .scratch-player__frame {
   position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
+  /* Đúng tỉ lệ khung nhúng của Scratch: sân khấu 480x360 cộng thanh điều khiển
+     ~42px. Để 16/9 như trước thì game bị viền trống hai bên.
+     Chiều cao lấy phần còn lại của cột, bề ngang suy ra từ tỉ lệ rồi căn giữa —
+     làm ngược lại (rộng 100% rồi tính cao) là khung vượt quá màn hình. */
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  aspect-ratio: 485 / 402;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-input);
   box-shadow: inset 0 0 0 1px var(--border-light);
-}
-
-.scratch-player__intro {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px;
-  text-align: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 248, 255, 0.95));
-}
-
-.scratch-player__intro-badge {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: var(--text-white);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.scratch-player__intro h3 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--text-primary);
-}
-
-.scratch-player__intro p {
-  max-width: 480px;
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.scratch-player__start {
-  margin-top: 6px;
-  border: none;
-  border-radius: 999px;
-  padding: 12px 18px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: var(--text-white);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-soft);
-}
-
-.scratch-player__start:hover {
-  transform: translateY(-1px);
 }
 
 .scratch-player__iframe {

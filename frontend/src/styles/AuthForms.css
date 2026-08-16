@@ -46,6 +46,9 @@
     width:115px;
     height:115px;
 
+    /* Chừa viền để gradient của ô thành vành quanh logo tròn */
+    padding:5px;
+
     border-radius:50%;
 
     background:linear-gradient(

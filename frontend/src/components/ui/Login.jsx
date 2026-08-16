@@ -80,7 +80,9 @@ export default function Login() {
       <div className="auth-wrapper">
         <div className="auth-card">
           {/* Avatar */}
-          <div className="auth-card__avatar">🤖</div>
+          <div className="auth-card__avatar">
+            <img className="brand-logo" src={`${process.env.PUBLIC_URL}/logo_mark.png`} alt="Larry AI" />
+          </div>
           {/* Title */}
 
           <h1 className="auth-title">Đăng nhập</h1>

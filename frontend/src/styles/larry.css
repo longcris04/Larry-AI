@@ -361,6 +361,7 @@
 .chat-header__avatar {
   width: 58px;
   height: 58px;
+  padding: 3px; /* vành gradient quanh logo */
   border-radius: 50%;
   background: linear-gradient(135deg, var(--blue), var(--purple));
   display: flex;

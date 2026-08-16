@@ -300,7 +300,9 @@ export default function AboutPage() {
       {/* Thanh điều hướng: qua lại giữa giới thiệu và đăng nhập, tuỳ ý */}
       <header className="about-nav">
         <Link to="/gioi-thieu" className="about-nav__brand">
-          <span className="about-nav__avatar" aria-hidden="true">🤖</span>
+          <span className="about-nav__avatar">
+          <img className="brand-logo" src={`${process.env.PUBLIC_URL}/logo_mark.png`} alt="" />
+        </span>
           <span>
             Larry <span className="about-nav__star" aria-hidden="true">⭐</span>
           </span>

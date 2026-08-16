@@ -90,8 +90,6 @@ export default function FeedbackLinks() {
           </a>
         )}
       </div>
-
-      <p className="feedback-links__note">Biểu mẫu mở ở tab mới, cuộc trò chuyện vẫn giữ nguyên.</p>
     </section>
   );
 }

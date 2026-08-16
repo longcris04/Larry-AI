@@ -1,5 +1,4 @@
 import React from "react";
-import GradientButton from "./GradientButton";
 import UserMenu from "./UserMenu";
 import "../../styles/GuidePanel.css";
 
@@ -15,7 +14,7 @@ export default function GuidePanel({ instructions, onRate }) {
 
       <p className="guide-panel__text">
         {instructions ||
-          "Nhấn vào lá cờ xanh để bắt đầu kịch bản. Hãy quan sát câu chuyện của Larry, lắng nghe cảm xúc của các nhân vật và chọn hành động phù hợp nhất ở mỗi bước nhé!"}
+          "Nhấn vào lá cờ xanh để bắt đầu tình huống. Hãy quan sát câu chuyện, lắng nghe cảm xúc của các nhân vật và chọn hành động phù hợp nhất ở mỗi bước nhé!"}
       </p>
 
       <div className="guide-panel__illustration">

@@ -643,6 +643,30 @@ function buildAgentMessages(agentId, state) {
   });
   const probe = enough ? "" : joinBlocks(primary.probe, secondary?.probe);
 
+  /*
+   * Khối RỦ CHƠI MÔ PHỎNG chỉ được ghép khi CẢ BỐN điều sau cùng đúng. Chặn ở đây
+   * chứ không chỉ dặn trong prompt: khối nào không có trong prompt thì model không
+   * thể làm theo, còn một dòng "đừng rủ chơi game" nằm giữa prompt dài thì model
+   * nhỏ vẫn trượt.
+   *
+   * 1. Đúng agent. Chỉ Larry Bảo vệ (nạn nhân) và Larry Thấu hiểu (người gây ra)
+   *    mới có chuyện "học cách ứng xử khi gặp bắt nạt". Cô giáo Larry trò chuyện
+   *    thường ngày và Larry Đồng hành (tự hại) thì rủ chơi game là lạc đề — với ca
+   *    tự hại còn là vô cảm.
+   * 2. Không khẩn cấp. Đang có ý nghĩ tự hại, bị dụ dỗ, bị xâm hại, bị bạo hành
+   *    hay bị thương tích thì cả lượt đó dành cho an toàn, không có chỗ cho game.
+   * 3. Không phải lượt đầu của agent này. Chuyện chưa kể xong thì chưa thể ngã ngũ.
+   * 4. Đã đủ dữ kiện để tư vấn. Còn đang phải hỏi thêm nghĩa là còn đang dở.
+   *
+   * Điều 3 và 4 là cái sàn máy móc; còn "bạn ấy đã biết cách xử lý / đã nhận ra
+   * mình sai" là việc model tự đọc ra, nói trong chính khối GAME_RULES.
+   */
+  const mayInviteGame =
+    (agentId === "agent_victim" || agentId === "agent_actor") &&
+    !emergency &&
+    spokeBefore &&
+    enough;
+
   // Nhóm mà lượt nói này THỰC SỰ có nói tới. agentNode ghi đúng danh sách này vào
   // announcedGroups — trước đây nó ghi cả activeGroups, nên nhóm chưa ai nhắc tới
   // vẫn bị đánh dấu "đã thông báo rồi" và không bao giờ được bàn giao lại.
@@ -685,7 +709,7 @@ function buildAgentMessages(agentId, state) {
     BLAME_RULES,
     renderAdviceStage(state, agentId),
     SAFETY_RULES,
-    GAME_RULES,
+    mayInviteGame ? GAME_RULES : "",
     renderStudent(state.student),
     renderCheckin(state.checkin),
     renderCamera(state.cameraEmotion),

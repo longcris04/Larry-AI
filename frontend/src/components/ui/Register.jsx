@@ -118,7 +118,9 @@ const Register = () => {
       <div className="auth-card">
         {/* Avatar */}
 
-        <div className="auth-card__avatar auth-card__avatar--pink">🤖</div>
+        <div className="auth-card__avatar auth-card__avatar--pink">
+          <img className="brand-logo" src={`${process.env.PUBLIC_URL}/logo_mark.png`} alt="Larry AI" />
+        </div>
 
         {/* Title */}
 
