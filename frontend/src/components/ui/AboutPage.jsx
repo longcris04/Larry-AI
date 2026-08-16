@@ -38,7 +38,7 @@ import "../../styles/AboutPage.css";
 const TEAM = [
   { id: 1, name: "Nguyễn Hoàng Lân", emoji: "👩‍💻", photo: "/team/HoangLan.png" },
   { id: 2, name: "Lưu Hoàng Hiệp", emoji: "👨‍💻", photo: "/team/HoangHiep.png" },
-  { id: 3, name: "Lê Hoàng Duy Lâm", emoji: "🧑‍🎨", photo: "" },
+  { id: 3, name: "Lê Hoàng Duy Lâm", emoji: "🧑‍🎨", photo: "/team/DuyLam.png" },
   { id: 4, name: "Đoàn Hải Nam", emoji: "🧑‍🔬", photo: "" }
 ];
 
@@ -68,8 +68,8 @@ const ADVISOR_GROUPS = [
         photo: ""
       },
       {
-        id: "nguyen-thi-mai",
-        name: "TS. Nguyễn Thị Mai",
+        id: "thanh-mai",
+        name: "TS. Nguyễn Thị Thanh Mai",
         unit: "Khoa Công tác Xã hội",
         org: "Học viện Phụ nữ Việt Nam",
         emoji: "🎓",
@@ -84,8 +84,8 @@ const ADVISOR_GROUPS = [
         photo: ""
       },
       {
-        id: "ngo-ngoc",
-        name: "ThS. Ngô Ngọc",
+        id: "bich-ngoc",
+        name: "ThS. Ngô Thị Bích Ngọc",
         unit: "Phòng Tâm lý học đường",
         org: "Trường THCS Đoàn Thị Điểm",
         emoji: "💬",
@@ -103,7 +103,7 @@ const ADVISOR_GROUPS = [
         unit: "Phòng Hệ thống Thông tin Quản lý",
         org: "Viện CNTT, Viện Hàn lâm KH&CN Việt Nam",
         emoji: "🧑‍💻",
-        photo: ""
+        photo: "/team/PhamQuangNam.png"
       },
       {
         id: "hoang-long",
@@ -119,7 +119,15 @@ const ADVISOR_GROUPS = [
         unit: "Sinh viên Viện Điện tử Viễn thông",
         org: "Đại học Bách khoa Hà Nội",
         emoji: "🧑‍🎓",
-        photo: ""
+        photo: "/team/TaTuanKiet.png"
+      },
+      {
+        id: "the-trung",
+        name: "Phạm Thế Trung",
+        unit: "Sinh viên Viện Trí tuệ Nhân tạo",
+        org: "Trường ĐH Công nghệ, ĐHQG Hà Nội",
+        emoji: "🧑‍🎓",
+        photo: "/team/PhamTheTrung.png"
       },
       {
         id: "manh-tuyen",
