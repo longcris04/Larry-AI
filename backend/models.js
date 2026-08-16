@@ -50,6 +50,24 @@ function alertModel() {
   return resolve("ALERT_MODEL", "SUMMARY_MODEL", ...CHAT_CHAIN);
 }
 
+// --- Hai model giọng nói --------------------------------------------------
+//
+// KHÔNG có chuỗi dự phòng về CHAT_MODEL như các model trên. Model chat nhận chữ
+// và trả về chữ; model giọng nói nhận tiếng nói hoặc trả về tiếng nói. Rơi về
+// CHAT_MODEL nghĩa là gửi tệp âm thanh cho một model không nghe được — lỗi khó
+// hiểu ở tận trong lời gọi API, thay vì một câu báo "chưa cấu hình" đọc ra hiểu
+// ngay. Thiếu thì trả "" và nút micro tự ẩn đi.
+
+// Nghe tiếng nói của học sinh, trả về chữ
+function sttModel() {
+  return resolve("STT_MODEL");
+}
+
+// Đọc câu trả lời của Larry thành tiếng
+function ttsModel() {
+  return resolve("TTS_MODEL");
+}
+
 /**
  * Hai tác vụ nền còn thiếu model.
  *
@@ -70,7 +88,9 @@ function describeModels() {
   return {
     chat: chatModel(),
     summary: summaryModel(),
-    alert: alertModel()
+    alert: alertModel(),
+    stt: sttModel(),
+    tts: ttsModel()
   };
 }
 
@@ -79,6 +99,8 @@ module.exports = {
   agentModel,
   summaryModel,
   alertModel,
+  sttModel,
+  ttsModel,
   missingBackgroundModels,
   describeModels
 };

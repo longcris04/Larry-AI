@@ -6,21 +6,31 @@ import { useAuth } from "../../context/AuthContext";
 import AuthInput from "./AuthInput";
 import GradientButton from "./GradientButton";
 import PlayfulBackground from "./PlayfulBackground";
+import { useGuestMode } from "../../hooks/useGuestMode";
+import { ROLES } from "../../constants/roles";
 import "../../styles/AuthForms.css";
 
 export default function Login() {
   const { login, loginAsGuest } = useAuth();
 
+  // Quản trị viên tắt chế độ khách thì cả khối "hoặc → Trò chuyện ngay" biến mất
+  const { guestMode, loading: guestModeLoading } = useGuestMode();
+
   // Vừa đăng ký xong thì Register.jsx điều hướng về đây, kèm sẵn email
   const { state } = useLocation();
   const justRegistered = !!state?.justRegistered;
+  // Giáo viên vừa đăng ký: chưa đăng nhập được cho tới khi quản trị viên duyệt,
+  // nên lời chúc mừng phải nói đúng chuyện đó thay vì mời đăng nhập ngay.
+  const pendingApproval = !!state?.pendingApproval;
 
   const [email, setEmail] = useState(state?.email || "");
 
   const [password, setPassword] = useState("");
 
-  // "Bạn là" — người dùng hay quản trị viên
-  const [role, setRole] = useState("user");
+  // "Bạn là" — học sinh, giáo viên chủ nhiệm, hay quản trị viên.
+  // Cùng một email không dùng được cho hai vai trò (backend chặn từ lúc đăng ký),
+  // nhưng vẫn phải chọn đúng ở đây vì tài khoản cũ có thể còn trùng email.
+  const [role, setRole] = useState(ROLES.STUDENT);
 
   const [remember, setRemember] = useState(true);
 
@@ -80,8 +90,11 @@ export default function Login() {
           </p>
 
           {justRegistered && !error && (
-            <div className="auth-success">
-              🎉 Tạo tài khoản thành công! Đăng nhập để bắt đầu trò chuyện cùng Larry.
+            <div className={`auth-success${pendingApproval ? " auth-success--pending" : ""}`}>
+              {pendingApproval
+                ? state?.message ||
+                  "⏳ Đã gửi yêu cầu tạo tài khoản giáo viên chủ nhiệm. Quản trị viên sẽ duyệt trước khi bạn đăng nhập được."
+                : "🎉 Tạo tài khoản thành công! Đăng nhập để bắt đầu trò chuyện cùng Larry."}
             </div>
           )}
 
@@ -136,8 +149,9 @@ export default function Login() {
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
-                  <option value="user">Người dùng</option>
-                  <option value="admin">Quản trị viên</option>
+                  <option value={ROLES.STUDENT}>Người dùng</option>
+                  <option value={ROLES.TEACHER}>Giáo viên chủ nhiệm</option>
+                  <option value={ROLES.ADMIN}>Quản trị viên</option>
                 </select>
               </div>
             </div>
@@ -166,31 +180,43 @@ export default function Login() {
             </GradientButton>
           </form>
 
-          {/* VÀO CHAT NGAY, KHÔNG CẦN ĐĂNG NHẬP */}
+          {/* VÀO CHAT NGAY, KHÔNG CẦN ĐĂNG NHẬP
+              Cả khối này do quản trị viên bật/tắt. Tắt thì gỡ luôn cả dấu phân
+              cách "hoặc" — để lại một chữ "hoặc" lửng lơ giữa form và dòng "Chưa
+              có tài khoản?" trông như trang bị vỡ. */}
+          {!guestModeLoading && guestMode && (
+            <>
+              <div className="auth-divider">
+                <span>hoặc</span>
+              </div>
 
-          <div className="auth-divider">
-            <span>hoặc</span>
-          </div>
+              <GradientButton
+                variant="success"
+                loading={guestLoading}
+                disabled={loading}
+                onClick={handleGuest}
+                fullWidth
+              >
+                {guestLoading ? "Đang mở phòng chat..." : "Trò chuyện với Larry ngay! 💬"}
+              </GradientButton>
 
-          <GradientButton
-            variant="success"
-            loading={guestLoading}
-            disabled={loading}
-            onClick={handleGuest}
-            fullWidth
-          >
-            {guestLoading ? "Đang mở phòng chat..." : "Trò chuyện với Larry ngay! 💬"}
-          </GradientButton>
-
-          <p className="auth-guest-hint">
-            Không cần đăng ký — vào nói chuyện với Larry luôn.
-          </p>
+              <p className="auth-guest-hint">
+                Không cần đăng ký — vào nói chuyện với Larry luôn.
+              </p>
+            </>
+          )}
 
           {/* bottom */}
 
           <div className="auth-bottom">
             Chưa có tài khoản?
             <Link to="/register">Đăng ký ngay</Link>
+          </div>
+
+          {/* Đường về trang giới thiệu — hai trang đứng song song, qua lại tuỳ ý */}
+          <div className="auth-bottom auth-bottom--about">
+            Chưa biết Larry là ai?
+            <Link to="/gioi-thieu">Xem giới thiệu</Link>
           </div>
         </div>
       </div>

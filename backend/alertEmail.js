@@ -191,14 +191,47 @@ function getTransporter() {
   return transporter;
 }
 
+/**
+ * Gộp danh sách người nhận thành mảng địa chỉ hợp lệ, đã bỏ trùng.
+ *
+ * Bỏ trùng KHÔNG phân biệt hoa/thường: địa chỉ điền sẵn ở ô "Gửi tới" và địa chỉ
+ * của giáo viên chủ nhiệm rất có thể là một — cùng một người nhận hai bản của
+ * cùng một email cảnh báo thì vừa khó hiểu vừa như hệ thống đang lỗi.
+ */
+function normalizeRecipients(to) {
+  const raw = Array.isArray(to) ? to : String(to || "").split(",");
+  const seen = new Set();
+  const out = [];
+
+  for (const entry of raw) {
+    const address = String(entry || "").trim();
+    if (!address) continue;
+    if (!isValidEmail(address)) throw new Error(`Địa chỉ email không hợp lệ: ${address}`);
+
+    const key = address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(address);
+  }
+
+  if (out.length === 0) throw new Error("Không có người nhận nào hợp lệ.");
+  return out;
+}
+
+/**
+ * @param {string|string[]} to  Một hoặc nhiều địa chỉ. Nhiều địa chỉ đi trong
+ *                              CÙNG một email (không phải nhiều lần gửi) để
+ *                              giáo viên và bộ phận tư vấn thấy nhau trong
+ *                              cùng một luồng trao đổi về học sinh đó.
+ */
 async function sendAlertEmail({ to, subject, body }) {
-  if (!isValidEmail(to)) throw new Error("Địa chỉ email người nhận không hợp lệ.");
+  const recipients = normalizeRecipients(to);
   if (!subject?.trim()) throw new Error("Thiếu tiêu đề email.");
   if (!body?.trim()) throw new Error("Thiếu nội dung email.");
 
   const info = await getTransporter().sendMail({
     from: `"${EMAIL_FROM_NAME}" <${EMAIL_USER}>`,
-    to: to.trim(),
+    to: recipients.join(", "),
     subject: subject.trim(),
     text: body,
     // Bản HTML chỉ để xuống dòng cho dễ đọc, không thêm nội dung nào khác
@@ -207,7 +240,7 @@ async function sendAlertEmail({ to, subject, body }) {
     )}</div>`
   });
 
-  return { messageId: info.messageId, accepted: info.accepted || [] };
+  return { messageId: info.messageId, accepted: info.accepted || [], recipients };
 }
 
 function escapeHtml(text) {
@@ -235,6 +268,7 @@ module.exports = {
   ALERT_EMAIL_TO,
   isMailerConfigured,
   isValidEmail,
+  normalizeRecipients,
   draftAlertEmail,
   sendAlertEmail,
   verifyMailer

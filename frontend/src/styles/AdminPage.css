@@ -151,6 +151,38 @@
     color:#2D3553;
 }
 
+/* Một dòng cài đặt: trạng thái bên trái, nút đổi bên phải.
+   flex-wrap để trên màn hình hẹp nút xuống dòng thay vì bóp chữ trạng thái. */
+.admin-setting{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    flex-wrap:wrap;
+
+    gap:14px;
+
+    padding:16px 18px;
+
+    border-radius:16px;
+
+    border:2px solid #EDF1FA;
+
+    background:#FBFCFF;
+}
+
+.admin-setting__info strong{
+
+    display:block;
+
+    margin-bottom:4px;
+
+    color:#2D3553;
+}
+
 .admin-empty{
 
     margin:0;
@@ -573,4 +605,100 @@
     color:#3E5C86;
 
     font-size:13px;
+}
+
+/* --- Duyệt tài khoản giáo viên chủ nhiệm ---------------------------------- */
+
+/* Khối việc-cần-làm, đặt trên cùng trang. Viền vàng để tách hẳn khỏi các bảng
+   tra cứu bên dưới: đây là chỗ DUY NHẤT trên trang đòi quản trị viên ra quyết
+   định, phần còn lại chỉ để xem. */
+.admin-panel--pending{
+
+    margin-bottom:22px;
+
+    border:2px solid #FFD98A;
+
+    background:#FFFCF3;
+}
+
+.admin-pending{
+
+    margin:0;
+
+    padding:0;
+
+    list-style:none;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
+}
+
+.admin-pending__item{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:12px;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:14px 16px;
+
+    border-radius:12px;
+
+    background:#fff;
+
+    border:1px solid #F0E2C0;
+}
+
+.admin-pending__info{
+
+    font-size:14.5px;
+
+    line-height:1.6;
+}
+
+.admin-tag--teacher{
+
+    background:#E6F7EC;
+
+    color:#1F7A4C;
+}
+
+/* Trạng thái duyệt, nằm ngay dưới nhãn vai trò trong bảng tài khoản */
+.admin-status{
+
+    display:inline-block;
+
+    margin-top:6px;
+
+    padding:2px 10px;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:700;
+
+    white-space:nowrap;
+}
+
+.admin-status--pending{
+
+    background:#FFF3D6;
+
+    color:#A35B00;
+}
+
+.admin-status--rejected{
+
+    background:#FFE5E5;
+
+    color:#B3261E;
 }

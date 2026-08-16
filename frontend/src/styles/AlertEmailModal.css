@@ -238,3 +238,41 @@
 
     gap:10px;
 }
+
+/* Người nhận thứ hai (giáo viên chủ nhiệm) — CHỈ HIỆN, không sửa được.
+   Địa chỉ này do máy chủ tra ra từ tài khoản giáo viên đã duyệt, không nhận từ
+   client: đây là dữ liệu nhạy cảm về một học sinh cụ thể. */
+.alert-modal__cc{
+
+    margin:-6px 0 14px;
+
+    padding:10px 14px;
+
+    border-radius:10px;
+
+    background:#EFFAF1;
+
+    border:1px solid #C9EBD4;
+
+    color:#2F6B47;
+
+    font-size:13.5px;
+
+    line-height:1.55;
+}
+
+.alert-modal__cc--none{
+
+    background:#F5F7FA;
+
+    border-color:#E1E7EF;
+
+    color:#6B7A90;
+}
+
+.alert-modal__cc-class{
+
+    color:#6B8A7C;
+
+    font-weight:500;
+}

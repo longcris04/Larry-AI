@@ -25,6 +25,9 @@ export default function AlertEmailModal({ session, studentName, onClose, onSent 
   const [body, setBody] = useState("");
   const [from, setFrom] = useState("");
   const [mailerReady, setMailerReady] = useState(true);
+  // Giáo viên chủ nhiệm của chính em này, backend ghép theo trường + lớp.
+  // null = chưa ghép được, email sẽ chỉ đi tới địa chỉ ở ô "Gửi tới".
+  const [homeroomTeacher, setHomeroomTeacher] = useState(null);
 
   const previousAlerts = session.alerts || [];
 
@@ -40,6 +43,7 @@ export default function AlertEmailModal({ session, studentName, onClose, onSent 
       setBody(res.data.body || "");
       setFrom(res.data.from || "");
       setMailerReady(res.data.mailerReady !== false);
+      setHomeroomTeacher(res.data.homeroomTeacher || null);
     } catch (err) {
       setError(err.response?.data?.error || "Không soạn được email.");
     } finally {
@@ -130,6 +134,26 @@ export default function AlertEmailModal({ session, studentName, onClose, onSent 
                   Gửi tới
                   <input value={to} onChange={(e) => setTo(e.target.value)} />
                 </label>
+
+                {/* Người nhận thứ hai do MÁY CHỦ quyết định, không sửa được ở đây:
+                    đây là dữ liệu nhạy cảm về một học sinh cụ thể, nên địa chỉ
+                    giáo viên phải lấy từ tài khoản đã được duyệt chứ không phải
+                    từ một ô nhập. Hiện ra để quản trị viên biết trước ai sẽ đọc. */}
+                {homeroomTeacher ? (
+                  <p className="alert-modal__cc">
+                    ➕ Gửi kèm giáo viên chủ nhiệm: <strong>{homeroomTeacher.username}</strong>{" "}
+                    &lt;{homeroomTeacher.email}&gt;
+                    {homeroomTeacher.classLabel && (
+                      <span className="alert-modal__cc-class"> · {homeroomTeacher.classLabel}</span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="alert-modal__cc alert-modal__cc--none">
+                    ℹ️ Chưa ghép được giáo viên chủ nhiệm cho em này — email chỉ gửi tới địa chỉ
+                    ở trên. Lớp của em có thể chưa có tài khoản giáo viên được duyệt, hoặc em
+                    chưa khai lớp.
+                  </p>
+                )}
 
                 <label className="alert-modal__field">
                   Tiêu đề

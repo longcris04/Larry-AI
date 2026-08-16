@@ -1,0 +1,99 @@
+/* Khối xin ý kiến ở cột trái màn hình chat. Cùng ngôn ngữ bo tròn — viền nét đứt
+   của các bảng khác trong giao diện Larry, nhưng tông tím nhạt để nó đọc ra là
+   một lời mời, không phải một phần của cuộc trò chuyện. */
+
+.feedback-links {
+  flex-shrink: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md, 25px);
+  background: linear-gradient(135deg, #fdf6ff, #f2f9ff);
+  border: 3px dashed rgba(167, 139, 250, 0.4);
+}
+
+.feedback-links__title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text, #2d3748);
+}
+
+.feedback-links__desc {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-soft, #64748b);
+}
+
+.feedback-links__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 14px);
+  background: var(--white, #fff);
+  border: 2px solid rgba(167, 139, 250, 0.28);
+  text-decoration: none;
+  color: var(--text, #2d3748);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feedback-link:hover {
+  transform: translateY(-2px);
+  border-color: var(--purple, #a78bfa);
+  box-shadow: 0 6px 18px rgba(167, 139, 250, 0.25);
+}
+
+.feedback-link--teacher {
+  border-color: rgba(126, 217, 87, 0.35);
+}
+
+.feedback-link--teacher:hover {
+  border-color: var(--green, #7ed957);
+  box-shadow: 0 6px 18px rgba(126, 217, 87, 0.25);
+}
+
+.feedback-link__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.feedback-link__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Địa chỉ đầy đủ vẫn phải HIỆN RA, nhưng link Google Form rất dài nên phải cắt
+   bằng dấu ba chấm — không có min-width:0 ở trên thì flex item không co lại được
+   và cả khối bị đẩy rộng ra ngoài cột. */
+.feedback-link__url {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-soft, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedback-link__go {
+  font-size: 1rem;
+  color: var(--purple, #a78bfa);
+  flex-shrink: 0;
+}
+
+.feedback-links__note {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  color: var(--text-soft, #64748b);
+  text-align: center;
+}

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
+import { ROLES } from "../constants/roles";
 
 const AuthContext = createContext();
 
@@ -41,20 +42,32 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // profile: { fullName, grade, school, className } — tất cả đều không bắt buộc.
-  // Đăng ký xong KHÔNG tự đăng nhập: backend không cấp token, người dùng được
-  // đưa về màn hình đăng nhập để tự đăng nhập (xem Register.jsx).
-  const register = async (username, email, password, profile = {}) => {
+  // profile: { fullName, grade, school, className, dateOfBirth }
+  //   học sinh          — mọi field đều không bắt buộc
+  //   giáo viên chủ nhiệm — school và className BẮT BUỘC (backend chặn nếu thiếu),
+  //                         vì đó chính là thứ dùng để ghép với học sinh
+  //
+  // role: "user" (mặc định) | "teacher" — do nút chọn ở đầu form quyết định.
+  //
+  // Đăng ký xong KHÔNG tự đăng nhập: backend không cấp token. Riêng giáo viên còn
+  // phải chờ quản trị viên duyệt, nên trả về cả `pendingApproval` để màn hình
+  // đăng nhập nói đúng chuyện đang xảy ra.
+  const register = async (username, email, password, profile = {}, role = ROLES.STUDENT) => {
     setError(null);
     try {
-      await axios.post(`${API_BASE_URL}/api/register`, {
+      const response = await axios.post(`${API_BASE_URL}/api/register`, {
         username,
         email,
         password,
-        profile
+        profile,
+        role
       });
 
-      return { success: true };
+      return {
+        success: true,
+        pendingApproval: Boolean(response.data?.pendingApproval),
+        message: response.data?.message || ""
+      };
     } catch (err) {
       const errorMessage = err.response?.data?.error || "Registration failed";
       setError(errorMessage);
@@ -62,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // role: "user" | "admin" — lấy từ dropdown "Bạn là" ở trang đăng nhập
+  // role: "user" | "teacher" | "admin" — lấy từ dropdown "Bạn là" ở trang đăng nhập
   const login = async (email, password, role = "user") => {
     setError(null);
     try {
@@ -124,7 +137,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     isGuest: !!user?.guest,
-    isAdmin: user?.role === "admin"
+    isAdmin: user?.role === ROLES.ADMIN,
+    isTeacher: user?.role === ROLES.TEACHER
   };
 
   return (

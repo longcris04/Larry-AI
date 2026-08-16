@@ -1,0 +1,424 @@
+/* Đồ thị kho tri thức trên trang giới thiệu.
+   Bảng màu 4 nhóm và lý do chọn nằm ở constants/knowledgeGraph.js — chỗ này chỉ
+   lo phần khung, chữ và tương tác. */
+
+.kgx {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* --- Thanh công cụ -------------------------------------------------------- */
+
+.kgx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.kgx-search {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 16px;
+  border: 2px solid #dfe5ee;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #24304a;
+  outline: none;
+  background: #fff;
+}
+
+.kgx-search:focus {
+  border-color: #2a78d6;
+  box-shadow: 0 0 0 3px rgba(42, 120, 214, 0.15);
+}
+
+.kgx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kgx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 2px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #5b6880;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.kgx-chip:hover {
+  border-color: var(--chip-color, #94a3b8);
+}
+
+.kgx-chip--on {
+  border-color: var(--chip-color, #2a78d6);
+  color: #1f2a3d;
+  background: #f7fafd;
+}
+
+.kgx-chip__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--chip-color, #2a78d6);
+}
+
+.kgx-toolbar__right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.kgx-btn {
+  padding: 8px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4a5a75;
+  cursor: pointer;
+}
+
+.kgx-btn:hover {
+  border-color: #b9c6d8;
+}
+
+.kgx-btn--on {
+  background: #eef5ff;
+  border-color: #2a78d6;
+  color: #1b4f92;
+}
+
+.kgx-count {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* --- Khung đồ thị --------------------------------------------------------- */
+
+.kgx-stage {
+  border: 2px solid #e6ecf4;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fcfdff, #f6f9fd);
+  overflow: hidden;
+}
+
+.kgx-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none; /* để kéo bằng ngón tay không cuộn cả trang */
+  cursor: grab;
+}
+
+.kgx-svg:active {
+  cursor: grabbing;
+}
+
+.kgx-node {
+  cursor: pointer;
+}
+
+.kgx-node__label {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  fill: #2a3550;
+  pointer-events: none;
+}
+
+/* Đường nối rất mảnh nên vùng bấm phải rộng hơn nét vẽ, nếu không thì gần như
+   không thể bấm trúng. stroke trong suốt làm đúng việc đó. */
+.kgx-edge {
+  cursor: pointer;
+  stroke-linecap: round;
+}
+
+.kgx-edge:hover {
+  stroke-width: 3;
+}
+
+.kgx-hint {
+  margin: 0;
+  padding: 10px 16px 12px;
+  font-size: 12px;
+  color: #7b8798;
+  text-align: center;
+  border-top: 1px dashed #e6ecf4;
+}
+
+/* --- Chú giải ------------------------------------------------------------- */
+
+.kgx-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.kgx-legend__item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 2px solid #eef2f7;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 13px;
+  color: #24304a;
+}
+
+.kgx-legend__item strong {
+  display: block;
+}
+
+.kgx-legend__q {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.kgx-legend__types {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* --- Thẻ chi tiết --------------------------------------------------------- */
+
+.kgx-detail {
+  padding: 18px 20px;
+  border: 2px solid #e2e9f2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(42, 120, 214, 0.08);
+}
+
+.kgx-detail__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.kgx-fam {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fam-color, #2a78d6) 14%, white);
+  color: color-mix(in srgb, var(--fam-color, #2a78d6) 80%, black);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.kgx-fam--edge {
+  background: #eef1f5;
+  color: #4a5568;
+}
+
+.kgx-detail__type {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #7b8798;
+}
+
+.kgx-close {
+  border: none;
+  background: none;
+  font-size: 16px;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.kgx-detail__title {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #1c2740;
+}
+
+.kgx-detail__summary {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #33405c;
+}
+
+.kgx-detail__block {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #46536e;
+}
+
+.kgx-detail__block--avoid {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff5f5;
+  color: #9b2c2c;
+}
+
+.kgx-detail__source {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed #e6ecf4;
+  font-size: 12px;
+  color: #8593a8;
+  line-height: 1.6;
+}
+
+.kgx-detail__source code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  font-size: 11.5px;
+}
+
+.kgx-triggers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.kgx-trigger {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+}
+
+.kgx-conn {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #46536e;
+}
+
+.kgx-conn__rel {
+  color: #7b8798;
+  font-size: 12.5px;
+}
+
+.kgx-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  color: #2a78d6;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kgx-link:hover {
+  color: #1b5397;
+}
+
+.kgx-edge-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.kgx-edge-rel {
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #46536e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* --- Chế độ bảng ---------------------------------------------------------- */
+
+.kgx-table-wrap {
+  max-height: 560px;
+  overflow: auto;
+  border: 2px solid #e6ecf4;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.kgx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.kgx-table th,
+.kgx-table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: top;
+}
+
+.kgx-table th {
+  position: sticky;
+  top: 0;
+  background: #f7fafd;
+  font-size: 12.5px;
+  color: #4a5a75;
+  z-index: 1;
+}
+
+.kgx-muted {
+  color: #7b8798;
+}
+
+.kgx-loading,
+.kgx-error {
+  padding: 40px;
+  text-align: center;
+  color: #7b8798;
+  font-size: 14px;
+}
+
+.kgx-error {
+  color: #b3261e;
+}
+
+@media (max-width: 700px) {
+  .kgx-toolbar__right {
+    margin-left: 0;
+  }
+
+  .kgx-legend {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "mẩu này" trong danh sách liên hệ — chỉ chính mẩu đang mở, để chiều mũi tên
+   đọc ra thành câu hoàn chỉnh */
+.kgx-conn__self {
+  color: #1c2740;
+  font-weight: 700;
+}

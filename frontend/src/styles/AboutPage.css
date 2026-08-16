@@ -1,0 +1,454 @@
+/* Trang giới thiệu công khai.
+   Dùng chung ngôn ngữ hình ảnh với app (bo tròn lớn, nét đứt, gradient nhẹ) nhưng
+   thoáng hơn và chữ to hơn, vì đây là trang để ĐỌC chứ không phải để thao tác. */
+
+.about-page {
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg, #fffdf7 0%, #f4fbff 45%, #faf6ff 100%);
+  font-family: var(--font-main, "Fredoka", "Nunito", sans-serif);
+  color: #24304a;
+}
+
+/* --- Thanh điều hướng ----------------------------------------------------- */
+
+.about-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px dashed rgba(76, 201, 240, 0.3);
+}
+
+.about-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #24304a;
+  text-decoration: none;
+}
+
+.about-nav__avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4cc9f0, #a78bfa);
+  font-size: 22px;
+}
+
+.about-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-nav__link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #4a5a75;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.about-nav__link:hover {
+  background: #eef6fd;
+  color: #1b5397;
+}
+
+.about-nav__cta {
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4cc9f0, #a78bfa);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(76, 201, 240, 0.35);
+}
+
+.about-nav__cta:hover {
+  filter: brightness(1.05);
+}
+
+/* --- Bố cục chung --------------------------------------------------------- */
+
+.about-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+.about-section {
+  padding: 52px 0 8px;
+}
+
+.about-section--wide {
+  max-width: none;
+}
+
+.about-eyebrow {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7c8db0;
+}
+
+.about-h1 {
+  margin: 0 0 16px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.2;
+  font-weight: 800;
+  color: #1c2740;
+}
+
+.about-h2 {
+  margin: 0 0 18px;
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800;
+  color: #1c2740;
+}
+
+.about-lead {
+  margin: 0 0 20px;
+  font-size: 17px;
+  line-height: 1.75;
+  color: #43506d;
+}
+
+.about-lead--small {
+  font-size: 15.5px;
+}
+
+/* --- Mở đầu --------------------------------------------------------------- */
+
+.about-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 36px;
+  align-items: center;
+  padding: 52px 0 8px;
+}
+
+.about-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.about-btn {
+  display: inline-block;
+  padding: 13px 24px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid #dbe6f2;
+  color: #35496b;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.about-btn:hover {
+  transform: translateY(-2px);
+  border-color: #9fc4e8;
+}
+
+.about-btn--primary {
+  background: linear-gradient(135deg, #4cc9f0, #a78bfa);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(76, 201, 240, 0.35);
+}
+
+.about-btn--lg {
+  padding: 16px 34px;
+  font-size: 17px;
+}
+
+.about-hero__card {
+  padding: 22px;
+  border-radius: 28px;
+  background: #fff;
+  border: 3px dashed rgba(167, 139, 250, 0.35);
+  box-shadow: 0 16px 40px rgba(76, 201, 240, 0.16);
+}
+
+.about-chat-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-bubble {
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 92%;
+}
+
+.about-bubble--ai {
+  align-self: flex-start;
+  border-bottom-left-radius: 6px;
+  background: #f0f9ff;
+  color: #24304a;
+  border: 2px solid #cfeaff;
+}
+
+.about-bubble--user {
+  align-self: flex-end;
+  border-bottom-right-radius: 6px;
+  background: linear-gradient(135deg, #ffd93d, #ff8fab);
+  color: #4a2b33;
+  font-weight: 600;
+}
+
+/* --- Thẻ nội dung --------------------------------------------------------- */
+
+.about-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.about-grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.about-grid--3 {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.about-card {
+  padding: 22px;
+  border-radius: 20px;
+  background: #fff;
+  border: 2px solid #eaf1f8;
+  box-shadow: 0 6px 20px rgba(76, 201, 240, 0.08);
+}
+
+.about-card--center {
+  text-align: center;
+}
+
+.about-card__icon {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.about-card__title {
+  margin: 0 0 8px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #1c2740;
+}
+
+.about-card__body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #4c5a76;
+}
+
+.about-goals {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 15.5px;
+  line-height: 1.9;
+  color: #43506d;
+}
+
+.about-goals strong {
+  color: #1c2740;
+}
+
+/* --- Các bước hướng dẫn --------------------------------------------------- */
+
+.about-steps {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.about-step {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #fff;
+  border: 2px solid #eaf1f8;
+}
+
+.about-step__n {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4cc9f0, #a78bfa);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.about-step__title {
+  margin: 0 0 5px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1c2740;
+}
+
+.about-note {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #fffaf0;
+  border: 2px dashed #ffdca8;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #7a5a20;
+}
+
+/* --- Đội ngũ -------------------------------------------------------------- */
+
+.about-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+/* Thẻ cố vấn chứa tên đơn vị dài ("Phòng Hệ thống Thông tin Quản lý"), để cột
+   160px như thẻ học sinh thì chữ vỡ ra mỗi dòng một hai từ, thẻ cao lêu nghêu. */
+.about-team--advisors {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.about-member {
+  padding: 22px 16px;
+  border-radius: 20px;
+  background: #fff;
+  border: 2px solid #eaf1f8;
+  text-align: center;
+}
+
+/* Emoji đứng thay chỗ ảnh chưa có, nên phải chiếm ĐÚNG khung 76px như ảnh thật.
+   Để nó tự cao theo cỡ chữ thì thẻ có ảnh cao hơn thẻ có emoji, và trong một
+   hàng vừa có ảnh vừa có emoji — trạng thái bình thường khi mới thêm được vài
+   tấm — tên các thẻ so le nhau. Viền và nền giống hệt .about-member__photo để
+   hai loại thẻ trông như cùng một thiết kế. */
+.about-member__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 8px;
+  font-size: 38px;
+  line-height: 1;
+  border-radius: 50%;
+  background: #f4f8fc;
+  border: 3px solid #eaf1f8;
+}
+
+/* Ảnh đại diện thật, thay chỗ của emoji. 76px cho bằng chiều cao khối emoji
+   (38px chữ + lề) nên thẻ nào có ảnh, thẻ nào chưa vẫn cao bằng nhau.
+   object-fit: cover là thứ giữ mặt bạn không bị bóp méo khi ảnh không vuông —
+   ảnh bị cắt bớt rìa chứ không bị kéo dãn. */
+.about-member__photo {
+  display: block;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #eaf1f8;
+  background: #f4f8fc;
+}
+
+.about-member__name {
+  display: block;
+  font-size: 15px;
+  color: #1c2740;
+}
+
+/* Dòng chú thích dưới tên: lớp với học sinh, đơn vị + cơ quan với cố vấn. Tên
+   đơn vị dài hay xuống dòng nên phải có line-height riêng, để mặc định thì hai
+   dòng dính sát vào nhau. */
+.about-member__line {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #7c8db0;
+}
+
+/* --- Kết & chân trang ----------------------------------------------------- */
+
+.about-cta {
+  margin-top: 56px;
+  padding: 44px 24px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #eefaff, #f6f0ff);
+  border: 3px dashed rgba(76, 201, 240, 0.35);
+  text-align: center;
+}
+
+.about-cta .about-card__body {
+  margin-bottom: 20px;
+}
+
+.about-footer {
+  position: relative;
+  z-index: 1;
+  padding: 28px 24px 40px;
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: #7c8db0;
+  border-top: 2px dashed rgba(76, 201, 240, 0.25);
+}
+
+.about-footer a {
+  color: #2a78d6;
+  font-weight: 700;
+}
+
+.about-footer__warn {
+  max-width: 620px;
+  margin: 10px auto 0;
+  color: #8a6d3b;
+}
+
+@media (max-width: 860px) {
+  .about-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .about-nav {
+    padding: 12px 16px;
+  }
+
+  .about-main {
+    padding: 0 16px 40px;
+  }
+}

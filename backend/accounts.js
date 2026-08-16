@@ -7,14 +7,52 @@ const ACCOUNTS_FILE = process.env.ACCOUNTS_FILE
   ? path.resolve(process.env.ACCOUNTS_FILE)
   : path.join(__dirname, "account.json");
 
-const ROLES = { USER: "user", ADMIN: "admin" };
+const ROLES = { USER: "user", ADMIN: "admin", TEACHER: "teacher" };
 
+// Hồ sơ dùng chung cho cả ba vai trò — mỗi bên chỉ điền phần của mình:
+//   học sinh          fullName, grade, school, className (lớp đang học)
+//   giáo viên chủ nhiệm fullName, dateOfBirth, school, className (lớp chủ nhiệm)
+//
+// Cùng một shape vì đây chính là thứ dùng để GHÉP hai bên với nhau: giáo viên
+// thấy được học sinh nào là dựa trên school + className khớp nhau (xem
+// teachers.js). Tách thành hai shape khác nhau thì hai bên rất dễ trôi lệch tên
+// field, và lúc đó việc ghép hỏng âm thầm chứ không báo lỗi.
 const EMPTY_PROFILE = {
-  fullName: "",  // Tên
-  grade: "",     // Học sinh lớp mấy
-  school: "",    // Trường học
-  className: ""  // Lớp đang học
+  fullName: "",    // Tên
+  grade: "",       // Học sinh lớp mấy (giáo viên bỏ trống)
+  school: "",      // Trường học
+  className: "",   // Học sinh: lớp đang học. Giáo viên: lớp chủ nhiệm.
+  dateOfBirth: ""  // Ngày sinh, dạng yyyy-mm-dd (chủ yếu cho giáo viên)
 };
+
+// Trạng thái duyệt. CHỈ tài khoản giáo viên chủ nhiệm mới đi qua vòng duyệt —
+// học sinh đăng ký xong dùng được ngay, quản trị viên do developer tạo.
+const STATUS = { PENDING: "pending", APPROVED: "approved", REJECTED: "rejected" };
+
+// So email không phân biệt hoa/thường và khoảng trắng thừa. "An@a.com" với
+// "an@a.com " là CÙNG một hộp thư, nên phải chặn đăng ký trùng, và phải đăng
+// nhập được dù gõ khác kiểu.
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function sameEmail(a, b) {
+  return normalizeEmail(a) === normalizeEmail(b) && normalizeEmail(a) !== "";
+}
+
+/**
+ * Email này đã có ai dùng chưa — XÉT MỌI VAI TRÒ.
+ *
+ * Trước đây học sinh và quản trị viên được phép trùng email vì lúc đăng nhập
+ * còn có dropdown "Bạn là" tách hai bên ra. Giờ có thêm giáo viên chủ nhiệm thì
+ * một email trùng ba vai trò là ba tài khoản khác nhau — quá dễ nhầm, và lúc gửi
+ * email cảnh báo thì không biết địa chỉ đó thuộc về ai.
+ *
+ * @param {number} [exceptId] Bỏ qua chính tài khoản này (dùng khi sửa hồ sơ)
+ */
+function findUserByAnyRoleEmail(users, email, exceptId = null) {
+  return users.find((user) => sameEmail(user.email, email) && user.id !== exceptId);
+}
 
 // Ghi ra file tạm rồi đổi tên — nếu server tắt giữa chừng thì account.json cũ
 // vẫn nguyên vẹn thay vì bị cắt cụt.
@@ -68,18 +106,36 @@ function isBcryptHash(value) {
   return typeof value === "string" && BCRYPT_PATTERN.test(value);
 }
 
+const VALID_ROLES = new Set(Object.values(ROLES));
+
 // Bổ sung field cho các tài khoản tạo từ phiên bản cũ (chưa có role/profile)
 function normalizeUsers(users) {
   let changed = false;
 
   for (const user of users) {
-    if (user.role !== ROLES.ADMIN && user.role !== ROLES.USER) {
+    if (!VALID_ROLES.has(user.role)) {
       user.role = ROLES.USER;
       changed = true;
     }
 
     if (!user.profile || typeof user.profile !== "object") {
       user.profile = { ...EMPTY_PROFILE };
+      changed = true;
+    }
+
+    // Field thêm sau — hồ sơ cũ nào thiếu thì bù chuỗi rỗng
+    for (const key of Object.keys(EMPTY_PROFILE)) {
+      if (typeof user.profile[key] !== "string") {
+        user.profile[key] = "";
+        changed = true;
+      }
+    }
+
+    // Tài khoản có TỪ TRƯỚC khi có vòng duyệt đều đang dùng được, nên coi như đã
+    // duyệt. Đặt "pending" ở đây sẽ khoá tất cả mọi người ra ngoài sau một lần
+    // nâng cấp — đúng kiểu lỗi chỉ lộ ra trên máy chủ thật.
+    if (!Object.values(STATUS).includes(user.status)) {
+      user.status = STATUS.APPROVED;
       changed = true;
     }
 
@@ -119,8 +175,10 @@ function addAdmin(users, { username, email, password }) {
   if (pass.length < 8) {
     throw new Error("Mật khẩu quản trị phải có ít nhất 8 ký tự.");
   }
-  if (users.some((u) => u.role === ROLES.ADMIN && u.email === mail)) {
-    throw new Error(`Đã có tài khoản quản trị dùng email ${mail}.`);
+  // Email là duy nhất trên toàn hệ thống, không riêng nhóm quản trị
+  const taken = findUserByAnyRoleEmail(users, mail);
+  if (taken) {
+    throw new Error(`Email ${mail} đã được dùng cho một tài khoản ${taken.role}.`);
   }
   if (users.some((u) => u.role === ROLES.ADMIN && u.username === name)) {
     throw new Error(`Đã có tài khoản quản trị tên ${name}.`);
@@ -132,6 +190,7 @@ function addAdmin(users, { username, email, password }) {
     email: mail,
     password: bcrypt.hashSync(pass, 10),
     role: ROLES.ADMIN,
+    status: STATUS.APPROVED,
     profile: { ...EMPTY_PROFILE },
     createdAt: new Date().toISOString()
   };
@@ -153,9 +212,12 @@ function loadUsers() {
   return users;
 }
 
-// Email có thể trùng giữa tài khoản user và admin, nên phải tra theo cả vai trò
+// Tra theo email + vai trò, dùng lúc đăng nhập (dropdown "Bạn là" quyết định
+// vai trò). Email giờ là duy nhất trên toàn hệ thống nên thực tế chỉ ra một kết
+// quả, nhưng vẫn lọc theo vai trò để tài khoản cũ trùng email — có từ trước khi
+// siết quy tắc — đăng nhập đúng chỗ của nó thay vì nhảy sang vai trò khác.
 function findUserByEmail(users, email, role) {
-  return users.find((user) => user.email === email && user.role === role);
+  return users.find((user) => sameEmail(user.email, email) && user.role === role);
 }
 
 /**
@@ -189,11 +251,15 @@ function seedAdminFromEnv(users) {
 module.exports = {
   ACCOUNTS_FILE,
   ROLES,
+  STATUS,
   EMPTY_PROFILE,
   loadUsers,
   saveUsers,
   nextUserId,
+  normalizeEmail,
+  sameEmail,
   findUserByEmail,
+  findUserByAnyRoleEmail,
   addAdmin,
   seedAdminFromEnv
 };

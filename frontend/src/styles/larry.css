@@ -623,6 +623,196 @@
   cursor: not-allowed;
 }
 
+/* --- Giọng nói ------------------------------------------------------------ */
+
+/* Dải báo "Larry đang nói", hiện trong lúc loa phát và tắt ngay khi đọc xong */
+.speaking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  padding: 8px 16px 8px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  border: 3px solid var(--agent-color, var(--blue));
+  box-shadow: 0 4px 14px rgba(76, 201, 240, 0.25);
+  animation: bounce-in 0.3s ease-out both;
+}
+
+.speaking-indicator__icon {
+  font-size: 1.1rem;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.speaking-indicator__label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+/* Cột sóng nhấp nhô — cố ý khác với ba chấm nảy của lúc Larry đang NGHĨ, để hai
+   trạng thái không lẫn vào nhau. */
+.speaking-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+}
+
+.speaking-wave span {
+  width: 3px;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--agent-color, var(--blue));
+  animation: sound-wave 0.9s ease-in-out infinite;
+}
+
+.speaking-wave span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.speaking-wave span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.speaking-wave span:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+@keyframes sound-wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Có bạn nhỏ nhạy cảm với hình ảnh chuyển động, và hệ điều hành đã có sẵn công
+   tắc cho việc đó. Dải báo vẫn hiện, chỉ là đứng yên. */
+@media (prefers-reduced-motion: reduce) {
+  .speaking-wave span,
+  .speaking-indicator__icon,
+  .mic-btn--recording {
+    animation: none;
+  }
+
+  .speaking-wave span {
+    transform: scaleY(0.7);
+  }
+}
+
+/* Nút micro nằm bên TRÁI ô gõ, đối xứng với nút gửi bên phải: hai cách đưa lời
+   vào cuộc trò chuyện, ngang hàng nhau. */
+.mic-btn {
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(76, 201, 240, 0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.mic-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.mic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Đang thu: đỏ và đập theo nhịp. Học sinh phải thấy được ngay là micro ĐANG bật,
+   không phải đoán — đây là lúc duy nhất app đang nghe. */
+.mic-btn--recording {
+  background: linear-gradient(135deg, #ff6b6b, #e11d48);
+  box-shadow: 0 4px 20px rgba(225, 29, 72, 0.5);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(225, 29, 72, 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 4px 28px rgba(225, 29, 72, 0.75);
+  }
+}
+
+/* Đã thu xong, đang chờ model đọc ra chữ */
+.mic-btn--working {
+  background: linear-gradient(135deg, var(--yellow), var(--pink));
+  cursor: progress;
+  opacity: 1;
+}
+
+.mic-btn__spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Lỗi micro: nói ngay cạnh nút vừa bấm, KHÔNG chen vào khung chat — nhầm thành
+   lời Larry nói thì em sẽ trả lời lại nó. */
+.voice-error {
+  margin: 0 0 10px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: #fff4f4;
+  border: 2px solid rgba(225, 29, 72, 0.25);
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Nút tắt/bật tiếng, nằm ở đầu khung chat cạnh tên Larry */
+.speaker-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(76, 201, 240, 0.28);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.speaker-btn:hover {
+  transform: scale(1.12);
+}
+
+.speaker-btn--muted {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
 .scratch-btn-wrap {
   padding: 0 18px 18px;
   flex-shrink: 0;

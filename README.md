@@ -5,6 +5,8 @@ Larry là chatbot đồng hành cảm xúc dành cho học sinh tiểu học và
 Webcam nhận diện cảm xúc của học sinh ngay khi mở app (vui, buồn, tức giận, lo lắng...), sau đó Larry chủ động mở lời bằng tiếng Việt, lắng nghe và trò chuyện. Khi cuộc trò chuyện phù hợp, Larry gợi ý chơi một game Scratch nhỏ để thư giãn.
 
 - **Frontend**: React 19 (Create React App) + `face-api.js` để nhận diện cảm xúc ngay trên trình duyệt.
+- **Nói và nghe**: học sinh bấm micro để nói thay vì gõ, và Larry đọc câu trả lời lên loa — hai model riêng khai trong `.env`, xem **[mục 12](#12-nói-chuyện-bằng-giọng-nói-micro--loa)**.
+- **Trang giới thiệu công khai** tại `/gioi-thieu`, không cần đăng nhập — kèm **đồ thị bấm được** của toàn bộ kho tri thức Larry truy vấn ([mục 11](#11-trang-giới-thiệu-công-khai)).
 - **Backend**: Express 5 + JWT auth, gọi model AI qua **OpenRouter**.
 - **Hệ multi-agent**: một Supervisor phân nhóm trường hợp rồi giao cho **đúng 1** trong 4 agent chuyên trách (nhóm ưu tiên cao nhất thắng), chạy trên **LangGraph.js**. Kiến trúc và luồng chi tiết: **[LARRY.md](LARRY.md)**.
 - **Khi AI lỗi**: nếu không có API key hoặc không gọi được OpenRouter, app **không tự bịa câu trả lời** mà báo rõ hệ thống đang không hoạt động ([backend/fallback.js](backend/fallback.js)).
@@ -17,11 +19,11 @@ Webcam nhận diện cảm xúc của học sinh ngay khi mở app (vui, buồn,
 |---|---|
 | Node.js | **18 trở lên** (backend dùng `fetch` có sẵn của Node) |
 | npm | 9 trở lên |
-| Trình duyệt | Chrome/Edge/Firefox có webcam |
+| Trình duyệt | Chrome/Edge/Firefox có webcam (thêm micro + loa nếu dùng giọng nói) |
 
 Một tài khoản [OpenRouter](https://openrouter.ai) để lấy API key.
 
-> Trình duyệt chỉ cho phép truy cập webcam trên `localhost` hoặc HTTPS. Chạy local qua `http://localhost:3000` là được.
+> Trình duyệt chỉ cho phép truy cập webcam **và micro** trên `localhost` hoặc HTTPS. Chạy local qua `http://localhost:3000` là được.
 
 ---
 
@@ -33,6 +35,9 @@ Larry-AI/
 │   ├── server.js         # Auth (register/login/me) + khu vực quản trị + documents
 │   ├── auth.js           # JWT + middleware phân quyền
 │   ├── routes/chat.js    # /chat/stream (SSE), /chat, /api/session/end
+│   ├── routes/voice.js   # /api/voice/stt, /api/voice/tts, /api/voice/config
+│   ├── voice.js          # Gọi model nghe/nói của OpenRouter + bọc PCM thành WAV
+│   ├── teachers.js       # Ghép giáo viên chủ nhiệm ↔ học sinh theo trường + lớp
 │   ├── agents/           # Hệ multi-agent LangGraph — xem LARRY.md
 │   │   ├── graph.js      #   Dựng graph: supervisor + 4 agent chuyên trách
 │   │   ├── supervisor.js #   Phân nhóm, quyết định gọi agent nào
@@ -56,7 +61,10 @@ Larry-AI/
 │   ├── public/models/    # Model face-api.js (chỉ chạy khi vào giao diện chat)
 │   └── src/
 │       ├── components/ui/  # Camera, ChatBox, AgentTrace, Login, AdminPage...
-│       ├── hooks/          # useAgentStream — đọc luồng SSE của hệ agent
+│       ├── hooks/          # useAgentStream (SSE), useVoiceInput (micro), useSpeaker (loa)
+│       ├── utils/audio.js  # Đổi đoạn thu của trình duyệt sang WAV 16kHz mono
+│       ├── utils/speechChunks.js # Cắt câu trả lời thành đoạn để đọc sớm
+│       ├── utils/forceLayout.js  # Bố cục đồ thị bằng mô phỏng lực (tự viết)
 │       ├── config/api.js   # Địa chỉ backend dùng chung
 │       ├── context/        # AuthContext (JWT)
 │       └── styles/
@@ -105,6 +113,11 @@ AGENT_HOMEROOM_MODEL=google/gemini-2.5-flash-lite
 
 SUMMARY_MODEL=google/gemini-2.5-flash
 ALERT_MODEL=google/gemini-2.5-flash
+
+# Giọng nói (tuỳ chọn) — bỏ trống thì app chỉ gõ chữ như trước
+STT_MODEL=nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
+TTS_MODEL=google/gemini-3.1-flash-tts-preview
+
 PORT=5000
 JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 ```
@@ -126,6 +139,11 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `AGENT_HOMEROOM_MODEL` | – | `CHAT_MODEL` | Model của 🍎 Cô giáo Larry (trò chuyện thường ngày). |
 | `SUMMARY_MODEL` | – | `CHAT_MODEL` | Model tóm tắt hội thoại + chấm mức độ nguy cơ cho quản trị viên. |
 | `ALERT_MODEL` | – | `SUMMARY_MODEL` | Model soạn email cảnh báo giáo viên chủ nhiệm. |
+| `STT_MODEL` | – | – | Model nghe tiếng nói của học sinh → chữ. Bỏ trống thì **nút micro không hiện** (xem mục 12). |
+| `TTS_MODEL` | – | – | Model đọc câu trả lời của Larry thành tiếng. Bỏ trống thì Larry chỉ hiện chữ. |
+| `TTS_VOICE` | – | `Kore` | Giọng đọc của Larry. Mỗi model TTS có bộ giọng riêng. |
+| `STT_LANGUAGE` | – | `vi` | Ngôn ngữ gợi ý cho model nghe. Để trống thì model tự đoán. |
+| `VOICE_TIMEOUT_MS` | – | `45000` | Hạn giờ mỗi lần gọi model giọng nói. |
 | `OPENROUTER_MODEL` | – | – | Tên **cũ** của `CHAT_MODEL`, chỉ dùng khi `CHAT_MODEL` không có. |
 | `PORT` | – | `5000` | Cổng backend. Trên Render/Railway thì **đừng đặt** — nền tảng tự tiêm. |
 | `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | – | – | Tự tạo quản trị viên lúc khởi động, dùng khi nơi deploy không mở được terminal. |
@@ -136,7 +154,9 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `SUMMARY_EVERY_N_MESSAGES` | – | `4` | Tóm tắt lại sau mỗi bao nhiêu tin nhắn mới. |
 | `SESSIONS_FILE` | – | `backend/sessions.json` | Nơi lưu vùng nhớ phiên hội thoại. |
 | `EMAIL_USER` / `EMAIL_APP_PASSWORD` | – | – | Tài khoản Gmail gửi email cảnh báo (xem mục 8). |
-| `ALERT_EMAIL_TO` | – | – | Địa chỉ điền sẵn ở ô "Gửi tới" của email cảnh báo. |
+| `ALERT_EMAIL_TO` | – | – | Địa chỉ điền sẵn ở ô "Gửi tới" của email cảnh báo. Email còn gửi kèm giáo viên chủ nhiệm nếu ghép được (xem mục 8). |
+| `STUDENT_FEEDBACK_FORM` | – | – | Link biểu mẫu góp ý cho học sinh, hiện ở cột trái màn hình chat. |
+| `TEACHER_FEEDBACK_FORM` | – | – | Link biểu mẫu góp ý cho thầy cô, hiện cùng chỗ. Bỏ trống cả hai thì khối góp ý không hiện. |
 
 ### 4.2. Frontend — `frontend/.env`
 
@@ -232,6 +252,17 @@ Khách vẫn được cấp JWT thật nên endpoint `/chat` giữ nguyên cơ c
 | `POST` | `/chat/stream` | ✅ | **Đường chính.** `{ sessionId, message, emotion, checkin }` → luồng SSE (`trace` / `token` / `message` / `done` / `error`) |
 | `POST` | `/chat` | ✅ | Dự phòng, không stream. Cùng body → `{ messages[], groups, agents, fallback }` |
 | `POST` | `/api/session/end` | ✅ | `{ sessionId, history, emotion, checkin }` → chốt bản tóm tắt cuối |
+| `GET` | `/api/feedback-links` | – | `{ student, teacher }` — hai link biểu mẫu khai trong `backend/.env` |
+| `GET` | `/api/knowledge/graph` | – | Kho tri thức dạng `{ nodes, edges, ... }` cho trang giới thiệu vẽ đồ thị |
+| `POST` | `/api/admin/users/:id/approval` | 👑 | `{ status: "approved" \| "rejected" }` — duyệt tài khoản giáo viên chủ nhiệm |
+| `GET` | `/api/teacher/students` | 🍎 | Học sinh lớp mình, kèm số phiên / số phiên đáng lo / số email đã gửi |
+| `GET` | `/api/teacher/students/:id/sessions` | 🍎 | Tóm tắt từng phiên của một em trong lớp mình (403 nếu khác lớp) |
+| `GET` | `/api/teacher/flagged` | 🍎 | Mọi phiên đáng lo của cả lớp, nguy hiểm nhất lên trước |
+
+👑 = chỉ quản trị viên · 🍎 = chỉ giáo viên chủ nhiệm **đã được duyệt**
+| `GET` | `/api/voice/config` | ✅ | `{ stt, tts, voice, language }` — có bật được micro/loa không, để giao diện quyết định vẽ nút |
+| `POST` | `/api/voice/stt` | ✅ | Byte âm thanh thô (`Content-Type: audio/wav`) → `{ text, seconds }` |
+| `POST` | `/api/voice/tts` | ✅ | `{ text }` → byte âm thanh (`audio/wav`) |
 
 Auth bằng JWT gửi qua header `Authorization: Bearer <token>` (hoặc cookie `token`).
 
@@ -322,16 +353,39 @@ Muốn đổi chỗ lưu thì đặt `ACCOUNTS_FILE` trong `backend/.env`.
 
 ## 8. Phân quyền
 
-Hệ thống có 2 vai trò, lưu ở field `role` trong `account.json` và nhúng vào JWT:
+Hệ thống có 3 vai trò, lưu ở field `role` trong `account.json` và nhúng vào JWT:
 
-| Vai trò | Cách có được | Vào được | Trò chuyện với Larry |
-|---|---|---|---|
-| `user` | Đăng ký, hoặc bấm nút khách | Trang chat `/`, trang game `/game` | Có |
-| `admin` | Tài khoản tạo sẵn trong `account.json` | Chỉ khu vực quản trị `/admin` | **Không** |
+| Vai trò | Cách có được | Cần duyệt | Vào được | Trò chuyện với Larry |
+|---|---|---|---|---|
+| `user` | Đăng ký, hoặc bấm nút khách | Không | Trang chat `/`, trang game `/game` | Có |
+| `teacher` | Đăng ký, chọn "Giáo viên chủ nhiệm" | **Có** — quản trị viên duyệt | Chỉ `/teacher` | **Không** |
+| `admin` | Tài khoản tạo sẵn trong `account.json` | Không | Chỉ khu vực quản trị `/admin` | **Không** |
 
-Quản trị viên là tài khoản quản lý, **không tham gia trò chuyện**. Chặn ở hai tầng: [ProtectedRoute.jsx](frontend/src/components/ui/ProtectedRoute.jsx) đẩy admin từ `/` và `/game` về `/admin`, còn middleware `blockAdmin` ở [server.js](backend/server.js) trả 403 cho `/chat` và `/api/session/end` kể cả khi gọi thẳng API. Vì vậy admin cũng không bao giờ sinh ra phiên hội thoại nào trong `sessions.json`.
+Quản trị viên và giáo viên chủ nhiệm là tài khoản quản lý/theo dõi, **không tham gia trò chuyện**. Chặn ở hai tầng: [ProtectedRoute.jsx](frontend/src/components/ui/ProtectedRoute.jsx) đẩy họ từ `/` và `/game` về khu vực của mình, còn middleware `blockAdmin` ở [auth.js](backend/auth.js) trả 403 cho `/chat` và `/api/session/end` kể cả khi gọi thẳng API. Vì vậy hai vai trò này không bao giờ sinh ra phiên hội thoại nào trong `sessions.json`.
 
-Ở trang đăng nhập có dropdown **"Bạn là"** với hai lựa chọn *Người dùng* / *Quản trị viên*. Vai trò được chọn sẽ gửi kèm request đăng nhập, và **server tra tài khoản theo cả email lẫn vai trò**. Nhờ vậy một email có thể vừa là tài khoản học sinh vừa là tài khoản admin mà không đụng nhau.
+Ở trang đăng nhập có dropdown **"Bạn là"** với ba lựa chọn *Người dùng* / *Giáo viên chủ nhiệm* / *Quản trị viên*. Vai trò được chọn gửi kèm request đăng nhập và server tra tài khoản theo cả email lẫn vai trò.
+
+> **Email là duy nhất trên toàn hệ thống.** Một địa chỉ chỉ dùng được cho **một** tài khoản, dù là học sinh, giáo viên hay quản trị viên — kiểm tra không phân biệt hoa/thường (`an@a.vn` và `An@A.vn` là một). Trước đây học sinh và admin được phép trùng email; quy tắc mới áp dụng cho **tài khoản tạo mới và mọi lần sửa email**, tài khoản cũ đang trùng vẫn đăng nhập được bình thường nhờ dropdown "Bạn là".
+
+### Vai trò giáo viên chủ nhiệm
+
+**Đăng ký.** Ngay đầu form [đăng ký](frontend/src/components/ui/Register.jsx) có hai nút **🎒 Học sinh** / **🍎 Giáo viên chủ nhiệm** — chọn nút nào thì bộ câu hỏi bên dưới đổi theo. Giáo viên khai: họ tên, ngày sinh, email, **trường** và **lớp chủ nhiệm**. Hai field cuối là **bắt buộc** vì chúng chính là thứ dùng để ghép thầy cô với học sinh.
+
+**Duyệt.** Tài khoản giáo viên đọc được tóm tắt hội thoại của cả một lớp, nên không dùng được ngay: nó ở trạng thái `pending` cho tới khi quản trị viên bấm duyệt. Đăng nhập lúc này trả 403 kèm câu giải thích. Khu duyệt nằm ở **đầu trang `/admin`**, chỉ hiện khi có tài khoản đang chờ. Học sinh đăng ký **không** qua bước này.
+
+**Ghép với học sinh.** Không có bảng phân công lớp riêng — cả hai bên đều đã tự khai trường và lớp, nên chỗ ghép chính là hai field đó ([teachers.js](backend/teachers.js)):
+
+```
+học sinh: { school: "THCS Đoàn Thị Điểm", className: "6A1" }
+                              ↕  khớp nhau (bỏ qua hoa/thường, khoảng trắng thừa)
+giáo viên: { school: "THCS Đoàn Thị Điểm", className: "6A1" }  → status: approved
+```
+
+So sánh cố ý **dễ tính vừa phải**: `"6a1"`, `"6A1"` và `" 6A1 "` là một lớp, nhưng `"6A1"` với `"6/1"` là hai — đoán xa hơn thế thì có ngày một giáo viên đọc được lớp không phải lớp mình. Bên nào bỏ trống trường hoặc lớp thì **không ghép được với ai** (nếu không, mọi tài khoản chưa khai gì sẽ khớp lẫn nhau vì cùng là chuỗi rỗng). Mỗi lớp chỉ có **một** giáo viên chủ nhiệm — chặn cả lúc đăng ký lẫn lúc duyệt.
+
+**Giao diện `/teacher` — chỉ đọc.** Thầy cô thấy danh sách học sinh lớp mình (em cần chú ý nhất lên đầu), mở ra là tóm tắt từng phiên kèm mức độ, dấu hiệu ghi nhận được, và **tình trạng email cảnh báo đã gửi hay chưa**. Khu vực này **không có route sửa hay xoá nào** ở backend — thiếu hẳn route là cách bảo đảm chắc chắn hơn mọi kiểm tra quyền viết trong thân hàm. Đổi id trên URL để xem lớp khác trả về 403.
+
+> Thứ hiện ra là **bản tóm tắt do model viết**. `sessions.json` không lưu nguyên văn lời học sinh, nên không có đường nào để giáo viên đọc lại hội thoại gốc — điều này nên nói rõ với cả thầy cô lẫn các em.
 
 ### Tạo tài khoản quản trị viên
 
@@ -468,7 +522,20 @@ Kết quả của model được siết lại ở phía backend, luôn nghiêng 
 Ở mỗi phiên bị gắn cờ, trang quản trị có nút **✉️ Cảnh báo GVCN**. Luồng cố ý chia làm **hai bước**, email KHÔNG bao giờ tự động gửi đi:
 
 1. **Soạn** — `POST /api/admin/sessions/:sessionId/alert/draft` gọi model AI ([alertEmail.js](backend/alertEmail.js)) viết email từ bản tóm tắt, phiếu cảm xúc, mức độ và nhóm dấu hiệu của phiên. Model bị ràng buộc: không kết luận chắc chắn, không bịa chi tiết, **không trích nguyên văn lời học sinh**, không suy đoán về người bị nghi gây hại, luôn nói rõ đây là dấu hiệu cần giáo viên xác minh.
-2. **Gửi** — quản trị viên đọc lại, sửa được cả người nhận / tiêu đề / nội dung trong hộp thoại, rồi bấm *Gửi email*. Lúc đó `POST /api/admin/sessions/:sessionId/alert/send` mới gửi thật qua SMTP và ghi lại `{sentAt, to, subject, sentBy}` vào `alerts[]` của phiên. Lần sau mở lại, hộp thoại cảnh báo "phiên này đã gửi N lần" để tránh gửi trùng.
+2. **Gửi** — quản trị viên đọc lại, sửa được cả người nhận / tiêu đề / nội dung trong hộp thoại, rồi bấm *Gửi email*. Lúc đó `POST /api/admin/sessions/:sessionId/alert/send` mới gửi thật qua SMTP và ghi lại `{sentAt, to, recipients, homeroomTeacherEmail, subject, sentBy}` vào `alerts[]` của phiên. Lần sau mở lại, hộp thoại cảnh báo "phiên này đã gửi N lần" để tránh gửi trùng.
+
+#### Ai nhận được email
+
+Email đi tới **hai** địa chỉ:
+
+| Người nhận | Khi nào |
+|---|---|
+| Địa chỉ ở ô "Gửi tới" (mặc định `ALERT_EMAIL_TO`) | **Luôn luôn** |
+| Giáo viên chủ nhiệm của chính em đó | Khi ghép được theo trường + lớp (xem mục 8) |
+
+Chưa ghép được — lớp chưa có tài khoản giáo viên được duyệt, hoặc em chưa khai lớp — thì email vẫn gửi bình thường tới một địa chỉ. **Không chặn việc gửi**: lớp chưa có giáo viên đăng ký là chuyện thường, và cảnh báo vẫn phải tới được bộ phận tư vấn.
+
+Hộp thoại soạn email hiện sẵn tên và địa chỉ giáo viên sẽ nhận kèm, để quản trị viên **biết trước ai sẽ đọc** thay vì phát hiện sau khi đã bấm gửi. Địa chỉ đó **không sửa được từ giao diện** và được máy chủ tra lại lúc gửi — đây là dữ liệu nhạy cảm về một học sinh cụ thể, nên người nhận phải lấy từ tài khoản giáo viên đã duyệt chứ không phải từ một ô nhập của client. Hai địa chỉ trùng nhau thì tự gộp làm một (không phân biệt hoa/thường), không ai nhận hai bản.
 
 #### Bước 1 — Tạo tài khoản Gmail để gửi
 
@@ -636,7 +703,147 @@ Response vẫn là HTTP 200 kèm `fallback: true` và một field `warning` mô 
 
 ---
 
-## 11. Đổi model AI
+## 11. Trang giới thiệu công khai
+
+Đường dẫn **`/gioi-thieu`** — ai mở cũng xem được, **không cần đăng nhập**. Nó nằm *song song* với `/login` chứ không nằm sau: thanh điều hướng ở đầu trang có nút sang đăng nhập, và trang đăng nhập có đường về giới thiệu. Người đã đăng nhập quay lại đọc lúc nào cũng được — route này cố ý **không** đá ai đi chỗ khác.
+
+Nội dung: Larry là gì · vấn đề của học sinh · mục tiêu dự án · đối tượng sử dụng · hướng dẫn 5 bước · **đồ thị kho tri thức** · đội ngũ phát triển (4 bạn học sinh lớp 8T1.1, THCS Đoàn Thị Điểm).
+
+> Tên bốn thành viên chưa được điền — mảng `TEAM` ở đầu [AboutPage.jsx](frontend/src/components/ui/AboutPage.jsx) đang để `name: ""` nên thẻ hiện "Thành viên 1…4". Điền tên vào là xong, không phải sửa gì khác.
+
+### Đồ thị kho tri thức
+
+Phần cuối trang vẽ **toàn bộ kho tri thức Larry truy vấn** thành một đồ thị bấm được: 133 mẩu tri thức, 195 mối liên hệ, lấy từ `GET /api/knowledge/graph` ([publicView.js](backend/knowledge/publicView.js)). Bấm vào một chấm để đọc nội dung mẩu đó cùng những cụm từ khiến nó được lấy ra; bấm vào một đường nối để xem mối liên hệ và chỗ nó được rút ra trong tài liệu gốc.
+
+**Vẽ bằng SVG, không thêm thư viện đồ thị nào.** Ở cỡ 133 node, bố cục lực tự viết ([forceLayout.js](frontend/src/utils/forceLayout.js)) chạy hết 22ms — rẻ hơn hẳn việc kéo về vài trăm KB `d3`, và đổi lại là toàn quyền với nhãn tiếng Việt, hình dạng theo nhóm và chế độ xem dạng bảng. Bố cục **tất định**: mở lại trang ra đúng hình cũ, không phụ thuộc số ngẫu nhiên.
+
+**Màu:** 16 loại node được gom thành **4 nhóm chức năng**, vì một bảng màu phân loại đọc được chỉ chịu nổi tối đa 8 màu — và với đồ thị mạng, nơi node nào cũng có thể nằm cạnh node nào, giới hạn thực tế còn thấp hơn. Bốn màu đã chạy qua bộ kiểm tra bảng màu (mọi cặp, nền sáng): tách bạch với mắt người mù màu ở ΔE 9.2, đạt ngưỡng ≥8.
+
+| Nhóm | Trả lời câu hỏi | Hình | Gồm |
+|---|---|---|---|
+| Dấu hiệu & bằng chứng | Em đang có biểu hiện gì? | ▲ | Sign · RiskFactor · Stat · Case |
+| Khái niệm | Chuyện đó gọi là gì? | ● | Concept · ViolenceType · Function · RiskLevel |
+| Hành động | Làm gì bây giờ? | ■ | Protocol · Step · Skill · Method · Script |
+| Ranh giới & hỗ trợ | Không được làm gì, cầu cứu ai? | ◆ | Principle · Taboo · Hotline |
+
+Màu xanh ngọc của nhóm *Hành động* có độ tương phản 2.74:1 trên nền trắng, dưới mức 3:1, nên nó **không bao giờ đứng một mình**: mỗi nhóm còn mang một **hình dạng** riêng, luôn có nhãn chữ đi kèm, và cả đồ thị có nút **“Xem dạng bảng”** liệt kê đủ mọi mẩu bằng chữ. Nhận ra nhóm không phụ thuộc vào việc phân biệt được màu.
+
+Cạnh **không** tô theo loại quan hệ: 13 loại mà mỗi loại một màu thì đồ thị thành cầu vồng. Cạnh là cấu trúc chứ không phải phân loại — nó dùng một màu xám lùi về sau, tên quan hệ hiện ra khi bấm vào.
+
+> Vì sao dữ liệu này công khai được: đây là tài liệu tham khảo chuyên môn về tâm lý học đường, **không có một dòng nào của học sinh** trong đó. Hội thoại của các em nằm ở `sessions.json` và không có đường nào từ endpoint này tới đó.
+
+---
+
+## 12. Nói chuyện bằng giọng nói (micro + loa)
+
+Ngoài gõ chữ, học sinh **bấm nút micro để nói**, và câu trả lời của Larry vừa hiện chữ vừa **đọc lên loa**. Hai chiều dùng hai model riêng, khai trong `backend/.env`:
+
+```env
+STT_MODEL=nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b   # 🎤 nghe
+TTS_MODEL=google/gemini-3.1-flash-tts-preview                   # 🔊 nói
+TTS_VOICE=Kore                                                  # giọng của Larry
+STT_LANGUAGE=vi
+```
+
+### Luồng chạy
+
+```
+🎤 Học sinh bấm micro
+   → MediaRecorder thu (webm/opus, mp4/aac... tuỳ trình duyệt)
+   → utils/audio.js giải mã rồi mã hoá lại thành WAV 16kHz mono
+   → POST /api/voice/stt  →  STT_MODEL  →  { text }
+   → runTurn(text)  ── ĐÚNG đường mà tin nhắn gõ tay đi ──→  /chat/stream
+                                                                  ↓
+🔊 Larry trả lời — chữ chảy về tới đâu, câu nào xong thì đọc tới đó
+   → speechChunks.js cắt theo câu
+   → POST /api/voice/tts (song song tối đa 3 đoạn)  →  TTS_MODEL  →  PCM 24kHz
+   → backend bọc header WAV  →  phát nối tiếp từng đoạn ra loa
+```
+
+### Vì sao phải cắt câu ra đọc
+
+Endpoint `/audio/speech` trả về **nguyên cục** — không một mẫu âm thanh nào phát được cho tới khi mẫu cuối cùng sinh xong. Đo trên model đang dùng:
+
+| | Thời gian tới lúc tiếng bắt đầu vang |
+|---|---|
+| Gửi cả đoạn trả lời (236 ký tự) | **12,8 – 17,4 giây** |
+| Chỉ gửi câu đầu (26 ký tự) | **2,6 – 3,3 giây** |
+
+Nên thay vì một lời gọi cho cả bài, [useSpeaker.js](frontend/src/hooks/useSpeaker.js) cắt theo câu và chạy dây chuyền: câu đầu vừa hoàn chỉnh trong luồng token là đem đi sinh tiếng ngay (không đợi Larry viết xong), phát luôn, rồi sinh các đoạn sau trong lúc đoạn trước đang đọc. Tải trước tối đa 3 đoạn song song để đoạn sau có sẵn đúng lúc đoạn trước hết.
+
+Cắt theo **câu** chứ không theo số ký tự: mỗi lần gọi TTS là một lần model đặt ngữ điệu cho trọn vẹn thứ nó nhận được, cắt giữa câu thì nửa đầu xuống giọng như đã hết ý. Câu ngắn dưới 60 ký tự được gom với câu sau (trừ câu đầu tiên — nó được ưu tiên phát sớm); câu dài quá 240 ký tự mà chưa có dấu chấm thì cắt ở dấu phẩy gần nhất.
+
+> Đánh đổi: mỗi đoạn được sinh độc lập nên ngữ điệu **giữa các câu** phẳng hơn so với đọc liền một mạch, và lúc model chậm bất thường (đo được những cú vọt lên 20 giây) vẫn có thể hở một quãng giữa hai đoạn. Đổi lại là bớt được ~10 giây im lặng ở đầu mỗi lượt.
+
+Máy trạng thái của hàng đợi có bộ test riêng: `npm test -- --testPathPattern=useSpeaker` ([useSpeaker.test.js](frontend/src/hooks/useSpeaker.test.js)) — kiểm tra đọc đủ không sót/không lặp, phát tuần tự không chồng tiếng, bỏ qua đoạn hỏng, và `stop()` thu hồi hết URL tạm.
+
+Điểm quan trọng: **giọng nói không phải một luồng thứ hai**. Lời nói sau khi thành chữ đi qua đúng `runTurn` mà ô gõ vẫn dùng — cùng `sessionId`, cùng cảm xúc camera, cùng phiếu check-in. Hệ multi-agent không biết (và không cần biết) em vừa gõ hay vừa nói.
+
+### Giao diện
+
+| Nút | Trạng thái | Ý nghĩa |
+|---|---|---|
+| 🎤 | bình thường | Bấm để bắt đầu nói |
+| ⏹️ đỏ, đập nhịp | đang thu | Micro đang bật — bấm lần nữa để gửi |
+| vòng xoay | đang nhận dạng | Đã thu xong, chờ model đọc ra chữ |
+| 🔊 / 🔇 | ở đầu khung chat | Tắt/bật tiếng Larry, nhớ lại ở lần vào sau |
+| 🔊 + cột sóng | **loa đang phát** | Dải "Larry đang nói..." hiện dưới bong bóng cuối, tự tắt khi đọc xong |
+
+Dải báo đang nói ([SpeakingIndicator.jsx](frontend/src/components/ui/SpeakingIndicator.jsx)) cố ý dùng **cột sóng nhấp nhô**, khác với **ba chấm nảy** của lúc Larry đang nghĩ — chữ đã hiện đủ trên màn hình rồi, thứ đang chạy là tiếng nói, hai trạng thái đó không được lẫn vào nhau. Nó lấy màu theo trợ lý đang trả lời, và đứng yên nếu hệ điều hành bật `prefers-reduced-motion`.
+
+- Bấm micro thì Larry **im ngay** — micro đang mở mà loa còn đọc thì đoạn thu dính giọng Larry và model sẽ chép lại chính lời của nó.
+- Đang thu hoặc đang nhận dạng thì **khoá ô gõ**: hai đường nhập cùng đổ vào một lượt chat.
+- Câu vừa nhận dạng **hiện lên thành bong bóng của học sinh** trước khi Larry trả lời — nghe nhầm thì em thấy ngay và nói lại được.
+- Tự dừng thu sau 60 giây; đoạn thu ngắn dưới nửa giây bị bỏ qua kèm lời nhắc (bấm nhầm là chuyện thường xuyên với học sinh nhỏ).
+
+### Thiếu cấu hình thì sao?
+
+Giọng nói là tính năng **thêm vào**, không phải điều kiện để chat chạy:
+
+| Tình huống | Kết quả |
+|---|---|
+| Bỏ trống `STT_MODEL` | Nút micro **không hiện ra** (không phải hiện rồi bấm vào báo lỗi) |
+| Bỏ trống `TTS_MODEL` | Không có nút loa, Larry chỉ hiện chữ |
+| Bỏ trống cả hai | App chạy **y hệt** bản chưa có giọng nói |
+| Học sinh không cấp quyền micro | Câu nhắc ngay cạnh nút micro, ô gõ vẫn dùng bình thường |
+
+Hai model này **không rơi về `CHAT_MODEL`** như các model khác: model chat nhận chữ trả chữ, còn hai model này nhận/trả âm thanh — rơi về sẽ thành lỗi khó hiểu ở tận trong lời gọi API. Frontend hỏi `/api/voice/config` lúc mở khung chat để biết vẽ nút nào.
+
+### Kiểm tra nhanh
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:5000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"123456"}' | jq -r .token)
+
+# Larry đọc một câu ra file WAV
+curl -s -X POST http://localhost:5000/api/voice/tts \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"text":"Chào bạn, mình là Larry nhé!"}' -o larry.wav
+
+# Gửi ngược file đó lên để xem model nghe ra gì
+curl -s -X POST http://localhost:5000/api/voice/stt \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: audio/wav" \
+  --data-binary @larry.wav
+# → {"text":"Chào bạn, mình là Larry nhé.","seconds":3.84}
+```
+
+> Trình duyệt chỉ cho phép dùng micro trên `localhost` hoặc **HTTPS** — giống hệt webcam. Deploy lên HTTP thuần thì nút micro hiện nhưng xin quyền sẽ bị chặn.
+
+### Khối góp ý ở màn hình chat
+
+Cột trái màn hình chat có một khối nhỏ **💌 Góp ý cho Larry** với hai đường link, đọc từ `backend/.env`:
+
+```env
+STUDENT_FEEDBACK_FORM=https://docs.google.com/forms/d/.../viewform
+TEACHER_FEEDBACK_FORM=https://docs.google.com/forms/d/.../viewform
+```
+
+Cả hai link đều **hiện đầy đủ địa chỉ** và mở ra **tab mới** khi bấm (`target="_blank"` kèm `rel="noopener noreferrer"`) — khung chat có thể đang giữa cuộc trò chuyện, điều hướng đi chỗ khác sẽ chốt phiên và mất mạch nói chuyện của em. Bỏ trống cả hai biến thì khối này không hiện ra; backend không chạy được cũng vậy, nó lặng lẽ ẩn đi thay vì bày một dòng lỗi đỏ giữa màn hình của học sinh.
+
+---
+
+## 13. Đổi model AI
 
 Hệ thống gọi LLM ở **nhiều chỗ, mỗi chỗ một biến riêng** trong `backend/.env` — đổi cái nào chỉ ảnh hưởng đúng phần đó. **Không có tên model nào ghi trong mã nguồn**: [backend/models.js](backend/models.js) là nơi duy nhất đọc các biến này. Sửa xong khởi động lại backend, log khởi động in nguyên bảng agent → model để bạn kiểm tra:
 
@@ -650,6 +857,8 @@ Hệ thống gọi LLM ở **nhiều chỗ, mỗi chỗ một biến riêng** tr
 | 🍎 Cô giáo (thường ngày) | `AGENT_HOMEROOM_MODEL` | như trên | Chạy nhiều nhất → ưu tiên rẻ |
 | Tóm tắt + chấm mức độ nguy cơ | `SUMMARY_MODEL` | [summarizer.js](backend/summarizer.js) | Quyết định có gắn cờ hay không → nên khá hơn model chat |
 | Soạn email cảnh báo GVCN | `ALERT_MODEL` | [alertEmail.js](backend/alertEmail.js) | Văn bản gửi ra ngoài cho giáo viên → nên khá hơn model chat |
+| 🎤 Nghe tiếng nói học sinh | `STT_MODEL` | [voice.js](backend/voice.js) | Model **nhận âm thanh** (xem mục 12), không rơi về `CHAT_MODEL` |
+| 🔊 Đọc câu trả lời lên loa | `TTS_MODEL` | [voice.js](backend/voice.js) | Model **trả về âm thanh**, không rơi về `CHAT_MODEL` |
 
 Biến của một thành phần bỏ trống thì rơi về `CHAT_MODEL`. Ví dụ nâng riêng hai chỗ quan trọng nhất, phần còn lại giữ nguyên model rẻ:
 
@@ -663,13 +872,13 @@ ALERT_MODEL=google/gemini-2.5-pro             # kỹ hơn cho văn bản đối 
 
 Đổi sang nhà cung cấp khác cũng chỉ là đổi chuỗi, vì cả ba đều đi qua OpenRouter: `anthropic/claude-sonnet-4.5`, `openai/gpt-4o-mini`, ... Danh sách đầy đủ ở [openrouter.ai/models](https://openrouter.ai/models).
 
-Kiểm tra nhanh model nào đang chạy: `curl -s http://localhost:5000/api/health` → `{ chatModel, supervisorModel, agentModels, summaryModel, alertModel, missingModelConfig }`.
+Kiểm tra nhanh model nào đang chạy: `curl -s http://localhost:5000/api/health` → `{ chatModel, supervisorModel, agentModels, summaryModel, alertModel, sttModel, ttsModel, missingModelConfig }`.
 
 Phần gọi AI của Larry nằm trong `requestOpenRouter` ([server.js](backend/server.js)) — đúng chuẩn `POST /chat/completions` của OpenRouter, tự thử lại 1 lần khi gặp lỗi 429/503/timeout. Prompt của Larry ở `buildSystemPrompt` và `buildUserPrompt` trong cùng file.
 
 ---
 
-## 12. Build production
+## 14. Build production
 
 ```bash
 cd frontend
@@ -677,13 +886,13 @@ npm run build      # kết quả trong frontend/build/
 ```
 
 - **Frontend**: repo đã có sẵn [netlify.toml](netlify.toml) (base `frontend`, publish `build`). Nhớ khai báo `REACT_APP_API_URL` trong phần environment variables của Netlify, trỏ về backend đã deploy.
-- **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `JWT_SECRET`, `CHAT_MODEL` (bắt buộc — không có giá trị mặc định trong code), các biến model của từng agent nếu muốn tách, `SUMMARY_MODEL`, `ALERT_MODEL`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó.
+- **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `JWT_SECRET`, `CHAT_MODEL` (bắt buộc — không có giá trị mặc định trong code), các biến model của từng agent nếu muốn tách, `SUMMARY_MODEL`, `ALERT_MODEL`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó. Muốn có giọng nói thì thêm `STT_MODEL` và `TTS_MODEL` — bỏ trống thì app vẫn chạy, chỉ không có micro và loa.
 
 > ⚠️ Render/Railway gói free dùng ổ đĩa tạm — `account.json` sẽ bị xoá mỗi lần deploy lại hoặc khi dịch vụ ngủ dậy. Muốn giữ tài khoản trên server thật thì gắn persistent disk rồi trỏ `ACCOUNTS_FILE` vào đó, hoặc chuyển hẳn sang database.
 
 ---
 
-## 13. Xử lý sự cố
+## 15. Xử lý sự cố
 
 | Hiện tượng | Nguyên nhân & cách xử lý |
 |---|---|
@@ -694,12 +903,16 @@ npm run build      # kết quả trong frontend/build/
 | Gõ đúng mật khẩu nhưng vẫn báo sai, sau khi sửa tay `account.json` | Field `password` đang là chữ thường chứ không phải hash bcrypt. **Khởi động lại backend** — nó sẽ tự hash lại. Sửa file lúc backend đang chạy cũng không có tác dụng vì danh sách tài khoản chỉ được đọc lúc khởi động. |
 | Chat báo "Larry không kết nối được server" | Backend chưa chạy, hoặc `REACT_APP_API_URL` sai. Kiểm tra `curl http://localhost:5000/api/health`. |
 | Camera không hiện | Chưa cấp quyền camera, hoặc đang mở qua IP/HTTP thay vì `localhost`. |
+| Không thấy nút micro 🎤 | Chưa khai `STT_MODEL` trong `backend/.env`, hoặc thiếu API key. Kiểm tra: `curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/voice/config`. |
+| Larry không đọc thành tiếng | Chưa khai `TTS_MODEL`, đang bật 🔇, hoặc trình duyệt chặn tự phát tiếng khi chưa bấm vào trang lần nào (bấm một cái là mở khoá). |
+| Bấm micro báo "chưa cho phép dùng micro" | Chưa cấp quyền micro, hoặc đang mở qua IP/HTTP thay vì `localhost`/HTTPS. |
+| Nhận dạng ra chữ sai nhiều | Đặt `STT_LANGUAGE=vi`, thu ở nơi bớt ồn, và nói cách micro khoảng một gang tay. |
 | Nhận diện cảm xúc không chạy | Thiếu model trong `frontend/public/models/` — cần đủ 4 file `tiny_face_detector_*` và `face_expression_*`. |
 | `Port 5000 already in use` | Đổi `PORT` trong `backend/.env` và sửa `REACT_APP_API_URL` tương ứng. |
 
 ---
 
-## 14. Điều khoản & Chính sách bảo mật
+## 16. Điều khoản & Chính sách bảo mật
 
 Hai văn bản nằm ở **[backend/documents/](backend/documents/)** dưới dạng `.txt` thuần:
 
@@ -718,7 +931,7 @@ Bấm vào link sẽ mở hộp thoại ([LegalModal.jsx](frontend/src/component
 
 ---
 
-## 15. Lưu ý bảo mật
+## 17. Lưu ý bảo mật
 
 - `backend/.env` và `frontend/.env` đã được `.gitignore` — **không commit API key lên git**.
 - `backend/account.json` chứa email, hash mật khẩu và thông tin trường lớp của học sinh — đã được `.gitignore`, nhớ backup và phân quyền file cẩn thận.

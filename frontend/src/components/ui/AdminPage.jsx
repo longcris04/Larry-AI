@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-import { API_BASE_URL } from "../../config/api";
+import { ADMIN_GUEST_MODE_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
+import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
 import AlertEmailModal from "./AlertEmailModal";
 import "../../styles/AdminPage.css";
 
@@ -50,6 +51,47 @@ export default function AdminPage() {
   // Phiên đang được soạn email cảnh báo cho giáo viên chủ nhiệm
   const [alertSession, setAlertSession] = useState(null);
 
+  // Chế độ khách. `null` = chưa đọc xong, để nút không nhấp nháy từ Bật sang Tắt
+  // ngay trước mắt quản trị viên rồi khiến họ tưởng mình vừa bấm nhầm.
+  const [guestMode, setGuestMode] = useState(null);
+  const [guestModeSaving, setGuestModeSaving] = useState(false);
+
+  const loadGuestMode = useCallback(async () => {
+    try {
+      const res = await axios.get(SETTINGS_URL);
+      setGuestMode(Boolean(res.data?.guestMode));
+    } catch (err) {
+      setError("Không đọc được cài đặt chế độ khách.");
+    }
+  }, []);
+
+  const toggleGuestMode = async () => {
+    const next = !guestMode;
+
+    // Hỏi lại khi TẮT, không hỏi khi bật. Tắt là gỡ mất đường vào của những em
+    // chưa có tài khoản — đúng loại hậu quả không nhìn thấy ngay từ trang quản trị.
+    if (!next) {
+      const ok = window.confirm(
+        "Tắt chế độ khách?\n\n" +
+          "Nút “Trò chuyện với Larry ngay” sẽ biến mất khỏi trang đăng nhập, và học sinh " +
+          "chưa có tài khoản sẽ không vào nói chuyện được nữa — các em phải đăng ký trước.\n\n" +
+          "Bạn có thể bật lại bất cứ lúc nào."
+      );
+      if (!ok) return;
+    }
+
+    setGuestModeSaving(true);
+    setError("");
+    try {
+      const res = await axios.patch(ADMIN_GUEST_MODE_URL, { enabled: next });
+      setGuestMode(Boolean(res.data?.guestMode));
+    } catch (err) {
+      setError(err.response?.data?.error || "Không đổi được cài đặt chế độ khách.");
+    } finally {
+      setGuestModeSaving(false);
+    }
+  };
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -65,7 +107,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadUsers();
-  }, [loadUsers]);
+    loadGuestMode();
+  }, [loadUsers, loadGuestMode]);
 
   const openSessions = async (target) => {
     setSelectedUser(target);
@@ -120,6 +163,28 @@ export default function AdminPage() {
     }
   };
 
+  // Duyệt / từ chối một tài khoản giáo viên chủ nhiệm.
+  //
+  // Tài khoản này đọc được tóm tắt hội thoại của cả một lớp, nên bước duyệt là
+  // thật chứ không phải thủ tục — từ chối cũng là một kết quả hợp lệ.
+  const setApproval = async (target, status) => {
+    if (status === STATUS.REJECTED) {
+      const ok = window.confirm(
+        `Từ chối tài khoản giáo viên "${target.username}"?\n` +
+          "Tài khoản sẽ không đăng nhập được cho tới khi bạn duyệt lại."
+      );
+      if (!ok) return;
+    }
+
+    setError("");
+    try {
+      await axios.post(`${API_BASE_URL}/api/admin/users/${target.id}/approval`, { status });
+      await loadUsers();
+    } catch (err) {
+      setError(err.response?.data?.error || "Không cập nhật được trạng thái duyệt.");
+    }
+  };
+
   const removeUser = async (target) => {
     const ok = window.confirm(
       `Xoá tài khoản "${target.username}"?\nToàn bộ lịch sử hội thoại của tài khoản này cũng bị xoá và không khôi phục được.`
@@ -139,6 +204,10 @@ export default function AdminPage() {
     }
   };
 
+  const pendingTeachers = users.filter(
+    (u) => u.role === ROLES.TEACHER && u.status === STATUS.PENDING
+  );
+
   return (
     <div className="admin-page">
       <header className="admin-topbar">
@@ -149,7 +218,15 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="admin-topbar__actions">
-          <button type="button" className="admin-btn" onClick={loadUsers}>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={() => {
+              loadUsers();
+              // Tải lại cả công tắc: có thể quản trị viên khác vừa đổi ở máy họ
+              loadGuestMode();
+            }}
+          >
             Tải lại
           </button>
           <button type="button" className="admin-btn admin-btn--ghost" onClick={logout}>
@@ -160,12 +237,108 @@ export default function AdminPage() {
 
       {error && <div className="admin-error">{error}</div>}
 
+      {/* Việc CẦN LÀM lên đầu trang. Giáo viên đã đăng ký mà chưa được duyệt thì
+          không đăng nhập được — để lẫn trong bảng dài phía dưới là rất dễ quên,
+          và thầy cô ngồi chờ mà không biết chờ ai. */}
+      {pendingTeachers.length > 0 && (
+        <section className="admin-panel admin-panel--pending">
+          <h2 className="admin-panel__title">
+            ⏳ Chờ duyệt: {pendingTeachers.length} tài khoản giáo viên chủ nhiệm
+          </h2>
+
+          <p className="admin-note">
+            Tài khoản giáo viên chủ nhiệm đọc được tóm tắt hội thoại của cả lớp. Hãy xác nhận
+            đúng người, đúng lớp trước khi duyệt. Học sinh đăng ký thì không cần bước này.
+          </p>
+
+          <ul className="admin-pending">
+            {pendingTeachers.map((row) => (
+              <li key={row.id} className="admin-pending__item">
+                <div className="admin-pending__info">
+                  <strong>{row.profile?.fullName || row.username}</strong>
+                  <span className="admin-muted"> · {row.email}</span>
+                  <div className="admin-muted">
+                    Chủ nhiệm: {row.teacherInfo?.classLabel || "chưa khai lớp"}
+                    {row.profile?.dateOfBirth && ` · sinh ${row.profile.dateOfBirth}`}
+                    {typeof row.teacherInfo?.studentCount === "number" &&
+                      ` · ghép được ${row.teacherInfo.studentCount} học sinh`}
+                  </div>
+                </div>
+
+                <div className="admin-actions">
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--sm admin-btn--primary"
+                    onClick={() => setApproval(row, STATUS.APPROVED)}
+                  >
+                    ✅ Duyệt
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--sm admin-btn--danger"
+                    onClick={() => setApproval(row, STATUS.REJECTED)}
+                  >
+                    Từ chối
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Công tắc chế độ khách. Đặt trên bảng tài khoản vì nó tác động tới MỌI
+          người vào web, còn bảng dưới là việc của từng tài khoản một. */}
+      <section className="admin-panel">
+        <h2 className="admin-panel__title">Chế độ khách</h2>
+
+        <p className="admin-note">
+          Cho phép trò chuyện với Larry mà không cần đăng nhập — chính là nút{" "}
+          <strong>“Trò chuyện với Larry ngay”</strong> ở trang đăng nhập. Tắt đi thì nút biến
+          mất, và máy chủ cũng từ chối mọi phiên khách, kể cả khi có người gọi thẳng vào API.
+        </p>
+
+        <div className="admin-setting">
+          <div className="admin-setting__info">
+            <strong>
+              {guestMode === null
+                ? "Đang đọc cài đặt..."
+                : guestMode
+                  ? "🟢 Đang BẬT"
+                  : "🔴 Đang TẮT"}
+            </strong>
+            <div className="admin-muted">
+              {guestMode === null
+                ? "Chờ máy chủ trả lời."
+                : guestMode
+                  ? "Học sinh chưa có tài khoản vẫn vào nói chuyện với Larry được."
+                  : "Chỉ tài khoản đã đăng ký mới trò chuyện được. Phiên khách đang mở vẫn chạy tiếp cho tới khi các em đóng."}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={`admin-btn ${guestMode ? "admin-btn--danger" : "admin-btn--primary"}`}
+            onClick={toggleGuestMode}
+            disabled={guestMode === null || guestModeSaving}
+          >
+            {guestModeSaving
+              ? "Đang lưu..."
+              : guestMode
+                ? "Tắt chế độ khách"
+                : "Bật chế độ khách"}
+          </button>
+        </div>
+      </section>
+
       <section className="admin-panel">
         <h2 className="admin-panel__title">Tài khoản người dùng</h2>
 
         <p className="admin-note">
           Vai trò không sửa được từ đây. Tài khoản quản trị chỉ được tạo bằng lệnh{" "}
-          <code>npm run create-admin</code> chạy trên máy chủ.
+          <code>npm run create-admin</code> chạy trên máy chủ. Với giáo viên chủ nhiệm, cột{" "}
+          <strong>Lớp</strong> là lớp họ chủ nhiệm — Larry ghép thầy cô với học sinh dựa trên
+          trường và lớp khớp nhau.
         </p>
 
         {loading ? (
@@ -282,8 +455,16 @@ export default function AdminPage() {
                       <td className="admin-muted">{row.email}</td>
                       <td>
                         <span className={`admin-tag admin-tag--${row.role}`}>
-                          {row.role === "admin" ? "Quản trị viên" : "Người dùng"}
+                          {roleLabel(row.role)}
                         </span>
+
+                        {/* Chỉ giáo viên mới đi qua vòng duyệt — hiện trạng thái
+                            ngay cạnh vai trò để biết tài khoản đã dùng được chưa */}
+                        {row.role === ROLES.TEACHER && row.status !== STATUS.APPROVED && (
+                          <div className={`admin-status admin-status--${row.status}`}>
+                            {statusLabel(row.status)}
+                          </div>
+                        )}
                       </td>
                       <td className="admin-muted">{row.profile?.school || "—"}</td>
                       <td className="admin-muted">{row.profile?.className || "—"}</td>
@@ -308,14 +489,35 @@ export default function AdminPage() {
                       </td>
                       <td>
                         <div className="admin-actions">
-                          {/* Quản trị viên không trò chuyện nên không có hội thoại */}
-                          {row.role !== "admin" && (
+                          {/* Quản trị viên và giáo viên không trò chuyện với Larry
+                              nên không có hội thoại nào để xem */}
+                          {row.role === ROLES.STUDENT && (
                             <button
                               type="button"
                               className="admin-btn admin-btn--sm"
                               onClick={() => openSessions(row)}
                             >
                               Hội thoại
+                            </button>
+                          )}
+
+                          {/* Duyệt lại được cả tài khoản đã từ chối trước đó */}
+                          {row.role === ROLES.TEACHER && row.status !== STATUS.APPROVED && (
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--sm admin-btn--primary"
+                              onClick={() => setApproval(row, STATUS.APPROVED)}
+                            >
+                              Duyệt
+                            </button>
+                          )}
+                          {row.role === ROLES.TEACHER && row.status === STATUS.APPROVED && (
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--sm admin-btn--ghost"
+                              onClick={() => setApproval(row, STATUS.REJECTED)}
+                            >
+                              Gỡ duyệt
                             </button>
                           )}
                           <button

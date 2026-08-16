@@ -31,3 +31,8 @@ account.json.broken-*
 sessions.json
 sessions.json.tmp
 sessions.json.broken-*
+
+# Cài đặt quản trị viên bật/tắt trong giao diện (chế độ khách...). Mỗi nơi chạy
+# một trạng thái riêng, không phải thứ đem đi theo mã nguồn.
+settings.json
+settings.json.tmp

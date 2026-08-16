@@ -36,12 +36,43 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Chỉ giáo viên chủ nhiệm ĐÃ ĐƯỢC DUYỆT. Trạng thái duyệt nằm trong token lúc
+// đăng nhập, nhưng token sống 7 ngày — quản trị viên gỡ duyệt hôm nay mà token
+// cũ vẫn dùng được tới tuần sau thì vòng duyệt không có tác dụng. Vì vậy route
+// nào dùng middleware này cũng phải kiểm tra lại status trong account.json;
+// getUserById được truyền vào chính là để làm việc đó.
+const requireTeacher = (getUserById) => (req, res, next) => {
+  if (req.user?.role !== ROLES.TEACHER) {
+    return res.status(403).json({ error: "Chỉ giáo viên chủ nhiệm mới truy cập được." });
+  }
+
+  const account = typeof getUserById === "function" ? getUserById(req.user.id) : null;
+  if (!account || account.role !== ROLES.TEACHER) {
+    return res.status(403).json({ error: "Không tìm thấy tài khoản giáo viên." });
+  }
+  if (account.status !== "approved") {
+    return res.status(403).json({
+      error: "Tài khoản của bạn chưa được quản trị viên duyệt."
+    });
+  }
+
+  req.teacher = account;
+  next();
+};
+
 // Ngược lại: quản trị viên là tài khoản quản lý, không tham gia trò chuyện với
-// Larry. Chặn ở đây để dù có gọi thẳng API cũng không tạo được phiên hội thoại.
+// Larry. Giáo viên chủ nhiệm cũng vậy — họ vào đây để xem tình hình lớp, không
+// phải để tâm sự với Larry. Chặn ở đây để dù có gọi thẳng API cũng không tạo
+// được phiên hội thoại đứng tên họ.
 const blockAdmin = (req, res, next) => {
   if (req.user?.role === ROLES.ADMIN) {
     return res.status(403).json({
       error: "Tài khoản quản trị viên không sử dụng tính năng trò chuyện."
+    });
+  }
+  if (req.user?.role === ROLES.TEACHER) {
+    return res.status(403).json({
+      error: "Tài khoản giáo viên chủ nhiệm không sử dụng tính năng trò chuyện."
     });
   }
   next();
@@ -53,5 +84,6 @@ module.exports = {
   GUEST_EXPIRES_IN,
   authenticateToken,
   requireAdmin,
+  requireTeacher,
   blockAdmin
 };

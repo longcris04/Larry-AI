@@ -652,3 +652,129 @@
 
     vertical-align:middle;
 }
+
+/* --- Chọn vai trò lúc đăng ký --------------------------------------------- */
+
+/* Hai nút thay cho một dropdown: lựa chọn này đổi cả bộ câu hỏi phía dưới lẫn
+   việc tài khoản có phải chờ duyệt hay không, nên nó phải nhìn thấy được ngay
+   mà không cần bấm mở ra. */
+.role-switch{
+
+    display:flex;
+
+    gap:10px;
+
+    width:100%;
+
+    margin-bottom:14px;
+}
+
+.role-switch__btn{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    gap:4px;
+
+    padding:12px 8px;
+
+    border:2px solid #E3E8F0;
+
+    border-radius:14px;
+
+    background:#fff;
+
+    font-family:inherit;
+
+    font-size:13.5px;
+
+    font-weight:700;
+
+    color:#7A859C;
+
+    cursor:pointer;
+
+    transition:border-color .15s ease,color .15s ease,background .15s ease;
+}
+
+.role-switch__btn:hover{
+
+    border-color:#B9D4F2;
+}
+
+.role-switch__btn--active{
+
+    border-color:#56C6FF;
+
+    background:#F0F9FF;
+
+    color:#1F6FA8;
+}
+
+.role-switch__icon{
+
+    font-size:1.4rem;
+}
+
+.role-switch__note{
+
+    width:100%;
+
+    margin:0 0 16px;
+
+    padding:10px 14px;
+
+    border-radius:12px;
+
+    background:#F0F9FF;
+
+    color:#3E6E92;
+
+    font-size:13px;
+
+    line-height:1.5;
+
+    text-align:left;
+}
+
+.auth-optional-tag--required{
+
+    background:#FFF3D6;
+
+    color:#A35B00;
+}
+
+.auth-hint{
+
+    margin:6px 0 0;
+
+    font-size:12.5px;
+
+    line-height:1.55;
+
+    color:#7A859C;
+}
+
+.auth-success--pending{
+
+    background:#FFF9EC;
+
+    color:#9A6200;
+
+    border-color:#F2DFB0;
+}
+
+/* Đường về trang giới thiệu, ngay dưới dòng "Chưa có tài khoản?" */
+.auth-bottom--about{
+
+    margin-top:6px;
+
+    font-size:13.5px;
+
+    opacity:.85;
+}

@@ -11,6 +11,9 @@ import Register from "./components/ui/Register";
 import ProtectedRoute from "./components/ui/ProtectedRoute";
 import AdminRoute from "./components/ui/AdminRoute";
 import AdminPage from "./components/ui/AdminPage";
+import TeacherRoute from "./components/ui/TeacherRoute";
+import TeacherPage from "./components/ui/TeacherPage";
+import FeedbackLinks from "./components/ui/FeedbackLinks";
 import Camera from "./components/ui/Camera";
 import ChatBox from "./components/ui/ChatBox";
 import CheckinModal from "./components/ui/CheckinModal";
@@ -24,6 +27,10 @@ import "./styles/agents.css";
 const ScratchGamePage = React.lazy(
   () => import("./components/ui/ScratchGamePage"),
 );
+
+// Trang giới thiệu tải riêng: nó kéo theo cả đồ thị kho tri thức, mà người đã
+// đăng nhập vào thẳng khung chat thì không bao giờ mở tới.
+const AboutPage = React.lazy(() => import("./components/ui/AboutPage"));
 
 // Đặt biến này trong frontend/.env để BỎ HẲN bước camera khi demo hoặc chạy thử
 // tự động:
@@ -107,6 +114,10 @@ const ProtectedApp = () => {
                   onUnavailable={handleCameraUnavailable}
                 />
               )}
+              {/* Lời mời góp ý — đặt dưới bảng tri thức, ngoài khung chat, để
+                  không chen vào mạch trò chuyện của em */}
+              <FeedbackLinks />
+
               <div className="camera-stack__menu">
                 <UserMenu />
               </div>
@@ -128,10 +139,10 @@ const ProtectedApp = () => {
 };
 
 const AppContent = () => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isTeacher, loading } = useAuth();
 
-  // Đăng nhập bằng quyền quản trị thì vào thẳng khu vực quản trị
-  const homePath = isAdmin ? "/admin" : "/";
+  // Mỗi vai trò về đúng khu vực của mình. Học sinh mới là người vào khung chat.
+  const homePath = isAdmin ? "/admin" : isTeacher ? "/teacher" : "/";
 
   if (loading) {
     return (
@@ -144,6 +155,26 @@ const AppContent = () => {
 
   return (
     <Routes>
+      {/* Trang giới thiệu CÔNG KHAI, nằm song song với trang đăng nhập: ai mở
+          đường link cũng xem được, kể cả khi đang đăng nhập rồi. Cố ý KHÔNG
+          chuyển hướng người đã đăng nhập đi chỗ khác — họ vẫn có quyền quay lại
+          đọc giới thiệu bất cứ lúc nào. */}
+      <Route
+        path="/gioi-thieu"
+        element={
+          <Suspense
+            fallback={
+              <div className="loading-screen">
+                <div className="spinner"></div>
+                <p>Đang mở trang giới thiệu...</p>
+              </div>
+            }
+          >
+            <AboutPage />
+          </Suspense>
+        }
+      />
+
       <Route
         path="/login"
         element={
@@ -166,6 +197,15 @@ const AppContent = () => {
           </AdminRoute>
         }
       />
+
+      <Route
+        path="/teacher"
+        element={
+          <TeacherRoute>
+            <TeacherPage />
+          </TeacherRoute>
+        }
+      />
       <Route
         path="/game"
         element={
@@ -183,7 +223,21 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<ProtectedApp />} />
+      {/* Cửa vào của cả web. Người LẠ mở link lên thì gặp trang giới thiệu trước,
+          không phải form đăng nhập: phải đọc Larry là gì rồi mới quyết định có
+          tạo tài khoản hay không. Người ĐÃ đăng nhập vào thẳng khung chat như cũ
+          — họ biết Larry là gì rồi, bắt đọc lại giới thiệu mỗi lần mở app là phiền.
+          Muốn xem lại giới thiệu thì /gioi-thieu vẫn mở được bất cứ lúc nào.
+
+          Cố ý chuyển hướng sang /gioi-thieu chứ không vẽ AboutPage ngay tại "/":
+          trang giới thiệu chỉ có MỘT địa chỉ, nên gửi link cho nhau không ra hai
+          đường dẫn cùng nội dung. */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? <ProtectedApp /> : <Navigate to="/gioi-thieu" replace />
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

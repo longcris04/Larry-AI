@@ -7,21 +7,28 @@ import GradientButton from "./GradientButton";
 import LegalModal from "./LegalModal";
 import PlayfulBackground from "./PlayfulBackground";
 import { GRADE_OPTIONS, SCHOOL_OPTIONS, OTHER_VALUE } from "../../constants/schoolOptions";
+import { ROLES } from "../../constants/roles";
 import "../../styles/AuthForms.css";
 
 const Register = () => {
   const { register, error: authError } = useAuth();
   const navigate = useNavigate();
 
+  // Ai đang tạo tài khoản. Chọn ở ngay đầu form vì nó đổi cả bộ câu hỏi phía
+  // dưới lẫn việc tài khoản có phải chờ duyệt hay không.
+  const [accountRole, setAccountRole] = useState(ROLES.STUDENT);
+  const isTeacher = accountRole === ROLES.TEACHER;
+
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Thông tin học sinh — tất cả đều không bắt buộc
+  // Học sinh: không bắt buộc field nào. Giáo viên: trường + lớp chủ nhiệm là bắt buộc.
   const [fullName, setFullName] = useState("");
   const [grade, setGrade] = useState("");
   const [className, setClassName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   // Trường: chọn trong danh sách, hoặc chọn "Trường khác" rồi tự nhập
   const [schoolChoice, setSchoolChoice] = useState("");
   const [schoolOther, setSchoolOther] = useState("");
@@ -58,14 +65,29 @@ const Register = () => {
       return;
     }
 
+    // Backend cũng chặn, nhưng bắt ở đây thì thầy cô biết ngay tại ô đang điền
+    // thay vì sau một vòng gọi mạng
+    if (isTeacher && (!school.trim() || !className.trim())) {
+      setError("Vui lòng cho biết bạn chủ nhiệm lớp nào, trường nào.");
+      return;
+    }
+
     setLoading(true);
 
-    const result = await register(username, email, password, {
-      fullName,
-      grade,
-      school,
-      className
-    });
+    const result = await register(
+      username,
+      email,
+      password,
+      {
+        fullName,
+        // Khối chỉ có ý nghĩa với học sinh
+        grade: isTeacher ? "" : grade,
+        school,
+        className,
+        dateOfBirth
+      },
+      accountRole
+    );
 
     if (!result.success) {
       setError(result.error);
@@ -73,10 +95,20 @@ const Register = () => {
       return;
     }
 
-    // Không vào thẳng giao diện chat — quay về màn hình đăng nhập để học sinh
-    // tự đăng nhập bằng tài khoản vừa tạo. `replace` để nút back không quay
-    // lại form đã submit.
-    navigate("/login", { replace: true, state: { justRegistered: true, email } });
+    // Không vào thẳng giao diện bên trong — quay về màn hình đăng nhập để tự
+    // đăng nhập. `replace` để nút back không quay lại form đã submit.
+    //
+    // Giáo viên còn phải chờ duyệt, nên báo đúng chuyện đó thay vì mời đăng nhập
+    // ngay (đăng nhập lúc này chắc chắn bị chặn).
+    navigate("/login", {
+      replace: true,
+      state: {
+        justRegistered: true,
+        email,
+        pendingApproval: result.pendingApproval,
+        message: result.message
+      }
+    });
   };
 
   return (
@@ -95,10 +127,51 @@ const Register = () => {
         </h1>
 
         <p className="auth-subtitle">
-          Tạo tài khoản mới để bắt đầu
-          <br />
-          hành trình cùng AI Larry ❤️
+          {isTeacher ? (
+            <>
+              Tạo tài khoản giáo viên chủ nhiệm
+              <br />
+              để theo dõi tình hình lớp mình 🍎
+            </>
+          ) : (
+            <>
+              Tạo tài khoản mới để bắt đầu
+              <br />
+              hành trình cùng AI Larry ❤️
+            </>
+          )}
         </p>
+
+        {/* Chọn NGAY ĐẦU form, trước khi điền gì: nó đổi cả bộ câu hỏi phía dưới
+            lẫn việc tài khoản có phải chờ quản trị viên duyệt hay không. */}
+        <div className="role-switch" role="radiogroup" aria-label="Bạn tạo tài khoản với vai trò nào">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!isTeacher}
+            className={`role-switch__btn ${!isTeacher ? "role-switch__btn--active" : ""}`}
+            onClick={() => setAccountRole(ROLES.STUDENT)}
+          >
+            <span className="role-switch__icon" aria-hidden="true">🎒</span>
+            Học sinh
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={isTeacher}
+            className={`role-switch__btn ${isTeacher ? "role-switch__btn--active" : ""}`}
+            onClick={() => setAccountRole(ROLES.TEACHER)}
+          >
+            <span className="role-switch__icon" aria-hidden="true">🍎</span>
+            Giáo viên chủ nhiệm
+          </button>
+        </div>
+
+        {isTeacher && (
+          <p className="role-switch__note">
+            ℹ️ Tài khoản giáo viên chủ nhiệm cần quản trị viên duyệt trước khi đăng nhập được.
+          </p>
+        )}
 
         {(error || authError) && (
           <div className="auth-error">{error || authError}</div>
@@ -174,53 +247,91 @@ const Register = () => {
             />
           </div>
 
-          {/* Thông tin học sinh — không bắt buộc */}
+          {/* Phần thông tin khác hẳn nhau giữa hai vai trò.
+              Học sinh: mọi ô đều không bắt buộc — hỏi nhiều quá là em bỏ ngang.
+              Giáo viên: trường + lớp chủ nhiệm BẮT BUỘC, vì đó chính là thứ dùng
+              để ghép thầy cô với học sinh của mình. */}
 
           <div className="auth-optional-block">
             <p className="auth-optional-title">
-              Kể thêm cho Larry nghe về bạn nhé{" "}
-              <span className="auth-optional-tag">không bắt buộc</span>
+              {isTeacher ? (
+                <>
+                  Thông tin giáo viên chủ nhiệm{" "}
+                  <span className="auth-optional-tag auth-optional-tag--required">bắt buộc</span>
+                </>
+              ) : (
+                <>
+                  Kể thêm cho Larry nghe về bạn nhé{" "}
+                  <span className="auth-optional-tag">không bắt buộc</span>
+                </>
+              )}
             </p>
 
             <div className="form-group">
-              <label>Tên</label>
+              <label>{isTeacher ? "Họ và tên đầy đủ" : "Tên"}</label>
 
               <AuthInput
                 id="fullName"
                 leftIcon="🙂"
-                placeholder="Larry gọi bạn là gì?"
+                placeholder={isTeacher ? "Ví dụ: Trần Thị Lan" : "Larry gọi bạn là gì?"}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
             </div>
 
-            <div className="form-row">
-              <AuthSelect
-                id="grade"
-                label="Bạn là học sinh khối"
-                leftIcon="🎒"
-                placeholder="Chọn khối"
-                options={GRADE_OPTIONS.map((value) => ({
-                  value,
-                  label: `Khối ${value}`,
-                }))}
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-              />
+            {isTeacher ? (
+              <>
+                <div className="form-group">
+                  <label>Ngày sinh</label>
 
-              <AuthInput
-                id="className"
-                label="Lớp của bạn"
-                leftIcon="📚"
-                placeholder="Ví dụ: 6A1"
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-              />
-            </div>
+                  <AuthInput
+                    id="dateOfBirth"
+                    type="date"
+                    leftIcon="🎂"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                  />
+                </div>
+
+                <AuthInput
+                  id="className"
+                  label="Bạn chủ nhiệm lớp"
+                  leftIcon="📚"
+                  placeholder="Ví dụ: 6A1"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  required
+                />
+              </>
+            ) : (
+              <div className="form-row">
+                <AuthSelect
+                  id="grade"
+                  label="Bạn là học sinh khối"
+                  leftIcon="🎒"
+                  placeholder="Chọn khối"
+                  options={GRADE_OPTIONS.map((value) => ({
+                    value,
+                    label: `Khối ${value}`,
+                  }))}
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                />
+
+                <AuthInput
+                  id="className"
+                  label="Lớp của bạn"
+                  leftIcon="📚"
+                  placeholder="Ví dụ: 6A1"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                />
+              </div>
+            )}
 
             <AuthSelect
               id="school"
-              label="Trường học của bạn là"
+              label={isTeacher ? "Bạn dạy ở trường" : "Trường học của bạn là"}
               leftIcon="🏫"
               placeholder="Chọn trường"
               options={[
@@ -229,18 +340,27 @@ const Register = () => {
               ]}
               value={schoolChoice}
               onChange={(e) => setSchoolChoice(e.target.value)}
+              required={isTeacher}
             />
 
-            {/* Chỉ hiện ô tự nhập khi học sinh chọn "Trường khác" */}
+            {/* Chỉ hiện ô tự nhập khi chọn "Trường khác" */}
             {schoolChoice === OTHER_VALUE && (
               <AuthInput
                 id="schoolOther"
-                label="Tên trường của bạn"
+                label="Tên trường"
                 leftIcon="✏️"
                 placeholder="Ví dụ: THCS Nguyễn Du"
                 value={schoolOther}
                 onChange={(e) => setSchoolOther(e.target.value)}
+                required={isTeacher}
               />
+            )}
+
+            {isTeacher && (
+              <p className="auth-hint">
+                Larry ghép thầy cô với học sinh dựa trên <strong>trường</strong> và{" "}
+                <strong>lớp</strong> — hãy ghi giống hệt cách học sinh khai lớp của các em.
+              </p>
             )}
           </div>
 
@@ -284,7 +404,11 @@ const Register = () => {
             rightIcon="→"
             disabled={!agree}
           >
-            {loading ? "Đang đăng ký..." : "Đăng ký"}
+            {loading
+              ? "Đang đăng ký..."
+              : isTeacher
+                ? "Gửi yêu cầu tạo tài khoản"
+                : "Đăng ký"}
           </GradientButton>
         </form>
 
