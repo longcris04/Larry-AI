@@ -42,6 +42,9 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // phone: SỐ ĐIỆN THOẠI — danh tính của tài khoản, bắt buộc và không trùng nhau.
+  // email: không bắt buộc, để trống được (học sinh phần lớn chưa có email riêng).
+  //
   // profile: { fullName, grade, school, className, dateOfBirth }
   //   học sinh          — mọi field đều không bắt buộc
   //   giáo viên chủ nhiệm — school và className BẮT BUỘC (backend chặn nếu thiếu),
@@ -52,11 +55,11 @@ export const AuthProvider = ({ children }) => {
   // Đăng ký xong KHÔNG tự đăng nhập: backend không cấp token. Riêng giáo viên còn
   // phải chờ quản trị viên duyệt, nên trả về cả `pendingApproval` để màn hình
   // đăng nhập nói đúng chuyện đang xảy ra.
-  const register = async (username, email, password, profile = {}, role = ROLES.STUDENT) => {
+  const register = async (phone, email, password, profile = {}, role = ROLES.STUDENT) => {
     setError(null);
     try {
       const response = await axios.post(`${API_BASE_URL}/api/register`, {
-        username,
+        phone,
         email,
         password,
         profile,
@@ -75,12 +78,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // identifier: số điện thoại HOẶC email. Tài khoản mới định danh bằng số điện
+  // thoại, nhưng tài khoản tạo trước khi đổi (và quản trị viên dựng từ biến môi
+  // trường) chỉ có email — backend tra cả hai đường.
+  //
   // role: "user" | "teacher" | "admin" — lấy từ dropdown "Bạn là" ở trang đăng nhập
-  const login = async (email, password, role = "user") => {
+  const login = async (identifier, password, role = "user") => {
     setError(null);
     try {
       const response = await axios.post(`${API_BASE_URL}/api/login`, {
-        email,
+        identifier,
         password,
         role
       });

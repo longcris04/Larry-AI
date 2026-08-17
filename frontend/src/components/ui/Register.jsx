@@ -8,6 +8,7 @@ import LegalModal from "./LegalModal";
 import PlayfulBackground from "./PlayfulBackground";
 import { GRADE_OPTIONS, SCHOOL_OPTIONS, OTHER_VALUE } from "../../constants/schoolOptions";
 import { ROLES } from "../../constants/roles";
+import { isValidPhone, normalizePhone, PHONE_HINT } from "../../utils/phone";
 import "../../styles/AuthForms.css";
 
 const Register = () => {
@@ -19,7 +20,10 @@ const Register = () => {
   const [accountRole, setAccountRole] = useState(ROLES.STUDENT);
   const isTeacher = accountRole === ROLES.TEACHER;
 
-  const [username, setUsername] = useState("");
+  // Số điện thoại là DANH TÍNH của tài khoản: bắt buộc, mỗi số một tài khoản.
+  // Email chỉ là kênh liên lạc thêm nên để trống được — học sinh phần lớn chưa
+  // có email riêng, bắt khai là dựng thêm một hàng rào trước cửa.
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -55,6 +59,13 @@ const Register = () => {
       return;
     }
 
+    // Bắt ở đây để lỗi hiện ngay tại ô đang gõ. Máy chủ vẫn kiểm tra lại và vẫn
+    // là nơi quyết định số này đã có ai dùng chưa.
+    if (!isValidPhone(phone)) {
+      setError(PHONE_HINT);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Mật khẩu xác nhận không khớp.");
       return;
@@ -74,8 +85,13 @@ const Register = () => {
 
     setLoading(true);
 
+    // Gửi lên bản đã chuẩn hoá để thứ hiện ở màn hình đăng nhập ngay sau đó
+    // giống hệt thứ đã lưu — gõ "0912 345 678" mà bảo đăng nhập bằng
+    // "0912345678" thì các em tưởng mình đăng ký hụt.
+    const cleanPhone = normalizePhone(phone);
+
     const result = await register(
-      username,
+      cleanPhone,
       email,
       password,
       {
@@ -104,7 +120,7 @@ const Register = () => {
       replace: true,
       state: {
         justRegistered: true,
-        email,
+        identifier: cleanPhone,
         pendingApproval: result.pendingApproval,
         message: result.message
       }
@@ -180,35 +196,54 @@ const Register = () => {
         )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          {/* Name */}
+          {/* Số điện thoại — DANH TÍNH của tài khoản.
+              Không hỏi họ tên ở đây nữa: tên thật hỏi một lần ở ô "Tên" phía
+              dưới là đủ, hỏi hai lần thì người dùng không hiểu hai ô khác nhau
+              chỗ nào. Cái cần ở trên cùng là thứ dùng để đăng nhập. */}
 
           <div className="form-group">
-            <label>Họ và tên</label>
+            <label htmlFor="phone">Số điện thoại</label>
 
             <AuthInput
-              id="username"
-              leftIcon="👤"
-              placeholder="Nhập họ và tên của bạn"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="phone"
+              type="tel"
+              leftIcon="📱"
+              placeholder="Ví dụ: 0912345678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
             />
+
+            <p className="auth-hint">
+              Đây là số dùng để đăng nhập. Mỗi số chỉ tạo được một tài khoản.
+            </p>
           </div>
 
-          {/* Email */}
+          {/* Email — để trống được */}
 
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">
+              Email <span className="auth-optional-tag">không bắt buộc</span>
+            </label>
 
             <AuthInput
               id="email"
               type="email"
               leftIcon="✉️"
-              placeholder="Nhập email của bạn"
+              placeholder="Nhập email của bạn (nếu có)"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
+
+            {/* Với thầy cô thì đây không hẳn là tuỳ chọn: email cảnh báo về học
+                sinh trong lớp gửi tới chính địa chỉ này. Bỏ trống thì tài khoản
+                vẫn tạo được, chỉ là sẽ không nhận được bản sao nào. */}
+            {isTeacher && (
+              <p className="auth-hint">
+                Thầy cô nên khai email: bản sao cảnh báo về học sinh trong lớp sẽ được gửi
+                tới địa chỉ này.
+              </p>
+            )}
           </div>
 
           {/* Password */}

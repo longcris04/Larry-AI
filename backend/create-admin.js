@@ -62,6 +62,9 @@ async function main() {
 
     const username = args.username || (await ask(rl, "Tên đăng nhập: "));
     const email = args.email || (await ask(rl, "Email: "));
+    // Không bắt buộc: quản trị viên luôn có email và đăng nhập được bằng email.
+    // Khai thêm thì đăng nhập bằng số điện thoại cũng được, như tài khoản thường.
+    const phone = args.phone ?? (await ask(rl, "Số điện thoại (Enter để bỏ qua): "));
     const password = args.password || (await askPassword(rl, "Mật khẩu (tối thiểu 8 ký tự): "));
 
     if (!args.password) {
@@ -69,7 +72,7 @@ async function main() {
       if (confirm !== password) throw new Error("Hai lần nhập mật khẩu không khớp.");
     }
 
-    const admin = addAdmin(users, { username, email, password });
+    const admin = addAdmin(users, { username, email, password, phone });
     saveUsers(users);
 
     console.log(`\n✅ Đã tạo quản trị viên: ${admin.username} <${admin.email}> (id ${admin.id})`);

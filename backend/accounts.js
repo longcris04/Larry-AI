@@ -48,10 +48,62 @@ function sameEmail(a, b) {
  * một email trùng ba vai trò là ba tài khoản khác nhau — quá dễ nhầm, và lúc gửi
  * email cảnh báo thì không biết địa chỉ đó thuộc về ai.
  *
+ * Email BỎ TRỐNG được (xem phần số điện thoại bên dưới), và `sameEmail` trả về
+ * false khi một trong hai bên rỗng — nên nhiều tài khoản không khai email vẫn
+ * cùng tồn tại được, chỉ email THẬT mới bị coi là trùng.
+ *
  * @param {number} [exceptId] Bỏ qua chính tài khoản này (dùng khi sửa hồ sơ)
  */
 function findUserByAnyRoleEmail(users, email, exceptId = null) {
   return users.find((user) => sameEmail(user.email, email) && user.id !== exceptId);
+}
+
+// --- Số điện thoại: DANH TÍNH CHÍNH của tài khoản ----------------------------
+//
+// Học sinh cấp 2 phần lớn chưa có email riêng, nên bắt khai email là dựng thêm
+// một hàng rào trước khi các em kịp nói chuyện với Larry. Số điện thoại thì nhà
+// nào cũng có, và nó cũng là thứ nhà trường dùng để liên lạc khi có chuyện.
+//
+// Cùng một số nhưng gõ mỗi lúc một kiểu — "0912 345 678", "0912.345.678",
+// "+84912345678" — vẫn là MỘT người. Không chuẩn hoá thì một người đăng ký được
+// nhiều tài khoản chỉ vì lần này gõ có dấu cách, lần kia không; tệ hơn là đăng
+// nhập báo sai dù gõ đúng số. Nên mọi nơi (lưu, so trùng, tra lúc đăng nhập)
+// đều đi qua normalizePhone.
+function normalizePhone(value) {
+  let digits = String(value || "").replace(/[^\d+]/g, "");
+
+  // Dạng quốc tế: +84… hoặc 0084… → đưa hết về 0…
+  if (digits.startsWith("+")) digits = digits.slice(1);
+  else if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("84")) digits = `0${digits.slice(2)}`;
+
+  return digits;
+}
+
+// Số Việt Nam sau chuẩn hoá: bắt đầu bằng 0, tổng cộng 10 chữ số (di động) —
+// nới tới 11 cho vài số cố định còn dùng dạng cũ. Chặt hơn nữa thì chặn nhầm
+// người thật, mà đây không phải bước xác minh: chưa có OTP, kiểm tra ở đây chỉ
+// để bắt lỗi gõ thiếu/thừa chữ số.
+const PHONE_PATTERN = /^0\d{9,10}$/;
+
+function isValidPhone(value) {
+  return PHONE_PATTERN.test(normalizePhone(value));
+}
+
+function samePhone(a, b) {
+  return normalizePhone(a) === normalizePhone(b) && normalizePhone(a) !== "";
+}
+
+/**
+ * Số điện thoại này đã có ai dùng chưa — XÉT MỌI VAI TRÒ.
+ *
+ * Đây là ràng buộc DUY NHẤT thật sự của hệ thống: mỗi số một tài khoản. Email
+ * chỉ còn là thông tin liên lạc thêm.
+ *
+ * @param {number} [exceptId] Bỏ qua chính tài khoản này (dùng khi sửa hồ sơ)
+ */
+function findUserByAnyRolePhone(users, phone, exceptId = null) {
+  return users.find((user) => samePhone(user.phone, phone) && user.id !== exceptId);
 }
 
 // Ghi ra file tạm rồi đổi tên — nếu server tắt giữa chừng thì account.json cũ
@@ -123,6 +175,24 @@ function normalizeUsers(users) {
       changed = true;
     }
 
+    // Số điện thoại thêm sau khi đã có người dùng thật. Tài khoản cũ chỉ có
+    // email nên bù chuỗi rỗng — KHÔNG bắt phải có số, vì làm thế là khoá hết
+    // những người đang dùng ra ngoài chỉ sau một lần deploy. Họ vẫn đăng nhập
+    // bằng email như cũ (xem findUserByIdentifier), và bổ sung số điện thoại
+    // sau qua trang quản trị.
+    const phone = normalizePhone(user.phone);
+    if (user.phone !== phone) {
+      user.phone = phone;
+      changed = true;
+    }
+
+    // Email giờ không bắt buộc — tài khoản mới có thể không có. Chỉ cần chắc
+    // chắn nó luôn là chuỗi để những chỗ gọi .trim() không vỡ.
+    if (typeof user.email !== "string") {
+      user.email = "";
+      changed = true;
+    }
+
     // Field thêm sau — hồ sơ cũ nào thiếu thì bù chuỗi rỗng
     for (const key of Object.keys(EMPTY_PROFILE)) {
       if (typeof user.profile[key] !== "string") {
@@ -164,10 +234,13 @@ function nextUserId(users) {
 
 // Tài khoản quản trị KHÔNG được tạo tự động và không tạo được từ giao diện web.
 // Chỉ developer tạo bằng lệnh: npm run create-admin  (xem create-admin.js)
-function addAdmin(users, { username, email, password }) {
+function addAdmin(users, { username, email, password, phone }) {
   const name = String(username || "").trim();
   const mail = String(email || "").trim();
   const pass = String(password || "");
+  // Số điện thoại KHÔNG bắt buộc với quản trị viên: tài khoản này tạo bằng lệnh
+  // hoặc bằng biến môi trường, luôn có email, và đăng nhập được bằng email.
+  const tel = normalizePhone(phone);
 
   if (!name || !mail || !pass) {
     throw new Error("Cần đủ username, email và password.");
@@ -175,10 +248,19 @@ function addAdmin(users, { username, email, password }) {
   if (pass.length < 8) {
     throw new Error("Mật khẩu quản trị phải có ít nhất 8 ký tự.");
   }
+  if (tel && !isValidPhone(tel)) {
+    throw new Error(`Số điện thoại ${tel} không hợp lệ (cần 10 chữ số, bắt đầu bằng 0).`);
+  }
   // Email là duy nhất trên toàn hệ thống, không riêng nhóm quản trị
   const taken = findUserByAnyRoleEmail(users, mail);
   if (taken) {
     throw new Error(`Email ${mail} đã được dùng cho một tài khoản ${taken.role}.`);
+  }
+  if (tel) {
+    const telTaken = findUserByAnyRolePhone(users, tel);
+    if (telTaken) {
+      throw new Error(`Số điện thoại ${tel} đã được dùng cho một tài khoản ${telTaken.role}.`);
+    }
   }
   if (users.some((u) => u.role === ROLES.ADMIN && u.username === name)) {
     throw new Error(`Đã có tài khoản quản trị tên ${name}.`);
@@ -187,6 +269,7 @@ function addAdmin(users, { username, email, password }) {
   const admin = {
     id: nextUserId(users),
     username: name,
+    phone: tel,
     email: mail,
     password: bcrypt.hashSync(pass, 10),
     role: ROLES.ADMIN,
@@ -212,12 +295,37 @@ function loadUsers() {
   return users;
 }
 
-// Tra theo email + vai trò, dùng lúc đăng nhập (dropdown "Bạn là" quyết định
-// vai trò). Email giờ là duy nhất trên toàn hệ thống nên thực tế chỉ ra một kết
-// quả, nhưng vẫn lọc theo vai trò để tài khoản cũ trùng email — có từ trước khi
-// siết quy tắc — đăng nhập đúng chỗ của nó thay vì nhảy sang vai trò khác.
+// Tra theo email + vai trò. Email giờ là duy nhất trên toàn hệ thống nên thực tế
+// chỉ ra một kết quả, nhưng vẫn lọc theo vai trò để tài khoản cũ trùng email —
+// có từ trước khi siết quy tắc — đăng nhập đúng chỗ của nó thay vì nhảy sang vai
+// trò khác.
 function findUserByEmail(users, email, role) {
   return users.find((user) => sameEmail(user.email, email) && user.role === role);
+}
+
+function findUserByPhone(users, phone, role) {
+  return users.find((user) => samePhone(user.phone, phone) && user.role === role);
+}
+
+/**
+ * Tra tài khoản lúc ĐĂNG NHẬP: ô đầu tiên nhận số điện thoại HOẶC email.
+ *
+ * Vì sao nhận cả hai: tài khoản mới định danh bằng số điện thoại, nhưng những
+ * tài khoản có từ trước (kể cả quản trị viên dựng từ ADMIN_EMAIL) chỉ có email.
+ * Ép đăng nhập bằng số điện thoại là đá tất cả những người đó ra ngoài, mà họ
+ * không có cách nào tự thêm số vào.
+ *
+ * `role` lấy từ dropdown "Bạn là", nên một số điện thoại không thể vừa mở tài
+ * khoản học sinh vừa mở tài khoản giáo viên.
+ */
+function findUserByIdentifier(users, identifier, role) {
+  const phone = normalizePhone(identifier);
+  if (phone) {
+    const byPhone = findUserByPhone(users, phone, role);
+    if (byPhone) return byPhone;
+  }
+
+  return findUserByEmail(users, identifier, role);
 }
 
 /**
@@ -240,10 +348,12 @@ function seedAdminFromEnv(users) {
   if (!email || !password) return null;
 
   const username = String(process.env.ADMIN_USERNAME || "").trim() || "admin";
+  // Không bắt buộc — khai thêm thì quản trị viên đăng nhập được bằng số điện thoại
+  const phone = String(process.env.ADMIN_PHONE || "").trim();
 
   if (users.some((u) => u.role === ROLES.ADMIN && u.email === email)) return null;
 
-  const admin = addAdmin(users, { username, email, password });
+  const admin = addAdmin(users, { username, email, password, phone });
   saveUsers(users);
   return admin;
 }
@@ -258,8 +368,14 @@ module.exports = {
   nextUserId,
   normalizeEmail,
   sameEmail,
+  normalizePhone,
+  isValidPhone,
+  samePhone,
   findUserByEmail,
+  findUserByPhone,
+  findUserByIdentifier,
   findUserByAnyRoleEmail,
+  findUserByAnyRolePhone,
   addAdmin,
   seedAdminFromEnv
 };

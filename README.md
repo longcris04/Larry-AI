@@ -147,6 +147,7 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `OPENROUTER_MODEL` | – | – | Tên **cũ** của `CHAT_MODEL`, chỉ dùng khi `CHAT_MODEL` không có. |
 | `PORT` | – | `5000` | Cổng backend. Trên Render/Railway thì **đừng đặt** — nền tảng tự tiêm. |
 | `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | – | – | Tự tạo quản trị viên lúc khởi động, dùng khi nơi deploy không mở được terminal. |
+| `ADMIN_PHONE` | – | – | Số điện thoại của quản trị viên tạo từ biến môi trường. Bỏ trống vẫn đăng nhập bình thường bằng `ADMIN_EMAIL`. |
 | `JWT_SECRET` | – | chuỗi dev mặc định | Khoá ký JWT. **Bắt buộc đổi khi deploy thật.** |
 | `OPENROUTER_BASE_URL` | – | `https://openrouter.ai/api/v1` | Chỉ đổi khi dùng proxy tương thích OpenRouter. |
 | `OPENROUTER_SITE_URL` / `OPENROUTER_SITE_NAME` | – | `http://localhost:3000` / `Larry AI` | Gửi kèm request để OpenRouter thống kê app. |
@@ -216,7 +217,7 @@ curl http://localhost:5000/api/health
 
 1. Vào `http://localhost:3000`, chọn một trong ba cách:
    - Bấm **"Trò chuyện với Larry ngay! 💬"** để vào thẳng chat, không cần tài khoản.
-   - **Đăng ký** / **Đăng nhập** với dropdown **"Bạn là" → Người dùng** nếu muốn có tài khoản riêng. Đăng ký xong **quay về màn hình đăng nhập** (kèm thông báo thành công và email điền sẵn), chứ không vào thẳng chat.
+   - **Đăng ký** / **Đăng nhập** với dropdown **"Bạn là" → Người dùng** nếu muốn có tài khoản riêng. Đăng ký cần **số điện thoại** và mật khẩu (email không bắt buộc). Đăng ký xong **quay về màn hình đăng nhập** (kèm thông báo thành công và số điện thoại điền sẵn), chứ không vào thẳng chat.
    - **Đăng nhập** với dropdown **"Bạn là" → Quản trị viên** để vào khu vực quản trị (xem mục 8).
 2. Bấm **Cho phép** khi trình duyệt xin quyền camera.
 3. Đợi vài giây để tải model nhận diện. Larry chào ngay khi nhận ra cảm xúc đầu tiên, và **giữ nguyên cảm xúc đó suốt phiên chat**.
@@ -242,8 +243,8 @@ Khách vẫn được cấp JWT thật nên endpoint `/chat` giữ nguyên cơ c
 | Method | Endpoint | Auth | Mô tả |
 |---|---|---|---|
 | `GET` | `/api/health` | – | Kiểm tra server và trạng thái API key |
-| `POST` | `/api/register` | – | `{ username, email, password, profile }` → `{ user, message }`. **Không cấp token/cookie** — đăng ký xong phải đăng nhập |
-| `POST` | `/api/login` | – | `{ email, password, role }` → `{ user, token }` |
+| `POST` | `/api/register` | – | `{ phone, password, profile, email?, role? }` → `{ user, message }`. **`phone` là bắt buộc và duy nhất**, `email` không bắt buộc. **Không cấp token/cookie** — đăng ký xong phải đăng nhập |
+| `POST` | `/api/login` | – | `{ identifier, password, role }` → `{ user, token }`. `identifier` là **số điện thoại hoặc email** |
 | `POST` | `/api/guest` | – | Không cần body → `{ user, token }` cho chế độ khách (token hạn 1 ngày) |
 | `POST` | `/api/logout` | – | Xoá cookie token |
 | `GET` | `/api/me` | ✅ | Thông tin user hiện tại |
@@ -269,14 +270,15 @@ Auth bằng JWT gửi qua header `Authorization: Bearer <token>` (hoặc cookie 
 Ví dụ gọi `/chat`:
 
 ```bash
-# /api/register không trả token, nên lấy token bằng /api/login
+# /api/register không trả token, nên lấy token bằng /api/login.
+# Tài khoản định danh bằng SỐ ĐIỆN THOẠI; email bỏ qua được.
 curl -s -X POST http://localhost:5000/api/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"test","email":"test@test.com","password":"123456"}' > /dev/null
+  -d '{"phone":"0912345678","password":"123456"}' > /dev/null
 
 TOKEN=$(curl -s -X POST http://localhost:5000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456"}' | jq -r .token)
+  -d '{"identifier":"0912345678","password":"123456"}' | jq -r .token)
 
 # Lượt đầu: message rỗng = Larry chủ động mở lời
 curl -N -X POST http://localhost:5000/chat/stream \
@@ -315,13 +317,14 @@ Tài khoản được lưu trong **`backend/account.json`** ([backend/accounts.j
 [
   {
     "id": 1,
-    "username": "an",
-    "email": "an@lop6a.vn",
+    "username": "Nguyễn Thị Mai",
+    "phone": "0912345678",
+    "email": "",
     "password": "$2b$10$...",
     "role": "user",
     "profile": {
       "fullName": "Nguyễn Thị Mai",
-      "grade": "lớp 6",
+      "grade": "6",
       "school": "THCS Nguyễn Du",
       "className": "6A1"
     },
@@ -330,12 +333,20 @@ Tài khoản được lưu trong **`backend/account.json`** ([backend/accounts.j
 ]
 ```
 
+**`phone` là danh tính của tài khoản**: bắt buộc lúc đăng ký, duy nhất trên toàn hệ thống, và là thứ dùng để đăng nhập. Số được chuẩn hoá trước khi lưu (bỏ dấu cách/chấm, `+84…` → `0…`) nên `"0912 345 678"` và `"+84912345678"` là **cùng một tài khoản**, không đăng ký hai lần được.
+
+`email` **không bắt buộc** — học sinh cấp 2 phần lớn chưa có email riêng. Bỏ trống thì lưu chuỗi rỗng; đã khai thì phải đúng định dạng và cũng là duy nhất. Riêng giáo viên chủ nhiệm nên khai, vì bản sao email cảnh báo gửi tới chính địa chỉ đó.
+
+`username` giờ chỉ là **tên hiển thị**, không dùng để đăng nhập và không cần khác nhau (hai em trùng tên là chuyện thường). Đăng ký xong nó lấy theo `profile.fullName`, không khai tên thì rơi về chính số điện thoại.
+
+> Tài khoản tạo **trước** khi đổi sang số điện thoại chỉ có email: chúng được bổ sung `phone: ""` lúc khởi động và **vẫn đăng nhập bằng email như cũ** (ô đầu tiên ở trang đăng nhập nhận cả hai). Quản trị viên bổ sung số cho những tài khoản đó ở trang `/admin`.
+
 `profile` là 4 thông tin học sinh điền lúc đăng ký, **tất cả đều không bắt buộc** — bỏ trống thì lưu chuỗi rỗng:
 
 | Field | Nhãn trên form | Cách nhập |
 |---|---|---|
 | `fullName` | Tên | Ô nhập |
-| `grade` | Bạn là học sinh khối | Dropdown khối 6–9, lưu số trần: `"7"` |
+| `grade` | Bạn là học sinh khối | Dropdown đủ 12 khối (lớp 1 → lớp 12), lưu số trần: `"7"` |
 | `className` | Lớp của bạn | Ô nhập, ví dụ `6A1` |
 | `school` | Trường học của bạn là | Dropdown; chọn "Trường khác..." thì hiện thêm ô tự nhập |
 
@@ -347,7 +358,7 @@ Muốn xoá hết tài khoản thì dừng backend, sửa file thành `[]` (ho�
 
 Muốn đổi chỗ lưu thì đặt `ACCOUNTS_FILE` trong `backend/.env`.
 
-> File này chứa email và hash mật khẩu nên đã được `.gitignore` — không commit lên git.
+> File này chứa số điện thoại, email và hash mật khẩu nên đã được `.gitignore` — không commit lên git.
 
 ---
 
@@ -363,13 +374,17 @@ Hệ thống có 3 vai trò, lưu ở field `role` trong `account.json` và nhú
 
 Quản trị viên và giáo viên chủ nhiệm là tài khoản quản lý/theo dõi, **không tham gia trò chuyện**. Chặn ở hai tầng: [ProtectedRoute.jsx](frontend/src/components/ui/ProtectedRoute.jsx) đẩy họ từ `/` và `/game` về khu vực của mình, còn middleware `blockAdmin` ở [auth.js](backend/auth.js) trả 403 cho `/chat` và `/api/session/end` kể cả khi gọi thẳng API. Vì vậy hai vai trò này không bao giờ sinh ra phiên hội thoại nào trong `sessions.json`.
 
-Ở trang đăng nhập có dropdown **"Bạn là"** với ba lựa chọn *Người dùng* / *Giáo viên chủ nhiệm* / *Quản trị viên*. Vai trò được chọn gửi kèm request đăng nhập và server tra tài khoản theo cả email lẫn vai trò.
+Ở trang đăng nhập có dropdown **"Bạn là"** với ba lựa chọn *Người dùng* / *Giáo viên chủ nhiệm* / *Quản trị viên*. Vai trò được chọn gửi kèm request đăng nhập và server tra tài khoản theo cả định danh lẫn vai trò.
 
-> **Email là duy nhất trên toàn hệ thống.** Một địa chỉ chỉ dùng được cho **một** tài khoản, dù là học sinh, giáo viên hay quản trị viên — kiểm tra không phân biệt hoa/thường (`an@a.vn` và `An@A.vn` là một). Trước đây học sinh và admin được phép trùng email; quy tắc mới áp dụng cho **tài khoản tạo mới và mọi lần sửa email**, tài khoản cũ đang trùng vẫn đăng nhập được bình thường nhờ dropdown "Bạn là".
+> **Số điện thoại là duy nhất trên toàn hệ thống.** Một số chỉ dùng được cho **một** tài khoản, dù là học sinh, giáo viên hay quản trị viên — so sánh sau khi chuẩn hoá, nên `0912 345 678` và `+84912345678` là một.
+>
+> **Email cũng duy nhất, nhưng không bắt buộc.** Bỏ trống thì thôi (nhiều tài khoản cùng để trống không tính là trùng nhau); đã khai thì kiểm tra không phân biệt hoa/thường (`an@a.vn` và `An@A.vn` là một). Tài khoản cũ trùng email vẫn đăng nhập được bình thường nhờ dropdown "Bạn là".
+>
+> Ô đầu tiên ở trang đăng nhập nhận **số điện thoại hoặc email** — tài khoản tạo trước khi đổi sang định danh bằng số vẫn vào được bằng email như cũ.
 
 ### Vai trò giáo viên chủ nhiệm
 
-**Đăng ký.** Ngay đầu form [đăng ký](frontend/src/components/ui/Register.jsx) có hai nút **🎒 Học sinh** / **🍎 Giáo viên chủ nhiệm** — chọn nút nào thì bộ câu hỏi bên dưới đổi theo. Giáo viên khai: họ tên, ngày sinh, email, **trường** và **lớp chủ nhiệm**. Hai field cuối là **bắt buộc** vì chúng chính là thứ dùng để ghép thầy cô với học sinh.
+**Đăng ký.** Ngay đầu form [đăng ký](frontend/src/components/ui/Register.jsx) có hai nút **🎒 Học sinh** / **🍎 Giáo viên chủ nhiệm** — chọn nút nào thì bộ câu hỏi bên dưới đổi theo. Giáo viên khai: họ tên, ngày sinh, **trường** và **lớp chủ nhiệm**. Hai field cuối là **bắt buộc** vì chúng chính là thứ dùng để ghép thầy cô với học sinh. Email vẫn không bắt buộc như mọi tài khoản khác, nhưng thầy cô **nên khai** — bản sao email cảnh báo về học sinh trong lớp gửi tới chính địa chỉ đó, bỏ trống thì tài khoản vẫn dùng được nhưng không nhận được bản sao nào (trang soạn email cảnh báo sẽ báo rõ điều này cho quản trị viên).
 
 **Duyệt.** Tài khoản giáo viên đọc được tóm tắt hội thoại của cả một lớp, nên không dùng được ngay: nó ở trạng thái `pending` cho tới khi quản trị viên bấm duyệt. Đăng nhập lúc này trả 403 kèm câu giải thích. Khu duyệt nằm ở **đầu trang `/admin`**, chỉ hiện khi có tài khoản đang chờ. Học sinh đăng ký **không** qua bước này.
 
@@ -396,7 +411,7 @@ cd backend
 npm run create-admin
 ```
 
-Script sẽ hỏi lần lượt tên đăng nhập, email, mật khẩu (nhập 2 lần, gõ tới đâu hiện `*` tới đó nên không lọt vào lịch sử shell):
+Script sẽ hỏi lần lượt tên đăng nhập, email, số điện thoại (Enter để bỏ qua), mật khẩu (nhập 2 lần, gõ tới đâu hiện `*` tới đó nên không lọt vào lịch sử shell):
 
 ```
 Tạo tài khoản quản trị viên
@@ -405,6 +420,7 @@ Hiện có: 3 tài khoản (1 quản trị viên)
 
 Tên đăng nhập: coLan
 Email: co.lan@truong.edu.vn
+Số điện thoại (Enter để bỏ qua): 0912345678
 Mật khẩu (tối thiểu 8 ký tự): ************
 Nhập lại mật khẩu: ************
 
@@ -437,6 +453,8 @@ Gói miễn phí của các nền tảng này thường **không cho mở shell*
 ADMIN_USERNAME=coLan
 ADMIN_EMAIL=co.lan@truong.edu.vn
 ADMIN_PASSWORD=MatKhauRatManh@2026
+# Không bắt buộc — khai thêm thì đăng nhập bằng số điện thoại cũng được
+ADMIN_PHONE=0912345678
 ```
 
 Log khởi động sẽ in `✅ Đã tạo quản trị viên từ biến môi trường: …`. Cơ chế này **không ghi đè** tài khoản đang có: đã tồn tại admin đúng email đó thì bỏ qua, nên đổi mật khẩu trong `account.json` cũng không bị dựng lại. Mật khẩu dưới 8 ký tự hoặc trùng tên với admin khác thì backend chỉ cảnh báo rồi chạy tiếp, không sập.
@@ -814,7 +832,7 @@ Hai model này **không rơi về `CHAT_MODEL`** như các model khác: model ch
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:5000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456"}' | jq -r .token)
+  -d '{"identifier":"0912345678","password":"123456"}' | jq -r .token)
 
 # Larry đọc một câu ra file WAV
 curl -s -X POST http://localhost:5000/api/voice/tts \
@@ -934,7 +952,7 @@ Bấm vào link sẽ mở hộp thoại ([LegalModal.jsx](frontend/src/component
 ## 17. Lưu ý bảo mật
 
 - `backend/.env` và `frontend/.env` đã được `.gitignore` — **không commit API key lên git**.
-- `backend/account.json` chứa email, hash mật khẩu và thông tin trường lớp của học sinh — đã được `.gitignore`, nhớ backup và phân quyền file cẩn thận.
+- `backend/account.json` chứa số điện thoại, email, hash mật khẩu và thông tin trường lớp của học sinh — đã được `.gitignore`, nhớ backup và phân quyền file cẩn thận. Số điện thoại của học sinh là dữ liệu cá nhân, đừng để lọt ra ngoài cùng bản backup.
 - Không còn tài khoản admin mặc định trong mã nguồn. Quyền quản trị chỉ cấp được bằng `npm run create-admin` chạy trực tiếp trên máy chủ — ai truy cập được máy chủ thì cấp được quyền admin, nên hãy bảo vệ quyền truy cập đó.
 - Cách lưu bằng file JSON phù hợp cho lớp học/demo. Khi số tài khoản lớn hoặc chạy nhiều instance backend cùng lúc thì nên chuyển sang database (SQLite/Postgres).
 - Đổi `JWT_SECRET` trước khi deploy.

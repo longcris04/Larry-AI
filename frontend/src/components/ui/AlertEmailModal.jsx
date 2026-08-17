@@ -139,13 +139,27 @@ export default function AlertEmailModal({ session, studentName, onClose, onSent 
                     đây là dữ liệu nhạy cảm về một học sinh cụ thể, nên địa chỉ
                     giáo viên phải lấy từ tài khoản đã được duyệt chứ không phải
                     từ một ô nhập. Hiện ra để quản trị viên biết trước ai sẽ đọc. */}
-                {homeroomTeacher ? (
+                {homeroomTeacher && homeroomTeacher.email ? (
                   <p className="alert-modal__cc">
                     ➕ Gửi kèm giáo viên chủ nhiệm: <strong>{homeroomTeacher.username}</strong>{" "}
                     &lt;{homeroomTeacher.email}&gt;
                     {homeroomTeacher.classLabel && (
                       <span className="alert-modal__cc-class"> · {homeroomTeacher.classLabel}</span>
                     )}
+                  </p>
+                ) : homeroomTeacher ? (
+                  /* Ghép được người, nhưng thầy cô đăng ký mà không khai email —
+                     email không bắt buộc từ lúc tài khoản định danh bằng số điện
+                     thoại. Phải nói thẳng là bản sao KHÔNG tới được, kèm số để
+                     quản trị viên gọi trực tiếp; im lặng ở đây thì mọi người
+                     tưởng thầy cô đã biết chuyện. */
+                  <p className="alert-modal__cc alert-modal__cc--none">
+                    ⚠️ Giáo viên chủ nhiệm <strong>{homeroomTeacher.username}</strong>
+                    {homeroomTeacher.classLabel && ` (${homeroomTeacher.classLabel})`} chưa
+                    khai email nên sẽ không nhận được bản sao.
+                    {homeroomTeacher.phone
+                      ? ` Hãy báo trực tiếp qua số ${homeroomTeacher.phone}.`
+                      : ""}
                   </p>
                 ) : (
                   <p className="alert-modal__cc alert-modal__cc--none">

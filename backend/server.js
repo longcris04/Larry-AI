@@ -28,8 +28,11 @@ const {
   loadUsers,
   saveUsers,
   nextUserId,
-  findUserByEmail,
+  normalizePhone,
+  isValidPhone,
+  findUserByIdentifier,
   findUserByAnyRoleEmail,
+  findUserByAnyRolePhone,
   seedAdminFromEnv
 } = require("./accounts");
 const {
@@ -114,6 +117,13 @@ function toPublicUser(user) {
   return publicUser;
 }
 
+// Cách nhận ra một tài khoản trong log/thông báo. Số điện thoại là danh tính
+// chính; tài khoản cũ chưa có số thì rơi về email — đừng in ra "<>" trống rỗng
+// rồi để người đọc log đoán xem tài khoản nào.
+function contactOf(user) {
+  return user?.phone || user?.email || `#${user?.id}`;
+}
+
 // Hệ agent cần hồ sơ học sinh để xưng hô và hiểu bối cảnh lớp học
 app.use(createChatRouter({ getUserById: (id) => users.find((u) => u.id === id) }));
 
@@ -126,33 +136,59 @@ app.use(createVoiceRouter());
 // `role` do nút chọn ở đầu form quyết định: "user" (học sinh) hoặc "teacher"
 // (giáo viên chủ nhiệm). Không nhận "admin" ở đây — quyền quản trị chỉ cấp được
 // bằng lệnh create-admin chạy trên máy chủ.
+//
+// DANH TÍNH là SỐ ĐIỆN THOẠI, không phải email: học sinh cấp 2 phần lớn chưa có
+// email riêng. Email vẫn nhận nhưng để trống được — nó chỉ là kênh liên lạc thêm.
 app.post("/api/register", async (req, res) => {
   try {
-    const { username, email, password, profile, role } = req.body;
+    const { username, phone, email, password, profile, role } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: "Username, email, and password are required" });
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || !password) {
+      return res.status(400).json({ error: "Cần số điện thoại và mật khẩu." });
+    }
+    if (!isValidPhone(cleanPhone)) {
+      return res.status(400).json({
+        error: "Số điện thoại không hợp lệ. Hãy nhập số Việt Nam gồm 10 chữ số, ví dụ 0912345678."
+      });
+    }
+
+    // Email để trống được, nhưng đã khai thì phải dùng được: địa chỉ sai chính
+    // tả nằm im trong hồ sơ cho tới ngày cần gửi cảnh báo mới lộ ra là hỏng.
+    const cleanEmail = String(email || "").trim();
+    if (cleanEmail && !isValidEmail(cleanEmail)) {
+      return res.status(400).json({ error: "Địa chỉ email không hợp lệ." });
     }
 
     const isTeacher = role === ROLES.TEACHER;
     const newRole = isTeacher ? ROLES.TEACHER : ROLES.USER;
 
-    // Email là DUY NHẤT trên toàn hệ thống, xét cả ba vai trò. Trước đây học sinh
-    // và quản trị viên được phép trùng email vì dropdown "Bạn là" tách hai bên
-    // ra; thêm vai trò thứ ba thì một email hoá ra ba tài khoản, và lúc gửi cảnh
-    // báo không biết địa chỉ đó là của ai.
-    const taken = findUserByAnyRoleEmail(users, email);
-    if (taken) {
-      return res.status(400).json({ error: "Email này đã được dùng cho một tài khoản khác." });
+    // Số điện thoại là DUY NHẤT trên toàn hệ thống, xét cả ba vai trò. So sánh
+    // theo bản đã chuẩn hoá nên "0912 345 678" và "+84912345678" là cùng một số,
+    // không lách được bằng cách gõ khác kiểu.
+    const phoneTaken = findUserByAnyRolePhone(users, cleanPhone);
+    if (phoneTaken) {
+      return res.status(400).json({
+        error: "Số điện thoại này đã được dùng cho một tài khoản khác."
+      });
     }
 
-    // Tên tài khoản vẫn chỉ cần khác nhau trong cùng vai trò — trùng tên không
-    // gây nhầm lẫn ở đâu cả vì mọi thứ đều tra theo email.
-    if (users.some((u) => u.role === newRole && u.username === username)) {
-      return res.status(400).json({ error: "Tên tài khoản này đã có người dùng." });
+    // Email cũng duy nhất — nhưng chỉ xét khi có khai. Nhiều tài khoản cùng bỏ
+    // trống email thì không có gì trùng nhau cả.
+    if (cleanEmail) {
+      const taken = findUserByAnyRoleEmail(users, cleanEmail);
+      if (taken) {
+        return res.status(400).json({ error: "Email này đã được dùng cho một tài khoản khác." });
+      }
     }
 
     const cleanProfile = sanitizeProfile(profile);
+
+    // Tên hiển thị. Form đăng ký không còn ô "tên tài khoản" riêng: danh tính là
+    // số điện thoại, còn thứ thầy cô đọc trong danh sách là TÊN THẬT em tự khai.
+    // Không kiểm tra trùng tên nữa — hai em cùng tên là chuyện bình thường trong
+    // một trường, và chặn đăng ký vì lý do đó thì không giải thích nổi.
+    const displayName = String(username || "").trim() || cleanProfile.fullName || cleanPhone;
 
     // Giáo viên PHẢI khai trường và lớp chủ nhiệm: thiếu là không ghép được với
     // học sinh nào, tài khoản duyệt xong cũng không thấy gì. Chặn ngay từ đây
@@ -186,8 +222,9 @@ app.post("/api/register", async (req, res) => {
     // Create user
     const newUser = {
       id: nextUserId(users),
-      username,
-      email: String(email).trim(),
+      username: displayName,
+      phone: cleanPhone,
+      email: cleanEmail,
       password: hashedPassword,
       role: newRole,
       // Học sinh dùng được ngay; giáo viên phải chờ quản trị viên duyệt vì tài
@@ -210,7 +247,7 @@ app.post("/api/register", async (req, res) => {
 
     if (isTeacher) {
       console.log(
-        `🧑‍🏫 Giáo viên chủ nhiệm mới chờ duyệt: ${newUser.username} <${newUser.email}> — ${describeClass(newUser)}`
+        `🧑‍🏫 Giáo viên chủ nhiệm mới chờ duyệt: ${newUser.username} (${contactOf(newUser)}) — ${describeClass(newUser)}`
       );
     }
 
@@ -229,30 +266,34 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Login endpoint
+// Login endpoint.
+//
+// Ô đầu tiên nhận SỐ ĐIỆN THOẠI hoặc EMAIL. Tài khoản mới định danh bằng số điện
+// thoại, nhưng tài khoản có từ trước (kể cả quản trị viên dựng từ ADMIN_EMAIL)
+// chỉ có email — ép một đường là khoá tất cả những người đó ra ngoài.
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { identifier, phone, email, password, role } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
+    const loginId = String(identifier || phone || email || "").trim();
+
+    if (!loginId || !password) {
+      return res.status(400).json({ error: "Cần số điện thoại (hoặc email) và mật khẩu." });
     }
 
     // Vai trò do người dùng chọn ở dropdown "Bạn là", mặc định là học sinh
     const requestedRole =
       role === ROLES.ADMIN ? ROLES.ADMIN : role === ROLES.TEACHER ? ROLES.TEACHER : ROLES.USER;
 
-    // Tra theo email + vai trò. Email đã là duy nhất toàn hệ thống, nhưng vẫn lọc
-    // theo vai trò để tài khoản trùng email có từ trước vào đúng chỗ của nó.
-    const user = findUserByEmail(users, email, requestedRole);
+    const user = findUserByIdentifier(users, loginId, requestedRole);
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Số điện thoại/email hoặc mật khẩu không đúng." });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Số điện thoại/email hoặc mật khẩu không đúng." });
     }
 
     // Kiểm tra duyệt SAU khi đã xác minh mật khẩu: báo "chưa được duyệt" trước
@@ -273,7 +314,7 @@ app.post("/api/login", async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email, role: user.role },
+      { id: user.id, username: user.username, phone: user.phone, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -459,7 +500,7 @@ app.post("/api/admin/users/:id/approval", adminOnly, (req, res) => {
     );
     if (clash) {
       return res.status(400).json({
-        error: `Lớp này đã có giáo viên chủ nhiệm được duyệt: ${clash.username} <${clash.email}>.`
+        error: `Lớp này đã có giáo viên chủ nhiệm được duyệt: ${clash.username} (${contactOf(clash)}).`
       });
     }
   }
@@ -471,7 +512,7 @@ app.post("/api/admin/users/:id/approval", adminOnly, (req, res) => {
 
   console.log(
     `${status === STATUS.APPROVED ? "✅ Đã duyệt" : "⛔ Đã từ chối"} giáo viên ` +
-      `${user.username} <${user.email}> (bởi ${user.approvedBy}).`
+      `${user.username} (${contactOf(user)}) (bởi ${user.approvedBy}).`
   );
 
   res.json({ user: toPublicUser(user) });
@@ -484,7 +525,7 @@ app.patch("/api/admin/users/:id", adminOnly, async (req, res) => {
     const user = users.find((u) => u.id === id);
     if (!user) return res.status(404).json({ error: "Không tìm thấy tài khoản." });
 
-    const { username, email, password, role, profile } = req.body;
+    const { username, phone, email, password, role, profile } = req.body;
 
     // Vai trò KHÔNG sửa được qua web. Cấp quyền admin chỉ làm được bằng lệnh
     // `npm run create-admin` phía developer.
@@ -496,15 +537,46 @@ app.patch("/api/admin/users/:id", adminOnly, async (req, res) => {
 
     if (typeof username === "string" && username.trim()) user.username = username.trim();
 
-    if (typeof email === "string" && email.trim()) {
-      // Sửa tay cũng phải giữ email duy nhất, nếu không quy tắc ở /api/register
-      // chỉ là hàng rào phía trước một cánh cửa vẫn mở
-      const taken = findUserByAnyRoleEmail(users, email, user.id);
+    // Số điện thoại và email đều SỬA/XOÁ được, nên tính trước cả hai rồi mới ghi:
+    // xoá xong mới phát hiện tài khoản chẳng còn đường nào để đăng nhập thì đã
+    // muộn, và không ai gỡ lại được từ giao diện.
+    const nextPhone = typeof phone === "string" ? normalizePhone(phone) : user.phone || "";
+    const nextEmail = typeof email === "string" ? email.trim() : user.email || "";
+
+    if (!nextPhone && !nextEmail) {
+      return res.status(400).json({
+        error: "Tài khoản phải giữ ít nhất số điện thoại hoặc email, nếu không sẽ không đăng nhập được."
+      });
+    }
+
+    if (nextPhone && nextPhone !== user.phone) {
+      if (!isValidPhone(nextPhone)) {
+        return res.status(400).json({
+          error: "Số điện thoại không hợp lệ. Hãy nhập số Việt Nam gồm 10 chữ số, ví dụ 0912345678."
+        });
+      }
+      // Sửa tay cũng phải giữ số điện thoại duy nhất, nếu không quy tắc ở
+      // /api/register chỉ là hàng rào phía trước một cánh cửa vẫn mở
+      const telTaken = findUserByAnyRolePhone(users, nextPhone, user.id);
+      if (telTaken) {
+        return res.status(400).json({
+          error: "Số điện thoại này đã được dùng cho một tài khoản khác."
+        });
+      }
+    }
+
+    if (nextEmail && nextEmail !== user.email) {
+      if (!isValidEmail(nextEmail)) {
+        return res.status(400).json({ error: "Địa chỉ email không hợp lệ." });
+      }
+      const taken = findUserByAnyRoleEmail(users, nextEmail, user.id);
       if (taken) {
         return res.status(400).json({ error: "Email này đã được dùng cho một tài khoản khác." });
       }
-      user.email = email.trim();
     }
+
+    user.phone = nextPhone;
+    user.email = nextEmail;
 
     if (profile && typeof profile === "object") {
       user.profile = { ...user.profile, ...sanitizeProfile(profile) };
@@ -642,7 +714,10 @@ app.post("/api/admin/sessions/:sessionId/alert/draft", adminOnly, async (req, re
       homeroomTeacher: teacher
         ? {
             username: teacher.username,
+            // Có thể rỗng: email không bắt buộc khi đăng ký. Giao diện phải nói
+            // rõ điều đó, vì lúc gửi thầy cô sẽ KHÔNG nhận được bản sao.
             email: teacher.email,
+            phone: teacher.phone,
             classLabel: describeClass(teacher)
           }
         : null,

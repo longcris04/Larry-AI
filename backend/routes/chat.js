@@ -23,11 +23,28 @@ function createChatRouter({ getUserById } = {}) {
   const router = express.Router();
   const chatOnly = [authenticateToken, blockAdmin];
 
+  // Tên để Larry XƯNG HÔ. Khác với tên hiện ở trang quản trị: ở đó một dãy số
+  // cũng là thông tin nhận dạng hữu ích, còn ở đây nó biến thành câu "Chào
+  // 0912345678 nhé!".
+  //
+  // Đăng ký chỉ bắt buộc số điện thoại, nên em nào không khai tên thì username
+  // chính là số đó (xem /api/register). Một cái tên thật luôn có ít nhất một chữ
+  // cái — không có chữ nào thì đây không phải tên, dùng cách gọi chung cho lành.
+  function displayNameOf(reqUser, account) {
+    const fullName = String(account?.profile?.fullName || "").trim();
+    if (fullName) return fullName;
+
+    const username = String(reqUser.username || "").trim();
+    if (username && /\p{L}/u.test(username)) return username;
+
+    return "Bạn nhỏ";
+  }
+
   // Hồ sơ học sinh để agent xưng hô và hiểu bối cảnh lớp học
   function studentOf(reqUser) {
     const account = typeof getUserById === "function" ? getUserById(reqUser.id) : null;
     return {
-      username: reqUser.username || "Bạn nhỏ",
+      username: displayNameOf(reqUser, account),
       ...(account?.profile || {})
     };
   }

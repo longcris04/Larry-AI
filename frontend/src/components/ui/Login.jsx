@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUserShield } from "react-icons/fa";
+import { FaMobileAlt, FaLock, FaEye, FaEyeSlash, FaUserShield } from "react-icons/fa";
 
 import { useAuth } from "../../context/AuthContext";
 import AuthInput from "./AuthInput";
@@ -16,14 +16,17 @@ export default function Login() {
   // Quản trị viên tắt chế độ khách thì cả khối "hoặc → Trò chuyện ngay" biến mất
   const { guestMode, loading: guestModeLoading } = useGuestMode();
 
-  // Vừa đăng ký xong thì Register.jsx điều hướng về đây, kèm sẵn email
+  // Vừa đăng ký xong thì Register.jsx điều hướng về đây, kèm sẵn số điện thoại
   const { state } = useLocation();
   const justRegistered = !!state?.justRegistered;
   // Giáo viên vừa đăng ký: chưa đăng nhập được cho tới khi quản trị viên duyệt,
   // nên lời chúc mừng phải nói đúng chuyện đó thay vì mời đăng nhập ngay.
   const pendingApproval = !!state?.pendingApproval;
 
-  const [email, setEmail] = useState(state?.email || "");
+  // Số điện thoại HOẶC email. Tài khoản mới định danh bằng số điện thoại, nhưng
+  // tài khoản tạo trước khi đổi chỉ có email — nhận cả hai để không ai bị bỏ lại
+  // bên ngoài sau một lần deploy.
+  const [identifier, setIdentifier] = useState(state?.identifier || state?.email || "");
 
   const [password, setPassword] = useState("");
 
@@ -49,7 +52,7 @@ export default function Login() {
 
     setError("");
 
-    const result = await login(email, password, role);
+    const result = await login(identifier, password, role);
 
     if (!result.success) {
       setError(result.error);
@@ -103,19 +106,25 @@ export default function Login() {
           {error && <div className="auth-error">{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            {/* EMAIL */}
+            {/* SỐ ĐIỆN THOẠI (hoặc email, cho tài khoản cũ).
+                type="text" chứ không phải "tel"/"email": ô này nhận cả hai kiểu,
+                đặt type="email" thì trình duyệt chặn ngay số điện thoại đúng. */}
 
             <div className="form-group">
-              <label>Email</label>
+              <label htmlFor="identifier">Số điện thoại</label>
 
               <AuthInput
-                id="email"
-                leftIcon={<FaEnvelope />}
-                type="email"
-                placeholder="Nhập email của bạn"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                leftIcon={<FaMobileAlt />}
+                type="text"
+                placeholder="Nhập số điện thoại của bạn"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
               />
+
+              <p className="auth-hint">
+                Tài khoản đăng ký trước đây bằng email thì vẫn đăng nhập bằng email như cũ.
+              </p>
             </div>
 
             {/* PASSWORD */}

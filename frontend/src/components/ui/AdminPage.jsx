@@ -9,6 +9,7 @@ import "../../styles/AdminPage.css";
 
 const EMPTY_FORM = {
   username: "",
+  phone: "",
   email: "",
   password: "",
   fullName: "",
@@ -128,6 +129,7 @@ export default function AdminPage() {
     setEditingId(target.id);
     setForm({
       username: target.username || "",
+      phone: target.phone || "",
       email: target.email || "",
       password: "",
       fullName: target.profile?.fullName || "",
@@ -143,6 +145,7 @@ export default function AdminPage() {
     try {
       const body = {
         username: form.username,
+        phone: form.phone,
         email: form.email,
         profile: {
           fullName: form.fullName,
@@ -256,7 +259,9 @@ export default function AdminPage() {
               <li key={row.id} className="admin-pending__item">
                 <div className="admin-pending__info">
                   <strong>{row.profile?.fullName || row.username}</strong>
-                  <span className="admin-muted"> · {row.email}</span>
+                  {/* Số điện thoại trước — email có thể trống, và số mới là thứ
+                      gọi được để xác minh đúng người trước khi duyệt */}
+                  <span className="admin-muted"> · {row.phone || row.email || "chưa có liên hệ"}</span>
                   <div className="admin-muted">
                     Chủ nhiệm: {row.teacherInfo?.classLabel || "chưa khai lớp"}
                     {row.profile?.dateOfBirth && ` · sinh ${row.profile.dateOfBirth}`}
@@ -351,6 +356,9 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th>Tài khoản</th>
+                  {/* Số điện thoại đứng trước email: đó mới là danh tính của tài
+                      khoản. Email giờ không bắt buộc nên nhiều dòng sẽ trống. */}
+                  <th>Số điện thoại</th>
                   <th>Email</th>
                   <th>Vai trò</th>
                   <th>Trường</th>
@@ -364,7 +372,7 @@ export default function AdminPage() {
                 {users.map((row) =>
                   editingId === row.id ? (
                     <tr key={row.id} className="admin-row--editing">
-                      <td colSpan={8}>
+                      <td colSpan={9}>
                         <div className="admin-edit">
                           <div className="admin-edit__grid">
                             <label>
@@ -372,6 +380,17 @@ export default function AdminPage() {
                               <input
                                 value={form.username}
                                 onChange={(e) => setForm({ ...form, username: e.target.value })}
+                              />
+                            </label>
+                            {/* Danh tính của tài khoản — đổi số ở đây là đổi luôn
+                                cách người đó đăng nhập. Bỏ trống được, nhưng chỉ
+                                khi tài khoản còn email (backend chặn nếu trống cả
+                                hai, vì lúc đó không ai vào được nữa). */}
+                            <label>
+                              Số điện thoại
+                              <input
+                                value={form.phone}
+                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
                               />
                             </label>
                             <label>
@@ -452,7 +471,8 @@ export default function AdminPage() {
                           <div className="admin-muted">{row.profile.fullName}</div>
                         )}
                       </td>
-                      <td className="admin-muted">{row.email}</td>
+                      <td className="admin-muted">{row.phone || "—"}</td>
+                      <td className="admin-muted">{row.email || "—"}</td>
                       <td>
                         <span className={`admin-tag admin-tag--${row.role}`}>
                           {roleLabel(row.role)}

@@ -7,7 +7,10 @@ export default function UserMenu() {
 
   if (!user) return null;
 
-  const name = user.username || user.email || "Bạn nhỏ";
+  // Tên thật tự khai đứng trước: đăng ký không bắt buộc khai tên, và khi không
+  // khai thì username chính là số điện thoại — thấy dãy số của mình ở góc màn
+  // hình thì chẳng khác gì chưa đăng nhập.
+  const name = user.profile?.fullName || user.username || user.phone || user.email || "Bạn nhỏ";
   const initials = isGuest ? "👋" : name.slice(0, 2).toUpperCase();
 
   return (
