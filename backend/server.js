@@ -41,6 +41,7 @@ const {
   findStudentsOfTeacher,
   describeClass
 } = require("./teachers");
+const { resolveRange, buildStats } = require("./stats");
 const {
   JWT_SECRET,
   JWT_EXPIRES_IN,
@@ -431,6 +432,27 @@ app.patch("/api/admin/settings/guest-mode", adminOnly, (req, res) => {
   } catch (err) {
     console.error("Không lưu được cài đặt:", err);
     res.status(500).json({ error: "Không lưu được cài đặt. Xem log máy chủ." });
+  }
+});
+
+// --- Bảng điều khiển ----------------------------------------------------------
+//
+// Toàn bộ số liệu của một màn hình gói trong MỘT lần gọi: số tài khoản, số lớp,
+// số hội thoại và số hội thoại bị gắn cờ, chia theo ngày / theo lớp / theo
+// trường. Gộp lại vì mọi ô trên trang phải nói về CÙNG một khoảng ngày — tách
+// thành năm route thì chỉ cần một lần gọi lỗi là các con số trên màn hình mâu
+// thuẫn nhau mà không ai nhận ra.
+//
+// ?from=yyyy-mm-dd&to=yyyy-mm-dd — thiếu hoặc sai thì rơi về 30 ngày gần nhất,
+// xem resolveRange trong stats.js. Cố ý KHÔNG trả 400 cho tham số hỏng: bảng
+// điều khiển mở lên là phải có số liệu, không phải một trang báo lỗi.
+app.get("/api/admin/stats", adminOnly, (req, res) => {
+  try {
+    const range = resolveRange({ from: req.query.from, to: req.query.to });
+    res.json(buildStats(users, sessions, range));
+  } catch (err) {
+    console.error("Không dựng được số liệu bảng điều khiển:", err);
+    res.status(500).json({ error: "Không tính được số liệu thống kê." });
   }
 });
 

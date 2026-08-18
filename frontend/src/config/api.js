@@ -17,6 +17,11 @@ export const KNOWLEDGE_GRAPH_URL = `${API_BASE_URL}/api/knowledge/graph`;
 export const SETTINGS_URL = `${API_BASE_URL}/api/settings`;
 export const ADMIN_GUEST_MODE_URL = `${API_BASE_URL}/api/admin/settings/guest-mode`;
 
+// Số liệu bảng điều khiển. Nhận ?from=yyyy-mm-dd&to=yyyy-mm-dd — toàn bộ màn
+// hình lấy từ MỘT lần gọi này để mọi ô trên trang chắc chắn nói về cùng một
+// khoảng ngày (xem backend/stats.js).
+export const ADMIN_STATS_URL = `${API_BASE_URL}/api/admin/stats`;
+
 // Hai đường link khảo sát ý kiến, khai trong backend/.env
 // (STUDENT_FEEDBACK_FORM / TEACHER_FEEDBACK_FORM)
 export const FEEDBACK_LINKS_URL = `${API_BASE_URL}/api/feedback-links`;

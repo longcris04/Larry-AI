@@ -1,0 +1,958 @@
+/* Bảng điều khiển của quản trị viên.
+   Đi kèm components/ui/AdminDashboard.jsx — nạp SAU AdminPage.css vì nó dùng lại
+   .admin-panel, .admin-table và mấy nút .admin-btn của trang đó. */
+
+.admin-dash{
+
+    /* --- Màu chrome: mượn đúng bảng màu trang quản trị đang dùng ------------ */
+
+    --dash-surface:#FFFFFF;
+
+    --dash-plane:#F7F9FE;
+
+    --dash-ink:#2D3553;
+
+    --dash-ink-2:#6B7690;
+
+    --dash-muted:#8A94AB;
+
+    /* Lưới và trục: nét mảnh, LIỀN, chìm một bậc dưới nền — không bao giờ nét
+       đứt, vì nét đứt bị đọc thành "ngưỡng" hoặc "dự báo" trong khi nó chỉ là
+       lưới. */
+    --dash-grid:#EDF1F9;
+
+    --dash-axis:#DCE3F0;
+
+    /* --- Màu dữ liệu -------------------------------------------------------
+       Đã chạy qua công cụ kiểm tra khoảng cách màu (kể cả mô phỏng mù màu) trên
+       nền trắng: cặp an-toàn↔gắn-cờ và cặp học-sinh↔giáo-viên đều đạt mọi
+       ngưỡng. ĐỔI LẺ MỘT MÃ Ở ĐÂY LÀ PHÁ CẶP — đổi thì phải kiểm lại cả cặp. */
+
+    --dash-safe:#2a78d6;
+
+    --dash-student:#2a78d6;
+
+    --dash-teacher:#eb6834;
+
+    /* Ba mức rủi ro + "có dấu hiệu" dùng bảng màu TRẠNG THÁI cố định. Vàng và
+       cam ở đây quá gần nhau để tự phân biệt bằng mắt, nên chúng không bao giờ
+       nằm cạnh nhau trong cùng một thanh: mỗi mức một dòng riêng, có icon và
+       nhãn chữ, và luôn in kèm con số. */
+    --dash-flag:#d03b3b;
+
+    --dash-high:#d03b3b;
+
+    --dash-medium:#ec835a;
+
+    --dash-low:#fab219;
+}
+
+/* --- Hàng lọc: MỘT hàng, nằm trên mọi thứ nó chi phối --------------------- */
+
+.dash-filters{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:12px;
+
+    padding:14px 16px;
+
+    margin-bottom:16px;
+
+    border:2px solid #EDF1FA;
+
+    border-radius:16px;
+
+    background:var(--dash-plane);
+}
+
+.dash-filters__label{
+
+    font-size:14px;
+
+    font-weight:700;
+
+    color:var(--dash-ink-2);
+}
+
+.dash-filters__presets{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+}
+
+.dash-chip{
+
+    padding:8px 14px;
+
+    border:2px solid #E2E9F7;
+
+    border-radius:999px;
+
+    background:#fff;
+
+    color:var(--dash-ink-2);
+
+    font-size:14px;
+
+    font-family:inherit;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.15s;
+}
+
+.dash-chip:hover{
+
+    border-color:#C9D8F2;
+}
+
+/* Chọn rồi thì nền đậm hẳn — không dựa vào riêng màu chữ, để lựa chọn vẫn đọc
+   được khi in đen trắng hoặc ở chế độ tương phản cao của hệ điều hành */
+.dash-chip--on{
+
+    border-color:#2a78d6;
+
+    background:#2a78d6;
+
+    color:#fff;
+}
+
+.dash-filters__custom{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+    margin-left:auto;
+}
+
+.dash-filters__custom label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:7px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:var(--dash-ink-2);
+}
+
+.dash-filters__custom input{
+
+    padding:8px 11px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:10px;
+
+    background:#fff;
+
+    font-family:inherit;
+
+    font-size:14px;
+
+    color:var(--dash-ink);
+
+    outline:none;
+}
+
+.dash-filters__custom input:focus{
+
+    border-color:#56C6FF;
+}
+
+.dash-filters__busy{
+
+    font-size:13px;
+
+    color:var(--dash-muted);
+}
+
+/* Nạp lại thì làm mờ khung cũ, KHÔNG dựng lại từ đầu: không có khung xương nhấp
+   nháy, không nhảy bố cục, người đang đọc không mất chỗ. */
+.dash-body{
+
+    transition:opacity .18s;
+}
+
+.dash-body--busy{
+
+    opacity:.55;
+}
+
+/* --- Ô số liệu ------------------------------------------------------------ */
+
+.dash-tiles{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+
+    gap:14px;
+
+    margin-bottom:18px;
+}
+
+.dash-tile{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:5px;
+
+    padding:16px 18px;
+
+    border:2px solid #EDF1FA;
+
+    border-radius:16px;
+
+    background:var(--dash-surface);
+}
+
+.dash-tile__label{
+
+    font-size:13.5px;
+
+    font-weight:700;
+
+    color:var(--dash-ink-2);
+}
+
+/* Số to dùng chữ số TỈ LỆ (mặc định), không phải tabular-nums: ở cỡ này chữ số
+   đều bề ngang làm những số như 121 trông rời rạc. tabular-nums để dành cho các
+   cột trong bảng, nơi chữ số phải thẳng hàng dọc. */
+.dash-tile__value{
+
+    font-size:30px;
+
+    font-weight:800;
+
+    line-height:1.1;
+
+    color:var(--dash-ink);
+}
+
+.dash-tile__hint{
+
+    font-size:13px;
+
+    color:var(--dash-muted);
+}
+
+/* Ô cảnh báo: viền và chữ nhãn đổi màu, KHÔNG tô nền đậm — một mảng màu lớn ở
+   đây sẽ át cả biểu đồ bên dưới. */
+.dash-tile--flag{
+
+    border-color:#F6D2D2;
+
+    background:#FFFAFA;
+}
+
+.dash-tile--flag .dash-tile__value,
+.dash-tile--high .dash-tile__value{
+
+    color:#B3312F;
+}
+
+.dash-tile--high{
+
+    border-color:#F3C3C3;
+
+    background:#FFF7F7;
+}
+
+/* --- Thẻ biểu đồ ---------------------------------------------------------- */
+
+.dash-card{
+
+    padding:20px;
+
+    margin-bottom:16px;
+
+    border:2px solid #EDF1FA;
+
+    border-radius:18px;
+
+    background:var(--dash-surface);
+}
+
+.dash-card__head{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:flex-start;
+
+    justify-content:space-between;
+
+    gap:12px;
+}
+
+.dash-card__title{
+
+    margin:0;
+
+    font-size:16.5px;
+
+    font-weight:800;
+
+    color:var(--dash-ink);
+}
+
+.dash-card__subtitle{
+
+    margin:20px 0 10px;
+
+    font-size:14.5px;
+
+    font-weight:800;
+
+    color:var(--dash-ink);
+}
+
+.dash-card__sub{
+
+    margin:5px 0 0;
+
+    font-size:13.5px;
+
+    line-height:1.55;
+
+    color:var(--dash-muted);
+}
+
+.dash-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+
+    gap:16px;
+}
+
+.dash-grid > .dash-card{
+
+    margin-bottom:0;
+}
+
+.dash-empty{
+
+    margin:16px 0;
+
+    padding:22px 0;
+
+    text-align:center;
+
+    font-size:14px;
+
+    color:var(--dash-muted);
+}
+
+.dash-foot{
+
+    margin:12px 0 0;
+
+    font-size:12.5px;
+
+    line-height:1.5;
+
+    color:var(--dash-muted);
+}
+
+.dash-warn{
+
+    margin:16px 0 0;
+
+    padding:12px 15px;
+
+    border-radius:12px;
+
+    background:#FFFBF0;
+
+    border:1px solid #F3E2BC;
+
+    font-size:13.5px;
+
+    line-height:1.6;
+
+    color:#8A6A16;
+}
+
+/* --- Chú giải: luôn có mặt khi từ hai chuỗi trở lên ----------------------- */
+
+.dash-legend{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:16px;
+
+    margin:14px 0 6px;
+
+    font-size:13px;
+
+    /* Chữ nhãn mặc màu CHỮ, không mặc màu dữ liệu — vàng/cam của bảng trạng thái
+       không đọc nổi khi làm màu chữ trên nền trắng. Danh tính nằm ở ô màu bên
+       cạnh chữ. */
+    color:var(--dash-ink-2);
+
+    font-weight:600;
+}
+
+.dash-legend__item{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:7px;
+}
+
+.dash-legend__item i{
+
+    width:12px;
+
+    height:12px;
+
+    border-radius:3px;
+}
+
+/* --- Biểu đồ cột theo ngày ------------------------------------------------ */
+
+.dash-chart{
+
+    margin-top:8px;
+}
+
+.dash-chart__frame{
+
+    display:flex;
+
+    gap:10px;
+}
+
+/* Vạch trục dọc. tabular-nums ở đây thì ĐÚNG: các số này xếp thẳng hàng dọc. */
+.dash-chart__yaxis{
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:space-between;
+
+    width:38px;
+
+    height:180px;
+
+    text-align:right;
+
+    font-size:11.5px;
+
+    font-variant-numeric:tabular-nums;
+
+    color:var(--dash-muted);
+}
+
+.dash-chart__plot{
+
+    position:relative;
+
+    flex:1;
+
+    height:180px;
+
+    min-width:0;
+
+    outline:none;
+}
+
+.dash-chart__plot:focus-visible{
+
+    box-shadow:0 0 0 3px rgba(86,198,255,.45);
+
+    border-radius:6px;
+}
+
+/* Lưới: ba nét mảnh LIỀN ở 0 / giữa / trên cùng */
+.dash-chart__grid{
+
+    position:absolute;
+
+    inset:0;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:space-between;
+
+    pointer-events:none;
+}
+
+.dash-chart__grid i{
+
+    height:1px;
+
+    background:var(--dash-grid);
+}
+
+.dash-chart__grid i:last-child{
+
+    background:var(--dash-axis);
+}
+
+.dash-chart__bars{
+
+    position:absolute;
+
+    inset:0;
+
+    display:flex;
+
+    align-items:flex-end;
+
+    /* Khe 2px bằng MÀU NỀN tách hai cột cạnh nhau — không viền quanh cột, vì
+       viền là mực thừa không mang dữ liệu */
+    gap:2px;
+}
+
+.dash-col{
+
+    position:relative;
+
+    flex:1 1 0;
+
+    min-width:0;
+
+    /* Vùng chạm cao hết khung, không phải mấy pixel của riêng cái cột thấp tè:
+       người đọc nhắm vào một NGÀY, không nhắm vào một hình chữ nhật 3px */
+    height:100%;
+
+    display:flex;
+
+    align-items:flex-end;
+
+    justify-content:center;
+
+    cursor:default;
+}
+
+.dash-col__stack{
+
+    display:flex;
+
+    flex-direction:column-reverse;
+
+    justify-content:flex-start;
+
+    width:100%;
+
+    /* Cột không bao giờ dày quá 24px — để trống phần dư của ô là cố ý, mảng màu
+       dày đặc đọc rất ồn */
+    max-width:24px;
+
+    height:100%;
+}
+
+.dash-col__seg{
+
+    width:100%;
+
+    min-height:2px;
+}
+
+/* Khe 2px giữa hai đoạn của cùng một cột, cùng bề rộng với khe giữa các cột */
+.dash-col__seg + .dash-col__seg{
+
+    margin-bottom:2px;
+}
+
+/* Ngày không có gì: một vạch mờ sát đáy. Bỏ trắng hẳn thì không phân biệt được
+   "hôm đó im lặng" với "khoảng này chưa có dữ liệu". */
+.dash-col__zero{
+
+    position:absolute;
+
+    bottom:0;
+
+    width:100%;
+
+    max-width:24px;
+
+    height:2px;
+
+    background:var(--dash-grid);
+}
+
+.dash-col--on .dash-col__stack{
+
+    filter:brightness(1.12);
+}
+
+.dash-col--on::before{
+
+    content:"";
+
+    position:absolute;
+
+    inset:0;
+
+    background:rgba(42,120,214,.07);
+
+    border-radius:4px;
+}
+
+/* Bảng đọc nhanh khi rê chuột hoặc di bằng phím mũi tên. Nó BỔ SUNG chứ không
+   phải đường duy nhất để lấy số — nút "Xem bảng số liệu" cho đủ mọi giá trị. */
+.dash-tip{
+
+    position:absolute;
+
+    bottom:calc(100% + 8px);
+
+    /* Vị trí ngang (left + translateX) do JSX đặt: căn giữa cột ở khoảng giữa,
+       nhưng NEO THEO MÉP khi cột nằm sát rìa, nếu không bảng bị cắt mất một nửa */
+
+    min-width:150px;
+
+    padding:10px 12px;
+
+    border-radius:12px;
+
+    background:#2D3553;
+
+    color:#fff;
+
+    font-size:12.5px;
+
+    line-height:1.5;
+
+    white-space:nowrap;
+
+    pointer-events:none;
+
+    box-shadow:0 8px 22px rgba(45,53,83,.28);
+
+    z-index:3;
+}
+
+.dash-tip__day{
+
+    margin-bottom:5px;
+
+    font-weight:700;
+
+    color:#C9D3EE;
+}
+
+.dash-tip__row{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:7px;
+}
+
+/* Trong bảng đọc nhanh, GIÁ TRỊ mới là thứ nổi bật, tên chuỗi chỉ đi kèm —
+   ngược với chú giải, vì tới đây người đọc đã biết chuỗi nào và đang cần số. */
+.dash-tip__row strong{
+
+    font-size:14px;
+
+    font-variant-numeric:tabular-nums;
+}
+
+.dash-tip__row span{
+
+    color:#B9C4E2;
+}
+
+/* Khoá màu trong bảng đọc nhanh là một GẠCH ngắn, không phải ô vuông đặc: ở mật
+   độ này ô đặc là mực nặng làm việc của một cái nhãn */
+.dash-tip__key{
+
+    width:12px;
+
+    height:3px;
+
+    border-radius:2px;
+
+    flex:none;
+}
+
+.dash-chart__xaxis{
+
+    display:flex;
+
+    gap:2px;
+
+    margin:8px 0 0 48px;
+
+    height:16px;
+}
+
+.dash-chart__tick{
+
+    position:relative;
+
+    flex:1 1 0;
+
+    min-width:0;
+}
+
+/* Nhãn ngày căn giữa cột của nó và được phép tràn ra ngoài ô hẹp — cắt cụt thì
+   mất luôn ngày, mà đây là thứ duy nhất định vị trục ngang */
+.dash-chart__tick i{
+
+    position:absolute;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    font-style:normal;
+
+    font-size:11.5px;
+
+    font-variant-numeric:tabular-nums;
+
+    white-space:nowrap;
+
+    color:var(--dash-muted);
+}
+
+/* Chỉ dành cho trình đọc màn hình — nội dung giống hệt cái chuột thấy */
+.dash-sr{
+
+    position:absolute;
+
+    width:1px;
+
+    height:1px;
+
+    margin:-1px;
+
+    padding:0;
+
+    overflow:hidden;
+
+    clip:rect(0 0 0 0);
+
+    white-space:nowrap;
+
+    border:0;
+}
+
+/* --- Dòng thanh ngang ----------------------------------------------------- */
+
+.dash-risks,
+.dash-cats,
+.dash-classbars{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
+
+    margin-top:12px;
+}
+
+.dash-barrow{
+
+    display:grid;
+
+    grid-template-columns:minmax(120px,1.35fr) minmax(60px,2.6fr) auto auto;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:13.5px;
+}
+
+.dash-barrow__label{
+
+    color:var(--dash-ink-2);
+
+    line-height:1.35;
+
+    overflow-wrap:anywhere;
+}
+
+.dash-barrow--stack .dash-barrow__label strong{
+
+    display:block;
+
+    color:var(--dash-ink);
+}
+
+.dash-barrow--stack .dash-barrow__label em{
+
+    display:block;
+
+    font-style:normal;
+
+    font-size:12px;
+
+    color:var(--dash-muted);
+}
+
+.dash-barrow__track{
+
+    display:flex;
+
+    height:14px;
+
+    /* Khe 2px giữa hai đoạn, đúng bằng khe của biểu đồ cột */
+    gap:2px;
+
+    border-radius:4px;
+}
+
+.dash-barrow__track > i{
+
+    height:100%;
+
+    border-radius:0 4px 4px 0;
+
+    min-width:2px;
+
+    transition:width .25s;
+}
+
+/* Đoạn đầu của thanh chồng vuông ở gốc, chỉ đoạn CUỐI mới bo — bo cả hai thì
+   chỗ nối lõm vào trông như thiếu mất một mẩu */
+.dash-barrow--stack .dash-barrow__seg:first-child{
+
+    border-radius:0;
+}
+
+.dash-barrow__value{
+
+    min-width:34px;
+
+    text-align:right;
+
+    font-weight:800;
+
+    font-variant-numeric:tabular-nums;
+
+    color:var(--dash-ink);
+}
+
+.dash-barrow__note{
+
+    min-width:46px;
+
+    text-align:right;
+
+    font-size:12.5px;
+
+    font-variant-numeric:tabular-nums;
+
+    color:var(--dash-muted);
+}
+
+/* --- Bảng ----------------------------------------------------------------- */
+
+.dash-table{
+
+    font-size:14px;
+}
+
+.dash-table td{
+
+    font-variant-numeric:tabular-nums;
+}
+
+.dash-table td:first-child,
+.dash-table th:first-child{
+
+    font-variant-numeric:normal;
+}
+
+/* Nút mở rộng dưới bảng dài */
+.dash-more{
+
+    display:flex;
+
+    justify-content:center;
+
+    padding:14px 0 2px;
+}
+
+.dash-gap{
+
+    color:#B5651D;
+
+    font-weight:600;
+}
+
+.dash-high-cell{
+
+    color:#B3312F;
+
+    font-weight:700;
+
+    white-space:nowrap;
+}
+
+@media(max-width:768px){
+
+    .dash-filters__custom{
+
+        margin-left:0;
+    }
+
+    .dash-card{
+
+        padding:16px 13px;
+    }
+
+    .dash-barrow{
+
+        grid-template-columns:1fr auto auto;
+
+        row-gap:5px;
+    }
+
+    /* Trên màn hẹp, thanh xuống hẳn một dòng riêng chạy hết bề ngang thay vì bị
+       bóp còn vài pixel */
+    .dash-barrow__track{
+
+        grid-column:1 / -1;
+
+        order:3;
+    }
+}
+
+/* Máy người dùng đặt "giảm chuyển động" thì bỏ hẳn hiệu ứng chạy thanh */
+@media(prefers-reduced-motion:reduce){
+
+    .dash-barrow__track > i,
+    .dash-body{
+
+        transition:none;
+    }
+}

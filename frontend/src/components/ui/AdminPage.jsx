@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { ADMIN_GUEST_MODE_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
 import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
+import AdminDashboard from "./AdminDashboard";
 import AlertEmailModal from "./AlertEmailModal";
 import "../../styles/AdminPage.css";
 
@@ -56,6 +57,11 @@ export default function AdminPage() {
   // ngay trước mắt quản trị viên rồi khiến họ tưởng mình vừa bấm nhầm.
   const [guestMode, setGuestMode] = useState(null);
   const [guestModeSaving, setGuestModeSaving] = useState(false);
+
+  // Nút "Tải lại" ở đầu trang phải làm mới CẢ bảng điều khiển. Bảng đó tự quản
+  // khoảng ngày của nó nên trang này không gọi API hộ được — tăng số đếm là cách
+  // bảo nó tải lại mà không phải kéo state khoảng ngày lên đây.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadGuestMode = useCallback(async () => {
     try {
@@ -228,6 +234,7 @@ export default function AdminPage() {
               loadUsers();
               // Tải lại cả công tắc: có thể quản trị viên khác vừa đổi ở máy họ
               loadGuestMode();
+              setRefreshKey((n) => n + 1);
             }}
           >
             Tải lại
@@ -291,6 +298,13 @@ export default function AdminPage() {
           </ul>
         </section>
       )}
+
+      {/* Bảng điều khiển. Đặt SAU khối chờ duyệt vì khối đó là việc phải làm
+          ngay, còn đây là để nắm tình hình — nhưng trên mọi thứ còn lại, vì nó
+          trả lời câu hỏi "hệ thống đang ra sao" mà các bảng dưới chỉ trả lời
+          được từng dòng một. Khối chờ duyệt chỉ hiện khi thật sự có người chờ,
+          nên phần lớn thời gian đây vẫn là thứ đầu tiên đập vào mắt. */}
+      <AdminDashboard onError={setError} refreshKey={refreshKey} />
 
       {/* Công tắc chế độ khách. Đặt trên bảng tài khoản vì nó tác động tới MỌI
           người vào web, còn bảng dưới là việc của từng tài khoản một. */}
