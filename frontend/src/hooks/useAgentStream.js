@@ -6,7 +6,7 @@
 import { useCallback, useRef, useState } from "react";
 import { CHAT_STREAM_URL } from "../config/api";
 import { getAgent, groupLabel, SUPERVISOR_ID } from "../constants/agents";
-import { SYSTEM_DOWN_MESSAGE } from "../constants/systemMessages";
+import { RATE_LIMIT_MESSAGE, SYSTEM_DOWN_MESSAGE } from "../constants/systemMessages";
 
 let messageSeq = 0;
 const nextId = () => `m${++messageSeq}`;
@@ -253,6 +253,22 @@ export function useAgentStream() {
 
         if (!res.ok || !res.body) {
           const detail = await res.json().catch(() => null);
+
+          // 429 = chạm hạn mức lượt hỏi. Đây KHÔNG phải hỏng hóc, nên nó không đi
+          // đường lỗi: máy chủ gửi lên một câu nói hoàn chỉnh ("thử lại sau N
+          // phút...") và câu đó hiện thành bong bóng của Larry như mọi câu khác.
+          // Đẩy nó vào dải cảnh báo đỏ thì em đọc được một thông báo lỗi lạnh lùng
+          // giữa lúc đang tâm sự — trong khi thứ thật sự xảy ra chỉ là nghỉ giải lao.
+          if (res.status === 429) {
+            setStreaming(null);
+            appendMessage({
+              sender: "ai",
+              agent: SUPERVISOR_ID,
+              text: detail?.error || RATE_LIMIT_MESSAGE
+            });
+            return;
+          }
+
           throw new Error(detail?.error || `HTTP ${res.status}`);
         }
 

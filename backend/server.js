@@ -62,6 +62,7 @@ const { createVoiceRouter } = require("./routes/voice");
 const { hasApiKey } = require("./agents/llm");
 const { chatModel, sttModel, ttsModel, missingBackgroundModels } = require("./models");
 const { voiceStatus } = require("./voice");
+const { rateLimitStatus } = require("./rateLimit");
 const {
   AGENTS,
   SUPERVISOR,
@@ -92,6 +93,17 @@ try {
 } catch (err) {
   console.warn(`⚠️  Không tạo được quản trị viên từ ADMIN_*: ${err.message}`);
 }
+
+// Render (và mọi PaaS khác) đặt một reverse proxy trước ứng dụng, nên địa chỉ
+// nhìn thấy trực tiếp luôn là địa chỉ của proxy. Bật trust proxy thì Express đọc
+// X-Forwarded-For/Proto và req.ip trở lại thành địa chỉ THẬT của người dùng —
+// thứ hạn mức lượt hỏi cần khi chưa xác định được tài khoản, và thứ cookie
+// secure cần để biết kết nối gốc có phải HTTPS không.
+//
+// Đặt 1 (tin đúng một tầng proxy) chứ không đặt true: tin tất cả nghĩa là ai gửi
+// kèm X-Forwarded-For giả cũng tự chọn được địa chỉ cho mình. Chạy ở máy cá nhân
+// thì dòng này không đổi gì cả.
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(cors({ origin: true }));
@@ -339,8 +351,24 @@ app.post("/api/login", async (req, res) => {
 // đặt sau authenticateToken. Chỉ trả những gì người lạ được biết (xem
 // getPublicSettings trong settings.js).
 app.get("/api/settings", (req, res) => {
-  res.json(getPublicSettings());
+  res.json({
+    ...getPublicSettings(),
+    // Trang đăng nhập vẽ nút loa dựa vào đây. Nó phải hỏi được TRƯỚC khi đăng
+    // nhập, nên không dùng chung đường /api/voice/config (đường đó nằm sau
+    // authenticateToken). Chỉ là hai giá trị đúng/sai về cấu hình máy chủ —
+    // không lộ tên model hay khoá API.
+    voice: publicVoiceStatus()
+  });
 });
+
+// Micro và loa có dùng được không. Thiếu khoá API thì tắt cả hai dù đã khai tên
+// model — giống hệt cách routes/voice.js quyết định, để nút hiện ra ở đâu cũng
+// theo cùng một điều kiện.
+function publicVoiceStatus() {
+  const status = voiceStatus();
+  const keyed = hasApiKey();
+  return { stt: status.stt && keyed, tts: status.tts && keyed };
+}
 
 // Guest endpoint — vào chat ngay, không cần tài khoản.
 // Vẫn phát JWT để /chat giữ nguyên cơ chế bảo vệ, chỉ khác là không ghi vào account.json.
@@ -1002,6 +1030,8 @@ app.get("/api/health", (req, res) => {
       agentsPerTurn: 1,
       maxProbeTurns: MAX_PROBE_TURNS
     },
+    // Hạn mức lượt hỏi mỗi tài khoản (xem rateLimit.js)
+    rateLimit: rateLimitStatus(),
     accounts: users.length,
     sessions: sessions.length
   });
@@ -1092,6 +1122,15 @@ app.listen(PORT, () => {
   console.log(
     `Định tuyến     : đúng 1 agent/lượt (ưu tiên cao nhất), ` +
       `tối đa ${MAX_PROBE_TURNS} lượt khai thác`
+  );
+  const limit = rateLimitStatus();
+  console.log(
+    `Hạn mức lượt hỏi: ${
+      limit.enabled
+        ? `${limit.maxTurns} lượt / ${limit.windowMinutes} phút cho mỗi tài khoản ` +
+          `(lượt Larry chào đếm riêng: ${limit.maxGreetings})`
+        : "TẮT (CHAT_RATE_LIMIT_MAX=0)"
+    }`
   );
   console.log(`Tài khoản: ${users.length} — lưu tại ${ACCOUNTS_FILE}`);
 

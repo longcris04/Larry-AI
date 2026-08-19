@@ -6,15 +6,18 @@ import { useAuth } from "../../context/AuthContext";
 import AuthInput from "./AuthInput";
 import GradientButton from "./GradientButton";
 import PlayfulBackground from "./PlayfulBackground";
-import { useGuestMode } from "../../hooks/useGuestMode";
+import SpeakerToggle from "./SpeakerToggle";
+import { usePublicSettings } from "../../hooks/usePublicSettings";
 import { ROLES } from "../../constants/roles";
 import "../../styles/AuthForms.css";
 
 export default function Login() {
   const { login, loginAsGuest } = useAuth();
 
-  // Quản trị viên tắt chế độ khách thì cả khối "hoặc → Trò chuyện ngay" biến mất
-  const { guestMode, loading: guestModeLoading } = useGuestMode();
+  // Một lần hỏi máy chủ, hai câu trả lời:
+  //   guestMode  — tắt thì cả khối "hoặc → Trò chuyện ngay" biến mất
+  //   voice.tts  — máy chủ chưa khai TTS_MODEL thì không vẽ nút loa
+  const { guestMode, voice, loading: settingsLoading } = usePublicSettings();
 
   // Vừa đăng ký xong thì Register.jsx điều hướng về đây, kèm sẵn số điện thoại
   const { state } = useLocation();
@@ -93,6 +96,14 @@ export default function Login() {
           <p className="auth-subtitle">
             Đăng nhập để bắt đầu trò chuyện cùng Larry
           </p>
+
+          {/* GIỌNG NÓI CỦA LARRY — chọn trước khi vào chat.
+              Đặt ở đây chứ không chỉ để trong khung chat vì hai lý do. Một: mặc
+              định là TẮT, nên em nào không thấy nút này sẽ không bao giờ biết
+              Larry biết nói. Hai: bật sẵn từ đây thì lời chào đầu tiên đã có
+              tiếng — bật khi Larry đang chào thì câu đó đã trôi qua rồi.
+              Lựa chọn được nhớ lại, và nút ở đầu khung chat vẫn đổi được. */}
+          {!settingsLoading && voice.tts && <SpeakerToggle variant="pill" />}
 
           {justRegistered && !error && (
             <div className={`auth-success${pendingApproval ? " auth-success--pending" : ""}`}>
@@ -195,7 +206,7 @@ export default function Login() {
               Cả khối này do quản trị viên bật/tắt. Tắt thì gỡ luôn cả dấu phân
               cách "hoặc" — để lại một chữ "hoặc" lửng lơ giữa form và dòng "Chưa
               có tài khoản?" trông như trang bị vỡ. */}
-          {!guestModeLoading && guestMode && (
+          {!settingsLoading && guestMode && (
             <>
               <div className="auth-divider">
                 <span>hoặc</span>

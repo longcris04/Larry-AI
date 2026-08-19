@@ -4,6 +4,11 @@
 // Học sinh tắt loa, máy không có loa, hay đang ngồi trong lớp im lặng thì cuộc
 // trò chuyện không mất gì cả.
 //
+// MẶC ĐỊNH TẮT, và khi tắt thì KHÔNG một lời gọi TTS nào được phát đi — feed()
+// và pump() dừng ngay ở dòng đầu. Đây là chỗ tiết kiệm tiền thật sự: em nào
+// không bấm nút loa thì lượt chat của em đó không sinh ra chi phí TTS nào cả.
+// Lựa chọn tắt/bật nằm ở utils/voicePref.js vì trang đăng nhập cũng bấm được nó.
+//
 // CÁCH CHẠY: không đợi Larry viết xong cả đoạn rồi mới đọc. Chữ chảy về tới đâu,
 // câu nào xong thì đem đi sinh tiếng ngay tới đó (xem utils/speechChunks.js), rồi
 // phát nối tiếp nhau:
@@ -21,9 +26,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VOICE_TTS_URL } from "../config/api";
 import { extractChunks } from "../utils/speechChunks";
-
-// Nhớ lựa chọn tắt/bật loa giữa các lần vào app
-const MUTE_KEY = "larry.voice.muted";
+import { useVoiceMuted } from "./useVoiceMuted";
 
 // Số đoạn được sinh song song, tính từ đoạn đang đọc. Sinh tiếng nhanh gần bằng
 // tốc độ đọc, nên chỉ tải trước đúng một đoạn là vừa đủ hụt hơi mỗi lần model
@@ -31,16 +34,9 @@ const MUTE_KEY = "larry.voice.muted";
 // đọc xong, đoạn 2 và 3 thường đã nằm sẵn.
 const LOOKAHEAD = 3;
 
-function readMuted() {
-  try {
-    return localStorage.getItem(MUTE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
 export function useSpeaker({ enabled }) {
-  const [muted, setMuted] = useState(readMuted);
+  // Lựa chọn dùng chung với nút loa ở trang đăng nhập — xem utils/voicePref.js
+  const { muted, toggleMuted } = useVoiceMuted();
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState("");
 
@@ -251,20 +247,12 @@ export function useSpeaker({ enabled }) {
     []
   );
 
-  const toggleMuted = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(MUTE_KEY, String(next));
-      } catch {
-        /* chế độ riêng tư chặn localStorage — vẫn tắt/bật được trong phiên này */
-      }
-      mutedRef.current = next;
-      // Tắt loa giữa chừng thì im NGAY, không đọc nốt đoạn đang dở
-      if (next) stopRef.current();
-      return next;
-    });
-  }, []);
+  // Tắt loa giữa chừng thì im NGAY, không đọc nốt đoạn đang dở. Nghe theo GIÁ TRỊ
+  // chứ không gắn vào nút bấm: nút có thể được bấm ở tab khác hoặc ở trang đăng
+  // nhập, và cả hai đường đó cũng phải làm Larry im ngay lập tức.
+  useEffect(() => {
+    if (muted) stopRef.current();
+  }, [muted]);
 
   // Rời màn hình chat mà tiếng còn đang phát thì phải tắt theo
   useEffect(() => stop, [stop]);

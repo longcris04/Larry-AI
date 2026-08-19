@@ -114,9 +114,16 @@ AGENT_HOMEROOM_MODEL=google/gemini-2.5-flash-lite
 SUMMARY_MODEL=google/gemini-2.5-flash
 ALERT_MODEL=google/gemini-2.5-flash
 
-# Giọng nói (tuỳ chọn) — bỏ trống thì app chỉ gõ chữ như trước
+# Giọng nói (tuỳ chọn) — bỏ trống thì app chỉ gõ chữ như trước.
+# Khai xong loa vẫn TẮT sẵn ở phía học sinh; em nào muốn nghe thì tự bấm nút loa.
 STT_MODEL=nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b
 TTS_MODEL=google/gemini-3.1-flash-tts-preview
+
+# Hạn mức lượt hỏi mỗi tài khoản (mặc định 20 lượt / 10 phút — xem mục 10).
+# Lượt Larry chào đếm bằng túi riêng, không ăn vào 20 lượt này.
+# CHAT_RATE_LIMIT_MAX=20
+# CHAT_RATE_LIMIT_WINDOW_MINUTES=10
+# CHAT_RATE_LIMIT_GREETING_MAX=6
 
 PORT=5000
 JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
@@ -144,6 +151,9 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `TTS_VOICE` | – | `Kore` | Giọng đọc của Larry. Mỗi model TTS có bộ giọng riêng. |
 | `STT_LANGUAGE` | – | `vi` | Ngôn ngữ gợi ý cho model nghe. Để trống thì model tự đoán. |
 | `VOICE_TIMEOUT_MS` | – | `45000` | Hạn giờ mỗi lần gọi model giọng nói. |
+| `CHAT_RATE_LIMIT_MAX` | – | `20` | Số lượt chat tối đa của **một tài khoản** trong một cửa sổ. Đặt `0` để tắt hẳn (xem mục 10). |
+| `CHAT_RATE_LIMIT_WINDOW_MINUTES` | – | `10` | Độ dài cửa sổ tính hạn mức, tính bằng phút. |
+| `CHAT_RATE_LIMIT_GREETING_MAX` | – | `6` | Trần riêng cho **lượt Larry chào** (mở khung chat, học sinh chưa gõ gì). Đếm tách khỏi `CHAT_RATE_LIMIT_MAX`. |
 | `OPENROUTER_MODEL` | – | – | Tên **cũ** của `CHAT_MODEL`, chỉ dùng khi `CHAT_MODEL` không có. |
 | `PORT` | – | `5000` | Cổng backend. Trên Render/Railway thì **đừng đặt** — nền tảng tự tiêm. |
 | `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | – | – | Tự tạo quản trị viên lúc khởi động, dùng khi nơi deploy không mở được terminal. |
@@ -719,6 +729,77 @@ Response vẫn là HTTP 200 kèm `fallback: true` và một field `warning` mô 
 
 Đổi email hỗ trợ qua biến `SUPPORT_EMAIL` trong `backend/.env`, và sửa cùng lúc [frontend/src/constants/systemMessages.js](frontend/src/constants/systemMessages.js) để hai bên khớp nhau.
 
+### Hạn mức lượt hỏi — 20 lượt / 10 phút cho mỗi tài khoản
+
+Mỗi lượt chat là một chuỗi lời gọi model **có trả tiền** (supervisor đánh giá → agent trả lời → tóm tắt chạy nền), nên một em bấm gửi liên tục — hay một script gọi thẳng API — đốt tiền nhanh hơn nhiều so với một cuộc trò chuyện thật. [backend/rateLimit.js](backend/rateLimit.js) là cái phanh cho chuyện đó.
+
+**Lượt Larry chào được miễn.** Mở khung chat là một lượt gọi model, nhưng nó không phải câu hỏi của học sinh — em vào chat, bấm sang trò chơi rồi quay lại, hay tải lại trang vì mạng chập chờn, thì 20 lượt hỏi của em vẫn còn nguyên. Hai loại lượt đó đếm bằng **hai túi riêng**:
+
+| Túi | Là lượt nào | Trần |
+|---|---|---|
+| `turn` — **lượt hỏi** | `message` có chữ: em gõ một câu và gửi đi | 20 / 10 phút |
+| `greeting` — **lượt chào** | `message` rỗng: mở màn hình chat, Larry nói trước | 6 / 10 phút, **đếm riêng** |
+
+Hết lượt hỏi thì em vẫn **vào được khung chat và nghe Larry chào**; chỉ câu hỏi tiếp theo mới phải chờ. Ngược lại, dùng hết lượt chào cũng không mất câu hỏi nào.
+
+Lượt chào vẫn có trần vì nó gọi supervisor + agent y hệt một câu hỏi — miễn hẳn thì chỉ cần gửi liên tục `message` rỗng là tiêu tiền không giới hạn, đúng cái mà hạn mức sinh ra để chặn. Sáu lần mở khung chat trong 10 phút gần như không bao giờ chạm tới khi dùng thật. Và việc phân loại đọc từ **nội dung** `message`, không từ một cờ do client tự khai (kiểu `greeting: true`) — cờ đó thì ai cũng đặt được cho mọi request, và cả hạn mức biến mất bằng một dòng JSON.
+
+Chạm trần túi nào cũng nhận đúng một câu, **hiện thành bong bóng của Larry** như mọi câu khác:
+
+> Bạn hãy thử lại sau **7** phút! Larry cần nghỉ ngơi một chút rồi mình cùng tiếp tục nói chuyện nhé!
+
+Con số phút là **thật**, tính từ lúc lượt cũ nhất rời khỏi cửa sổ, nên nó đếm lùi dần chứ không đứng im ở "10 phút".
+
+| Điều | Cách làm | Vì sao |
+|---|---|---|
+| Đếm theo **tài khoản** | Khoá là `user:<id>` lấy từ JWT | Đếm theo IP thì cả một phòng máy trong trường đi chung một địa chỉ — em đầu tiên dùng hết hạn mức của cả lớp. Khách chưa đăng nhập cũng có id riêng trong token nên mỗi phiên khách là một "tài khoản" độc lập. |
+| **Cửa sổ trượt**, không phải cửa sổ cố định | Nhớ mốc thời gian của từng lượt | Cửa sổ cố định (đếm lại từ 0 mỗi 10 phút) cho phép dồn 20 lượt cuối cửa sổ này với 20 lượt đầu cửa sổ sau — 40 lượt trong chớp mắt, đúng thứ hạn mức sinh ra để chặn. |
+| Chặn ở **máy chủ** | Middleware trước handler | Giao diện khoá nút gửi thì cũng chỉ là khoá ở trình duyệt; ai biết địa chỉ API vẫn gọi thẳng vào được. |
+| **Lượt chào đếm riêng** | Túi `greeting`, nhận diện bằng `message` rỗng | Vào chat rồi quay lại không phải là một câu hỏi. Tính chung thì em bị cụt cuộc trò chuyện vì những việc mình không làm. |
+| Không đụng `/api/session/end` | Chỉ gắn vào `/chat/stream` và `/chat` | Chốt phiên chạy một lần lúc học sinh rời màn hình. Chặn nó nghĩa là mất bản tóm tắt của **chính cuộc trò chuyện vừa chạm hạn mức** — mất đúng thứ giáo viên cần xem nhất. |
+
+Response là **HTTP 429** kèm `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` và `X-RateLimit-Bucket` (đọc header cuối là biết ngay vì sao còn 19 lượt hỏi mà vẫn bị chặn):
+
+```jsonc
+{
+  "error": "Bạn hãy thử lại sau 7 phút! Larry cần nghỉ ngơi một chút rồi mình cùng tiếp tục nói chuyện nhé!",
+  "rateLimited": true,
+  "retryAfterSeconds": 383,
+  "retryAfterMinutes": 7,
+  "bucket": "turn",          // "turn" = hết lượt hỏi, "greeting" = hết lượt chào
+  "limit": 20,
+  "windowMinutes": 10
+}
+```
+
+Frontend ([useAgentStream.js](frontend/src/hooks/useAgentStream.js)) xử lý 429 **khác hẳn đường lỗi**: nó không hiện `SYSTEM_DOWN_MESSAGE` và không bật dải cảnh báo đỏ, mà đưa thẳng câu trên vào khung chat như lời Larry nói. Đây không phải hỏng hóc — thứ thật sự xảy ra chỉ là nghỉ giải lao.
+
+```bash
+# Thử nhanh: lượt thứ 21 trong 10 phút.
+# message PHẢI có chữ — gửi rỗng là rơi vào túi lượt chào, đếm chỗ khác.
+for i in $(seq 1 21); do
+  curl -s -o /dev/null -w "$i → %{http_code}\n" -X POST http://localhost:5000/chat/stream \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d '{"sessionId":"s","message":"xin chao"}'
+done
+# 1..20 → 200
+# 21    → 429
+```
+
+Đổi mức bằng `CHAT_RATE_LIMIT_MAX` / `CHAT_RATE_LIMIT_WINDOW_MINUTES`, hoặc đặt `CHAT_RATE_LIMIT_MAX=0` để tắt hẳn (chỉ nên làm ở máy cá nhân lúc chạy thử). Trạng thái hiện ở log lúc khởi động và ở `/api/health`.
+
+Phần đếm có bài kiểm tra riêng, chạy bằng bộ test có sẵn của Node (**không thêm thư viện nào**):
+
+```bash
+cd backend
+npm run test:ratelimit     # 8 bài: đếm đúng số lượt, cửa sổ trượt, hai tài khoản tách nhau,
+                           #        lượt chào không ăn vào lượt hỏi, câu báo hết lượt
+```
+
+> Khách chưa đăng nhập có một **chỗ hở đã biết**: id của khách sinh mới mỗi lần bấm "Trò chuyện ngay", nên bấm lại là có hạn mức mới. Tài khoản có đăng nhập thì không — id nằm trong `account.json` và không đổi. Ai lo tiền thật thì tắt chế độ khách trong trang quản trị.
+
+> **Chạy nhiều instance thì sao?** Bộ đếm nằm trong bộ nhớ tiến trình, nên mỗi instance đếm riêng — hạn mức thật sẽ thành `20 × số instance`. Render gói free chạy đúng một instance nên không ảnh hưởng; khi nào bật autoscale thì phải thay `Map` trong `rateLimit.js` bằng Redis. Khởi động lại cũng xoá bộ đếm — đánh đổi có chủ ý, nhẹ hơn nhiều so với ghi đĩa ở mọi lượt chat.
+
 ---
 
 ## 11. Trang giới thiệu công khai
@@ -804,7 +885,8 @@ Máy trạng thái của hàng đợi có bộ test riêng: `npm test -- --testP
 | 🎤 | bình thường | Bấm để bắt đầu nói |
 | ⏹️ đỏ, đập nhịp | đang thu | Micro đang bật — bấm lần nữa để gửi |
 | vòng xoay | đang nhận dạng | Đã thu xong, chờ model đọc ra chữ |
-| 🔊 / 🔇 | ở đầu khung chat | Tắt/bật tiếng Larry, nhớ lại ở lần vào sau |
+| 🔇 | **mặc định** | Loa TẮT sẵn — chưa bấm thì **không lời gọi TTS nào được phát đi** |
+| 🔊 / 🔇 | ở đầu khung chat, và ở trang đăng nhập | Tắt/bật tiếng Larry, nhớ lại ở lần vào sau |
 | 🔊 + cột sóng | **loa đang phát** | Dải "Larry đang nói..." hiện dưới bong bóng cuối, tự tắt khi đọc xong |
 
 Dải báo đang nói ([SpeakingIndicator.jsx](frontend/src/components/ui/SpeakingIndicator.jsx)) cố ý dùng **cột sóng nhấp nhô**, khác với **ba chấm nảy** của lúc Larry đang nghĩ — chữ đã hiện đủ trên màn hình rồi, thứ đang chạy là tiếng nói, hai trạng thái đó không được lẫn vào nhau. Nó lấy màu theo trợ lý đang trả lời, và đứng yên nếu hệ điều hành bật `prefers-reduced-motion`.
@@ -813,6 +895,35 @@ Dải báo đang nói ([SpeakingIndicator.jsx](frontend/src/components/ui/Speaki
 - Đang thu hoặc đang nhận dạng thì **khoá ô gõ**: hai đường nhập cùng đổ vào một lượt chat.
 - Câu vừa nhận dạng **hiện lên thành bong bóng của học sinh** trước khi Larry trả lời — nghe nhầm thì em thấy ngay và nói lại được.
 - Tự dừng thu sau 60 giây; đoạn thu ngắn dưới nửa giây bị bỏ qua kèm lời nhắc (bấm nhầm là chuyện thường xuyên với học sinh nhỏ).
+
+### Loa mặc định TẮT — và tắt nghĩa là không tốn tiền
+
+Mỗi câu Larry nói là **một lần gọi model TTS có tính phí**, trong khi phần lớn học sinh ngồi trong lớp hoặc dùng máy không loa thì cũng không nghe. Bật sẵn cho tất cả nghĩa là trả tiền cho phần đông những người không dùng tới, nên mặc định là **tắt**:
+
+```
+Chưa bấm nút loa  →  useSpeaker.feed() dừng ngay ở dòng đầu
+                  →  không cắt câu, không gọi /api/voice/tts, không sinh byte âm thanh
+                  →  hoá đơn TTS của lượt chat đó = 0
+```
+
+Đây là **không gọi model**, không phải "gọi rồi hạ âm lượng xuống 0" — có một bài test giữ đúng điều đó ([useSpeaker.test.js](frontend/src/hooks/useSpeaker.test.js): *"mặc định là tắt tiếng — chưa ai bấm nút thì không gọi API"*).
+
+Nút loa đứng ở **hai nơi**:
+
+| Nơi | Dáng | Vì sao ở đó |
+|---|---|---|
+| Trang đăng nhập | Khối rộng có chữ *"Giọng nói của Larry — Đang tắt"* kèm công tắc | Mặc định tắt nên không có tiếng nào tự vang lên để gợi ý rằng Larry biết nói. Bật từ đây thì **lời chào đầu tiên đã có tiếng** — bật lúc Larry đang chào thì câu đó đã trôi qua rồi. |
+| Đầu khung chat | Nút tròn 🔊/🔇 cạnh tên Larry | Đổi ý giữa chừng: đang nghe mà vào lớp thì bấm một cái là Larry **im ngay**, không đọc nốt đoạn đang dở. |
+
+Hai nút đó là **một lựa chọn duy nhất**, không phải hai công tắc rời. Chúng nằm ở hai trang không có tổ tiên chung trong cây React (`/login` và `/chat`), nên state của React không nối được — chỗ chung là `localStorage` cộng một sự kiện để nơi này bấm thì nơi kia vẽ lại theo ([utils/voicePref.js](frontend/src/utils/voicePref.js)):
+
+```
+[nút ở trang đăng nhập] ──┐                 ┌──> [nút ở khung chat]
+                          ├─> localStorage ─┤
+[nút ở khung chat] ───────┘   + sự kiện     └──> [useSpeaker: gọi/không gọi TTS]
+```
+
+Lựa chọn được **nhớ lại giữa các lần vào app**, và mở app ở hai tab cũng không lệch trạng thái (nghe cả sự kiện `storage` của trình duyệt). Trang đăng nhập biết có nên vẽ nút hay không nhờ `/api/settings` — đường **công khai**, trả về đúng hai giá trị đúng/sai `{ stt, tts }`, không lộ tên model hay khoá API. Backend chưa khai `TTS_MODEL` thì nút không hiện ở cả hai nơi.
 
 ### Thiếu cấu hình thì sao?
 
@@ -907,6 +1018,32 @@ npm run build      # kết quả trong frontend/build/
 - **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `JWT_SECRET`, `CHAT_MODEL` (bắt buộc — không có giá trị mặc định trong code), các biến model của từng agent nếu muốn tách, `SUMMARY_MODEL`, `ALERT_MODEL`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó. Muốn có giọng nói thì thêm `STT_MODEL` và `TTS_MODEL` — bỏ trống thì app vẫn chạy, chỉ không có micro và loa.
 
 > ⚠️ Render/Railway gói free dùng ổ đĩa tạm — `account.json` sẽ bị xoá mỗi lần deploy lại hoặc khi dịch vụ ngủ dậy. Muốn giữ tài khoản trên server thật thì gắn persistent disk rồi trỏ `ACCOUNTS_FILE` vào đó, hoặc chuyển hẳn sang database.
+
+### Deploy lên Render — mấy chỗ dễ vấp
+
+| Chỗ | Cần gì |
+|---|---|
+| **Lệnh chạy** | Root directory `backend`, build `npm install`, start `npm start`. Không thêm thư viện nào mới cho hạn mức lượt hỏi — nó tự viết bằng một `Map`, nên `npm install` không đổi gì. |
+| **`PORT`** | **Đừng khai.** Render tự tiêm; code đọc `process.env.PORT` rồi mới rơi về 5000. |
+| **Reverse proxy** | Đã bật sẵn `app.set("trust proxy", 1)` trong [server.js](backend/server.js). Thiếu dòng này thì mọi request đều mang địa chỉ của proxy Render, và cookie `secure` không nhận ra kết nối gốc là HTTPS. Tin **đúng một tầng** chứ không tin tất cả — tin tất cả thì ai gửi kèm `X-Forwarded-For` giả cũng tự chọn được địa chỉ cho mình. |
+| **SSE không bị đệm** | Route `/chat/stream` đã gửi `X-Accel-Buffering: no` kèm 2KB đệm mở đầu — proxy của Render đệm response theo mặc định, thiếu hai thứ đó thì cả lượt trả lời về thành một cục. |
+| **Hạn mức lượt hỏi** | Chạy được ngay, không cần khai gì (mặc định 20 lượt / 10 phút). Chỉ khai `CHAT_RATE_LIMIT_MAX` / `CHAT_RATE_LIMIT_WINDOW_MINUTES` khi muốn đổi mức. Bộ đếm nằm trong bộ nhớ nên dịch vụ ngủ dậy là xoá sạch — xem lưu ý ở mục 10. |
+| **Nút loa** | Trang đăng nhập hỏi `/api/settings` để biết có vẽ nút không, mà `REACT_APP_API_URL` của frontend phải trỏ đúng backend đã deploy. Trỏ sai thì nút loa lẫn nút "Trò chuyện ngay" đều không hiện — không phải lỗi cấu hình model. |
+| **Giọng nói cần HTTPS** | Micro chỉ chạy trên `localhost` hoặc HTTPS. Render cấp HTTPS sẵn nên chỗ này không phải làm gì. |
+
+Kiểm lại sau khi deploy — một lệnh là thấy đủ:
+
+```bash
+curl -s https://<backend-cua-ban>.onrender.com/api/health | jq '{apiKey, voice, rateLimit}'
+# {
+#   "apiKey": "loaded",
+#   "voice": { "stt": true, "tts": true, "voice": "Kore", "language": "vi" },
+#   "rateLimit": { "enabled": true, "maxTurns": 20, "windowMinutes": 10, "tracked": 0 }
+# }
+
+curl -s https://<backend-cua-ban>.onrender.com/api/settings
+# {"guestMode":true,"voice":{"stt":true,"tts":true}}   ← trang đăng nhập đọc đúng cái này
+```
 
 ---
 

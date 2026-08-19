@@ -1,5 +1,11 @@
+import SpeakerToggle from "./SpeakerToggle";
+
 // speaker = null khi backend chưa khai TTS_MODEL — lúc đó không có nút loa nào,
 // và phần đầu khung chat giữ nguyên như trước.
+//
+// Nút loa tự giữ lấy trạng thái tắt/bật của nó (dùng chung với nút ở trang đăng
+// nhập, xem SpeakerToggle). Ở đây `speaker` chỉ còn trả lời đúng một câu: có vẽ
+// nút hay không — và dòng chữ dưới tên Larry đọc `speaking` để báo đang đọc.
 export default function ChatHeader({ speaker = null }) {
   return (
     <header className="chat-header">
@@ -16,18 +22,7 @@ export default function ChatHeader({ speaker = null }) {
         </p>
       </div>
 
-      {speaker && (
-        <button
-          type="button"
-          className={`speaker-btn ${speaker.muted ? "speaker-btn--muted" : ""}`}
-          onClick={speaker.toggleMuted}
-          aria-label={speaker.muted ? "Bật tiếng của Larry" : "Tắt tiếng của Larry"}
-          aria-pressed={!speaker.muted}
-          title={speaker.muted ? "Bật tiếng Larry" : "Tắt tiếng Larry"}
-        >
-          {speaker.muted ? "🔇" : "🔊"}
-        </button>
-      )}
+      {speaker && <SpeakerToggle variant="icon" />}
 
       <div className="chat-header__decor" aria-hidden="true">
         <span>🌈</span>

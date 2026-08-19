@@ -6,10 +6,14 @@
 //
 // Vùng nhớ hội thoại nằm ở checkpointer của graph (khoá theo sessionId), nên
 // client KHÔNG cần gửi lại toàn bộ history mỗi lượt như bản một-agent.
+//
+// Hai đường chat đi qua hạn mức lượt hỏi (xem ../rateLimit.js). /api/session/end
+// thì KHÔNG — nó chạy một lần lúc rời màn hình và chỉ để chốt bản tóm tắt.
 
 const express = require("express");
 
 const { authenticateToken, blockAdmin } = require("../auth");
+const { chatRateLimit } = require("../rateLimit");
 const { SYSTEM_DOWN_MESSAGE } = require("../fallback");
 const { sanitizeCheckin } = require("../agents/checkin");
 const { hasApiKey } = require("../agents/llm");
@@ -21,7 +25,14 @@ const MAX_MESSAGE_LENGTH = 2000;
 
 function createChatRouter({ getUserById } = {}) {
   const router = express.Router();
+
+  // Ai được vào: đã đăng nhập (hoặc là khách có token), và không phải tài khoản
+  // quản trị/giáo viên.
   const chatOnly = [authenticateToken, blockAdmin];
+
+  // Thêm cái phanh cho hai đường THẬT SỰ gọi model. Đặt sau authenticateToken vì
+  // hạn mức đếm theo tài khoản, mà tài khoản thì chỉ biết được sau khi đọc token.
+  const turnOnly = [...chatOnly, chatRateLimit()];
 
   // Tên để Larry XƯNG HÔ. Khác với tên hiện ở trang quản trị: ở đó một dãy số
   // cũng là thông tin nhận dạng hữu ích, còn ở đây nó biến thành câu "Chào
@@ -88,7 +99,7 @@ function createChatRouter({ getUserById } = {}) {
 
   // --- SSE ------------------------------------------------------------------
 
-  router.post("/chat/stream", ...chatOnly, async (req, res) => {
+  router.post("/chat/stream", ...turnOnly, async (req, res) => {
     const input = readTurnInput(req);
     if (input.error) return res.status(400).json({ error: input.error });
 
@@ -159,7 +170,7 @@ function createChatRouter({ getUserById } = {}) {
 
   // --- JSON một cục (dự phòng) ----------------------------------------------
 
-  router.post("/chat", ...chatOnly, async (req, res) => {
+  router.post("/chat", ...turnOnly, async (req, res) => {
     const input = readTurnInput(req);
     if (input.error) return res.status(400).json({ error: input.error });
 

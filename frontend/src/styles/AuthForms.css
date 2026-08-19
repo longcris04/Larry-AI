@@ -781,3 +781,182 @@
 
     opacity:.85;
 }
+
+/* --- Nút giọng nói của Larry (dáng "pill") ---------------------------------
+   Đứng giữa dòng phụ đề và form đăng nhập. To và có chữ, không phải một biểu
+   tượng nhỏ ở góc: đây là lần đầu học sinh nhìn thấy nó, và mặc định là TẮT nên
+   không có tiếng nào tự vang lên để gợi ý rằng Larry biết nói.
+
+   Cùng lúc, nó KHÔNG được to hơn nút "Đăng nhập" — việc chính của trang này vẫn
+   là đăng nhập. Vì vậy: nền nhạt, viền mảnh, không dùng gradient rực như
+   GradientButton. */
+
+.voice-pref{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    width:100%;
+
+    margin:0 0 26px;
+
+    padding:12px 16px;
+
+    border:2px solid #E4E8F0;
+
+    border-radius:var(--radius-lg, 30px);
+
+    background:#F8FAFF;
+
+    cursor:pointer;
+
+    text-align:left;
+
+    font-family:inherit;
+
+    transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.voice-pref:hover{
+
+    border-color:#C9D6F0;
+
+    background:#F2F7FF;
+}
+
+.voice-pref:focus-visible{
+
+    outline:none;
+
+    box-shadow:0 0 0 4px rgba(73,191,255,.28);
+}
+
+/* BẬT thì nút phải nhìn ra là đang bật ngay từ xa, không phải đọc chữ mới biết */
+.voice-pref--on{
+
+    border-color:rgba(73,191,255,.55);
+
+    background:linear-gradient(135deg,#EAF8FF 0%,#F5EEFF 100%);
+
+    box-shadow:0 6px 18px rgba(73,191,255,.18);
+}
+
+.voice-pref__icon{
+
+    flex-shrink:0;
+
+    width:38px;
+
+    height:38px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:var(--radius-circle, 50%);
+
+    background:#FFFFFF;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+
+    font-size:19px;
+}
+
+.voice-pref__text{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:2px;
+
+    color:#5A6A85;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    line-height:1.35;
+}
+
+/* Dòng dưới là phần học sinh thật sự đọc: đang tắt hay đang bật, và bấm thì sao */
+.voice-pref__text strong{
+
+    color:#7A859C;
+
+    font-size:13px;
+
+    font-weight:600;
+}
+
+.voice-pref--on .voice-pref__text strong{
+
+    color:#2F9BD6;
+}
+
+/* Công tắc chỉ để nhìn — vùng bấm là cả cái nút bao ngoài */
+.voice-pref__switch{
+
+    flex-shrink:0;
+
+    position:relative;
+
+    width:46px;
+
+    height:26px;
+
+    border-radius:var(--radius-pill, 999px);
+
+    background:#D8DEEA;
+
+    transition:background .2s ease;
+}
+
+.voice-pref--on .voice-pref__switch{
+
+    background:linear-gradient(90deg,#49BFFF 0%,#A56CFF 100%);
+}
+
+.voice-pref__knob{
+
+    position:absolute;
+
+    top:3px;
+
+    left:3px;
+
+    width:20px;
+
+    height:20px;
+
+    border-radius:var(--radius-circle, 50%);
+
+    background:#FFFFFF;
+
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+
+    transition:transform .2s ease;
+}
+
+.voice-pref--on .voice-pref__knob{
+
+    transform:translateX(20px);
+}
+
+/* Máy có bật "giảm chuyển động" thì bỏ phần trượt, chỉ đổi màu */
+@media (prefers-reduced-motion: reduce){
+
+    .voice-pref,
+    .voice-pref__switch,
+    .voice-pref__knob{
+
+        transition:none;
+    }
+}

@@ -30,6 +30,11 @@ class FakeAudio {
 }
 
 beforeEach(() => {
+  // Loa MẶC ĐỊNH TẮT (xem utils/voicePref.js) — không bật lên thì mọi bài dưới
+  // đây chỉ kiểm chứng đúng một điều: khi tắt thì không có gì chạy. Bài
+  // "mặc định tắt" ở cuối file mới là bài kiểm tra giá trị mặc định.
+  localStorage.setItem("larry.voice.muted", "false");
+
   played = [];
   requested = [];
   inFlight = 0;
@@ -59,6 +64,10 @@ beforeEach(() => {
     }
     return { ok: true, blob: async () => ({ __text: text }) };
   });
+});
+
+afterEach(() => {
+  localStorage.removeItem("larry.voice.muted");
 });
 
 // Chờ tới lúc đọc xong hẳn.
@@ -185,7 +194,47 @@ test("tắt tiếng thì không gọi API lần nào", async () => {
 
   expect(global.fetch).not.toHaveBeenCalled();
   expect(played).toHaveLength(0);
+});
+
+// Đây là bài giữ cho hoá đơn TTS không tự phình ra sau một lần sửa code: mặc định
+// phải là TẮT, và tắt nghĩa là KHÔNG GỌI API lần nào — chứ không phải gọi rồi hạ
+// âm lượng xuống 0. Ai lỡ tay đổi giá trị mặc định thì bài này đỏ ngay.
+test("mặc định là tắt tiếng — chưa ai bấm nút thì không gọi API", async () => {
   localStorage.removeItem("larry.voice.muted");
+
+  const { result } = renderHook(() => useSpeaker({ enabled: true }));
+
+  expect(result.current.muted).toBe(true);
+
+  await streamReply(result, REPLY);
+  await act(async () => {
+    await delay(30);
+  });
+
+  expect(global.fetch).not.toHaveBeenCalled();
+  expect(played).toHaveLength(0);
+});
+
+test("bấm nút loa thì đổi lựa chọn và nhớ lại cho lần sau", async () => {
+  localStorage.removeItem("larry.voice.muted");
+
+  const { result } = renderHook(() => useSpeaker({ enabled: true }));
+  expect(result.current.muted).toBe(true);
+
+  await act(async () => {
+    result.current.toggleMuted();
+  });
+
+  expect(result.current.muted).toBe(false);
+  expect(localStorage.getItem("larry.voice.muted")).toBe("false");
+
+  // Bấm lần nữa thì im lại, và lựa chọn vẫn được ghi xuống
+  await act(async () => {
+    result.current.toggleMuted();
+  });
+
+  expect(result.current.muted).toBe(true);
+  expect(localStorage.getItem("larry.voice.muted")).toBe("true");
 });
 
 // `speaking` là thứ duy nhất quyết định dải báo "Larry đang nói" hiện hay ẩn
