@@ -17,3 +17,18 @@ export const SYSTEM_DOWN_MESSAGE =
 export const RATE_LIMIT_MESSAGE =
   "Bạn hãy thử lại sau ít phút nhé! " +
   "Larry cần nghỉ ngơi một chút rồi mình cùng tiếp tục nói chuyện nhé!";
+
+// --- Quên mật khẩu ----------------------------------------------------------
+//
+// Chưa có luồng tự đặt lại mật khẩu: học sinh đăng ký bằng SỐ ĐIỆN THOẠI và
+// phần lớn để trống ô email, nên gửi link đặt lại qua email là gửi vào chỗ
+// không có ai. Cách duy nhất hiện nay là nhắn cho người quản trị, nên nút "Quên
+// mật khẩu?" nói thẳng ra điều đó thay vì mở một biểu mẫu không dẫn tới đâu.
+//
+// KHÁC với SUPPORT_EMAIL bên trên: đó là hòm thư nhận phản hồi khi hệ thống lỗi,
+// còn đây là hòm thư của người cấp lại được mật khẩu. Hai việc khác nhau nên hai
+// địa chỉ để riêng, đổi cái này không kéo theo cái kia.
+export const PASSWORD_RESET_EMAIL = "larryai.bluemoon@gmail.com";
+
+export const PASSWORD_RESET_HINT =
+  `hãy gửi email liên hệ tới ${PASSWORD_RESET_EMAIL} để được cấp lại mật khẩu!`;

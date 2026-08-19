@@ -65,6 +65,8 @@ Larry-AI/
 │       ├── utils/audio.js  # Đổi đoạn thu của trình duyệt sang WAV 16kHz mono
 │       ├── utils/speechChunks.js # Cắt câu trả lời thành đoạn để đọc sớm
 │       ├── utils/forceLayout.js  # Bố cục đồ thị bằng mô phỏng lực (tự viết)
+│       ├── utils/voicePref.js    # Nhớ lựa chọn tắt/bật giọng nói của Larry
+│       ├── utils/xlsx.js         # Dựng file .xlsx cho nút tải bảng (tự viết)
 │       ├── config/api.js   # Địa chỉ backend dùng chung
 │       ├── context/        # AuthContext (JWT)
 │       └── styles/
@@ -392,6 +394,18 @@ Quản trị viên và giáo viên chủ nhiệm là tài khoản quản lý/the
 >
 > Ô đầu tiên ở trang đăng nhập nhận **số điện thoại hoặc email** — tài khoản tạo trước khi đổi sang định danh bằng số vẫn vào được bằng email như cũ.
 
+### Quên mật khẩu
+
+Bấm **"Quên mật khẩu?"** ở trang đăng nhập thì hiện ra một dòng nhỏ ngay dưới nút:
+
+> hãy gửi email liên hệ tới **larryai.bluemoon@gmail.com** để được cấp lại mật khẩu!
+
+Địa chỉ đó bấm được (mở sẵn ứng dụng thư), và bấm nút lần nữa thì dòng chữ thu lại.
+
+**Vì sao không có luồng tự đặt lại mật khẩu?** Danh tính của tài khoản là **số điện thoại**, còn email thì không bắt buộc và phần lớn học sinh để trống (xem mục 7) — gửi link đặt lại qua email là gửi vào chỗ không có ai. Nên đường đi thật hiện nay là: học sinh nhắn cho quản trị viên → quản trị viên vào `/admin`, bấm **Sửa** ở dòng của em đó và đặt mật khẩu mới. Nút "Quên mật khẩu?" nói thẳng ra điều đó thay vì mở một biểu mẫu không dẫn tới đâu.
+
+Đổi địa chỉ ở [frontend/src/constants/systemMessages.js](frontend/src/constants/systemMessages.js) (`PASSWORD_RESET_EMAIL`). Nó cố ý **tách khỏi** `SUPPORT_EMAIL` — một bên là hòm thư nhận phản hồi khi hệ thống lỗi, một bên là hòm thư của người cấp lại được mật khẩu; đổi cái này không nên kéo theo cái kia.
+
 ### Vai trò giáo viên chủ nhiệm
 
 **Đăng ký.** Ngay đầu form [đăng ký](frontend/src/components/ui/Register.jsx) có hai nút **🎒 Học sinh** / **🍎 Giáo viên chủ nhiệm** — chọn nút nào thì bộ câu hỏi bên dưới đổi theo. Giáo viên khai: họ tên, ngày sinh, **trường** và **lớp chủ nhiệm**. Hai field cuối là **bắt buộc** vì chúng chính là thứ dùng để ghép thầy cô với học sinh. Email vẫn không bắt buộc như mọi tài khoản khác, nhưng thầy cô **nên khai** — bản sao email cảnh báo về học sinh trong lớp gửi tới chính địa chỉ đó, bỏ trống thì tài khoản vẫn dùng được nhưng không nhận được bản sao nào (trang soạn email cảnh báo sẽ báo rõ điều này cho quản trị viên).
@@ -476,10 +490,11 @@ Log khởi động sẽ in `✅ Đã tạo quản trị viên từ biến môi t
 Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) cho phép:
 
 - **Xem** danh sách tài khoản kèm 3 cột Trường · Lớp · Khối, số phiên hội thoại và số phiên bị gắn cờ 🚩.
-- **Sửa** tên tài khoản, email, hồ sơ trường lớp, và đặt lại mật khẩu — kể cả tài khoản của chính mình.
+- **Sửa** tên tài khoản, email, hồ sơ trường lớp, và đặt lại mật khẩu — kể cả tài khoản của chính mình. Đây cũng là **cách duy nhất** để cấp lại mật khẩu cho người quên (xem *Quên mật khẩu* ở mục 8).
 - **Xoá** tài khoản (kèm toàn bộ lịch sử hội thoại của tài khoản đó).
 - **Bấm "Hội thoại"** để xem các phiên trò chuyện: thời gian bắt đầu/kết thúc, số tin nhắn, bản tóm tắt, mức độ 🚩 và nhóm dấu hiệu phát hiện được.
 - **Bấm "✉️ Cảnh báo GVCN"** ở phiên bị gắn cờ để AI soạn email cảnh báo, đọc lại rồi gửi cho giáo viên chủ nhiệm (xem cuối mục này).
+- **Bấm "⬇️ Tải Excel"** ở góc phải mỗi bảng để tải bảng đó về máy, file mang đúng tên bảng (xem *Tải bảng về máy dưới dạng Excel* bên dưới).
 
 **Cơ chế gắn cờ:** phiên được gắn cờ khi có **bất kỳ dấu hiệu tiêu cực nào** về học sinh — không chỉ bắt nạt/bạo lực học đường mà cả bị xâm hại, bạo hành gia đình, tự làm đau bản thân, suy sụp tinh thần, sợ hãi, suy nhược thể chất, áp lực học tập, cô đơn... Chỉ những phiên học sinh vui vẻ/bình thường mới không bị gắn cờ; nghi ngờ thì vẫn gắn cờ. Mỗi phiên gắn cờ có `riskLevel` là `low` (Cần chú ý), `medium` (Đáng lo) hoặc `high` (Khẩn cấp), kèm `categories` — mã nhóm dấu hiệu, nhãn tiếng Việt nằm ở [riskCategories.js](frontend/src/constants/riskCategories.js).
 
@@ -506,6 +521,42 @@ API tương ứng, tất cả đều cần `authenticateToken + requireAdmin`:
 | `POST` | `/api/admin/sessions/:id/alert/send` | `{ to, subject, body }` → gửi thật và ghi vào `alerts[]` của phiên |
 
 Hai chốt chặn để hệ thống không tự khoá mình: không xoá được tài khoản đang đăng nhập, và không hạ quyền/xoá được quản trị viên cuối cùng.
+
+### Tải bảng về máy dưới dạng Excel
+
+Mỗi bảng ở khu vực quản trị có nút **⬇️ Tải Excel** ở góc phải tiêu đề. Bấm là file `.xlsx` về thẳng thư mục Downloads, **mang đúng tên bảng** — tải cả bốn liền nhau vẫn nhìn tên là biết file nào của bảng nào:
+
+| Bảng trên màn hình | File tải về | Nội dung |
+|---|---|---|
+| Tài khoản người dùng | `Tài khoản người dùng.xlsx` | Toàn bộ tài khoản: danh tính, trường/lớp/khối, số phiên, số phiên có dấu hiệu và khẩn cấp |
+| Hội thoại theo ngày | `Hội thoại theo ngày.xlsx` | Từng ngày trong khoảng đang chọn |
+| Các lớp đã tạo tài khoản | `Các lớp đã tạo tài khoản.xlsx` | **Tất cả** các lớp, không chỉ mấy lớp đang hiện trên màn hình |
+| Các trường đã tạo tài khoản | `Các trường đã tạo tài khoản.xlsx` | Gộp theo trường |
+
+Ba điều đáng nói về cách nó chạy:
+
+**1. Không gọi thêm API.** Số liệu đã nằm sẵn trong trang rồi, nên file dựng ngay trong trình duyệt. Nhờ vậy cái tải về **luôn khớp với cái đang nhìn thấy** — kể cả khoảng ngày vừa chọn ở bảng điều khiển — không tốn thêm một lượt gọi máy chủ, và không có chuyện token hết hạn giữa chừng làm hỏng lượt tải. Máy chủ trên Render không phải làm gì cả, kể cả khi bảng có vài nghìn dòng.
+
+**2. File Excel thật, không phải CSV đổi đuôi.** [utils/xlsx.js](frontend/src/utils/xlsx.js) tự dựng file `.xlsx` — vốn là một file ZIP chứa mấy file XML — **không dùng thư viện nào**. Lý do, theo thứ tự quan trọng:
+
+- Thư viện phổ biến nhất (SheetJS `xlsx` trên npm) đứng yên ở 0.18.5 và bản đó dính mấy lỗi bảo mật đã công bố; bản vá không nằm trên npm registry. Đây là app có dữ liệu học sinh.
+- Nó nặng ~400KB sau khi nén, tải về cho **mọi** người dùng — trong khi chỉ quản trị viên mới bấm nút này.
+- Việc cần làm rất hẹp: một sheet, chữ và số, không công thức, không biểu đồ.
+
+Đổi lại, phần tự viết được kiểm bằng [9 bài test](frontend/src/utils/xlsx.test.js) soi thẳng vào byte của file, và bản sinh ra đã đối chiếu bằng **hai bộ đọc độc lập** (openpyxl và LibreOffice) — cả hai đọc lại đủ và đúng.
+
+**3. File mở ra là dùng được ngay:** dòng tiêu đề in đậm, được đóng băng khi cuộn, có sẵn nút lọc (AutoFilter), và độ rộng cột đặt theo từng cột.
+
+Vài chỗ cố ý khác với bảng trên màn hình, vì hai nơi phục vụ hai việc khác nhau:
+
+| Trên màn hình | Trong file Excel | Vì sao |
+|---|---|---|
+| Phù hiệu `🚩 3`, `❗`, `Chờ duyệt` | Cột riêng, giá trị **số** | Liếc một cái là hiểu thì hợp với màn hình; còn tải file về là để **lọc và sắp xếp** |
+| `3 HS · 1 GV` gộp một ô | Tách hai cột | Gộp lại là một ô chữ, cộng hay lọc đều không được |
+| Ngày `19/08/2026` | `2026-08-19` | Cột ngày kiểu `dd/mm/yyyy` trong Excel sắp xếp theo **ngày trong tháng**, không theo thời gian |
+| Bảng lớp cắt bớt cho khỏi dài | Đủ tất cả các lớp | File thiếu dòng thì đúng lúc cần tra một lớp yên ổn lại không có |
+
+> Bảng nào chưa có dòng nào thì **không hiện nút** — một file Excel chỉ có mỗi dòng tiêu đề không giúp được gì, và cái nút bấm vào ra file trống thì khó hiểu hơn là không có nút.
 
 ### Vùng nhớ phiên hội thoại
 

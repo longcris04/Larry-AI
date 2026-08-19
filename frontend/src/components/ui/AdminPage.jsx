@@ -6,6 +6,8 @@ import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategorie
 import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
 import AdminDashboard from "./AdminDashboard";
 import AlertEmailModal from "./AlertEmailModal";
+import ExportExcelButton from "./ExportExcelButton";
+import { dateTimeCell } from "../../utils/xlsx";
 import "../../styles/AdminPage.css";
 
 const EMPTY_FORM = {
@@ -34,6 +36,38 @@ function riskLevelOf(session) {
   if (!isFlagged(session)) return "none";
   return session.riskLevel && session.riskLevel !== "none" ? session.riskLevel : "low";
 }
+
+// Tên bảng — dùng cho CẢ tiêu đề trên màn hình lẫn tên file tải về, khai một chỗ
+// để hai nơi không bao giờ lệch nhau.
+const USERS_TABLE = "Tài khoản người dùng";
+
+// Cột của file Excel cho bảng tài khoản.
+//
+// Nhiều hơn số cột nhìn thấy trên màn hình một chút, và đó là chủ ý: mấy thông
+// tin đang nằm dưới dạng phù hiệu nhỏ (🚩 3, ❗, "Chờ duyệt") được tách ra thành
+// cột riêng, có giá trị SỐ. Trên màn hình chúng chỉ cần liếc là hiểu; trong
+// Excel thì phải lọc và sắp xếp được — đó mới là lý do người ta tải file về.
+const USERS_COLUMNS = [
+  { header: "Tài khoản", value: (r) => r.username, width: 22 },
+  { header: "Họ và tên", value: (r) => r.profile?.fullName || "", width: 26 },
+  { header: "Số điện thoại", value: (r) => r.phone || "", width: 16 },
+  { header: "Email", value: (r) => r.email || "", width: 28 },
+  { header: "Vai trò", value: (r) => roleLabel(r.role), width: 20 },
+  // Chỉ giáo viên mới đi qua vòng duyệt — vai trò khác để trống thay vì ghi
+  // "Đã duyệt" cho một thứ chưa từng phải duyệt.
+  {
+    header: "Trạng thái",
+    value: (r) => (r.role === ROLES.TEACHER ? statusLabel(r.status) : ""),
+    width: 14
+  },
+  { header: "Trường", value: (r) => r.profile?.school || "", width: 30 },
+  { header: "Lớp", value: (r) => r.profile?.className || "", width: 10 },
+  { header: "Khối", value: (r) => r.profile?.grade || "", width: 8 },
+  { header: "Số phiên", value: (r) => r.sessionCount ?? 0, width: 10 },
+  { header: "Phiên có dấu hiệu", value: (r) => r.flaggedCount ?? 0, width: 17 },
+  { header: "Phiên khẩn cấp", value: (r) => r.highRiskCount ?? 0, width: 15 },
+  { header: "Trò chuyện gần nhất", value: (r) => dateTimeCell(r.lastSessionAt), width: 20 }
+];
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
@@ -351,7 +385,16 @@ export default function AdminPage() {
       </section>
 
       <section className="admin-panel">
-        <h2 className="admin-panel__title">Tài khoản người dùng</h2>
+        <h2 className="admin-panel__title">
+          {USERS_TABLE}
+          {/* File tải về mang đúng tên bảng: "Tài khoản người dùng.xlsx" */}
+          <ExportExcelButton
+            name={USERS_TABLE}
+            columns={USERS_COLUMNS}
+            rows={users}
+            className="admin-btn admin-btn--sm admin-btn--ghost admin-export-btn"
+          />
+        </h2>
 
         <p className="admin-note">
           Vai trò không sửa được từ đây. Tài khoản quản trị chỉ được tạo bằng lệnh{" "}

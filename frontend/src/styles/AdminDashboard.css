@@ -956,3 +956,22 @@
         transition:none;
     }
 }
+
+/* Hai nút ở góc phải thẻ "Hội thoại theo ngày" (đổi biểu đồ/bảng, và tải Excel).
+   Cho phép xuống dòng vì màn hình hẹp thì hai nút không đứng vừa một hàng. */
+.dash-card__actions{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:8px;
+}
+
+/* Thẻ nào chỉ có tiêu đề và nút tải thì canh hai thứ đó trên cùng một hàng */
+.dash-card__head .dash-card__title{
+
+    margin:0;
+}

@@ -960,3 +960,45 @@
         transition:none;
     }
 }
+
+/* --- Dòng chỉ dẫn khi bấm "Quên mật khẩu?" ---------------------------------
+   Hiện ngay dưới hàng "Ghi nhớ đăng nhập / Quên mật khẩu?", chiếm trọn chiều
+   ngang. Hàng đó là flex, nên cho phép xuống dòng rồi bắt dòng này rộng 100% —
+   cách này không đụng tới margin sẵn có của hàng, khỏi phải kê margin âm. */
+
+.auth-remember-row{
+
+    flex-wrap:wrap;
+}
+
+.auth-hint--reset{
+
+    flex-basis:100%;
+
+    margin:12px 0 0;
+
+    padding:10px 14px;
+
+    border-radius:var(--radius-md, 20px);
+
+    background:#FFF8E7;
+
+    border:1px solid #FFE2A8;
+
+    color:#8A6A2F;
+
+    font-size:13px;
+
+    line-height:1.6;
+}
+
+.auth-hint--reset a{
+
+    color:#8F68FF;
+
+    font-weight:700;
+
+    /* Địa chỉ email dài hơn thẻ trên màn hình nhỏ — cho phép ngắt giữa chừng
+       thay vì để nó tràn ra ngoài khung. */
+    word-break:break-word;
+}

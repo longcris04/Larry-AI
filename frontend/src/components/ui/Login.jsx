@@ -9,6 +9,7 @@ import PlayfulBackground from "./PlayfulBackground";
 import SpeakerToggle from "./SpeakerToggle";
 import { usePublicSettings } from "../../hooks/usePublicSettings";
 import { ROLES } from "../../constants/roles";
+import { PASSWORD_RESET_EMAIL } from "../../constants/systemMessages";
 import "../../styles/AuthForms.css";
 
 export default function Login() {
@@ -47,6 +48,11 @@ export default function Login() {
   const [guestLoading, setGuestLoading] = useState(false);
 
   const [error, setError] = useState("");
+
+  // Bấm "Quên mật khẩu?" thì hiện ra một dòng nhỏ chỉ chỗ xin cấp lại mật khẩu.
+  // Chưa có luồng tự đặt lại: học sinh đăng ký bằng SỐ ĐIỆN THOẠI và phần lớn để
+  // trống ô email, nên gửi link đặt lại qua email là gửi vào chỗ không có ai.
+  const [showResetHint, setShowResetHint] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -190,9 +196,29 @@ export default function Login() {
                 <span>Ghi nhớ đăng nhập</span>
               </label>
 
-              <button type="button" className="forgot-btn">
+              <button
+                type="button"
+                className="forgot-btn"
+                onClick={() => setShowResetHint((v) => !v)}
+                aria-expanded={showResetHint}
+                aria-controls="reset-hint"
+              >
                 Quên mật khẩu?
               </button>
+
+              {/* Dòng chỉ dẫn, chỉ hiện sau khi bấm. Nằm BÊN TRONG hàng này chứ
+                  không phải sau nó: hàng có margin-bottom 28px, đặt ra ngoài thì
+                  dòng chữ trôi xuống sát nút "Đăng nhập" và trông như đang nói về
+                  cái nút đó. Nó chiếm trọn chiều ngang nhờ flex-basis 100%. */}
+              {showResetHint && (
+                <p id="reset-hint" className="auth-hint auth-hint--reset" role="status">
+                  hãy gửi email liên hệ tới{" "}
+                  {/* Bấm được để mở sẵn ứng dụng thư. Máy không cài ứng dụng thư
+                      nào thì nó vẫn là chữ đọc và bôi đen chép lại được như thường. */}
+                  <a href={`mailto:${PASSWORD_RESET_EMAIL}`}>{PASSWORD_RESET_EMAIL}</a>{" "}
+                  để được cấp lại mật khẩu!
+                </p>
+              )}
             </div>
 
             {/* LOGIN */}

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ADMIN_STATS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
+import { dateTimeCell } from "../../utils/xlsx";
+import ExportExcelButton from "./ExportExcelButton";
 import "../../styles/AdminDashboard.css";
 
 // Bảng điều khiển của quản trị viên.
@@ -386,6 +388,57 @@ const RISK_ROWS = [
   { key: "low", color: "--dash-low", icon: "🟡" }
 ];
 
+// Tên ba bảng của màn hình này. Khai một chỗ vì mỗi tên được dùng ở HAI nơi —
+// tiêu đề trên màn hình và tên file .xlsx tải về — và hai nơi đó lệch nhau thì
+// quản trị viên tải bốn file rồi không biết file nào của bảng nào.
+const DAILY_TABLE = "Hội thoại theo ngày";
+const CLASSES_TABLE = "Các lớp đã tạo tài khoản";
+const SCHOOLS_TABLE = "Các trường đã tạo tài khoản";
+
+// Ngày ghi dạng yyyy-mm-dd chứ không phải 19/08/2026: trong Excel, cột ngày kiểu
+// dd/mm/yyyy sắp xếp theo NGÀY TRONG THÁNG chứ không theo thời gian.
+const DAILY_COLUMNS = [
+  { header: "Ngày", value: (d) => d.date, width: 12 },
+  { header: "Hội thoại", value: (d) => d.sessions || 0, width: 11 },
+  { header: "Có dấu hiệu", value: (d) => d.flagged || 0, width: 12 },
+  { header: "Khẩn cấp", value: (d) => d.high || 0, width: 11 },
+  { header: "Tin nhắn", value: (d) => d.messages || 0, width: 11 },
+  // Trên màn hình hai con số này gộp vào một ô ("3 HS · 1 GV") cho đỡ chật. Trong
+  // file thì tách đôi — gộp lại là một ô chữ, cộng hay lọc đều không được.
+  { header: "Học sinh mới", value: (d) => d.newStudents || 0, width: 13 },
+  { header: "Giáo viên mới", value: (d) => d.newTeachers || 0, width: 13 },
+  { header: "Cảnh báo đã gửi", value: (d) => d.alerts || 0, width: 15 }
+];
+
+const CLASSES_COLUMNS = [
+  { header: "Trường", value: (r) => r.school || "", width: 32 },
+  { header: "Lớp", value: (r) => r.className || "", width: 12 },
+  { header: "Khối", value: (r) => r.grade || "", width: 8 },
+  { header: "GVCN", value: (r) => r.teacherName || "", width: 24 },
+  {
+    header: "Trạng thái GVCN",
+    value: (r) => (r.teacherName ? (r.teacherStatus === "approved" ? "Đã duyệt" : "Chờ duyệt") : "Chưa có"),
+    width: 16
+  },
+  { header: "Học sinh", value: (r) => r.students || 0, width: 11 },
+  { header: "Đang dùng", value: (r) => r.activeStudents || 0, width: 11 },
+  { header: "Hội thoại", value: (r) => r.sessions || 0, width: 11 },
+  { header: "Bị gắn cờ", value: (r) => r.flagged || 0, width: 11 },
+  { header: "Khẩn cấp", value: (r) => r.high || 0, width: 11 },
+  { header: "Hoạt động gần nhất", value: (r) => dateTimeCell(r.lastActivityAt), width: 20 }
+];
+
+const SCHOOLS_COLUMNS = [
+  { header: "Trường", value: (r) => r.school || "", width: 34 },
+  { header: "Số lớp", value: (r) => r.classes || 0, width: 10 },
+  { header: "Học sinh", value: (r) => r.students || 0, width: 11 },
+  { header: "GVCN", value: (r) => r.teachers || 0, width: 10 },
+  { header: "Hội thoại", value: (r) => r.sessions || 0, width: 11 },
+  { header: "Bị gắn cờ", value: (r) => r.flagged || 0, width: 11 },
+  { header: "Khẩn cấp", value: (r) => r.high || 0, width: 11 },
+  { header: "Cảnh báo đã gửi", value: (r) => r.alerts || 0, width: 15 }
+];
+
 export default function AdminDashboard({ onError, refreshKey = 0 }) {
   const [range, setRange] = useState(() => {
     const today = todayKey();
@@ -526,18 +579,26 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
         <div className="dash-card">
           <div className="dash-card__head">
             <div>
-              <h3 className="dash-card__title">Hội thoại theo ngày</h3>
+              <h3 className="dash-card__title">{DAILY_TABLE}</h3>
               <p className="dash-card__sub">
                 Mỗi cột là một ngày; phần đỏ là số hội thoại có dấu hiệu tiêu cực.
               </p>
             </div>
-            <button
-              type="button"
-              className="admin-btn admin-btn--sm admin-btn--ghost"
-              onClick={() => setShowDayTable((v) => !v)}
-            >
-              {showDayTable ? "Xem biểu đồ" : "Xem bảng số liệu"}
-            </button>
+
+            {/* Tải được cả khi đang xem biểu đồ — số liệu vẫn là số liệu đó, chỉ
+                khác cách vẽ ra màn hình. Bắt bấm sang chế độ bảng rồi mới cho tải
+                là thêm một bước không có lý do. */}
+            <div className="dash-card__actions">
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm admin-btn--ghost"
+                onClick={() => setShowDayTable((v) => !v)}
+              >
+                {showDayTable ? "Xem biểu đồ" : "Xem bảng số liệu"}
+              </button>
+
+              <ExportExcelButton name={DAILY_TABLE} columns={DAILY_COLUMNS} rows={dailyChart} />
+            </div>
           </div>
 
           <Legend series={CONVERSATION_SERIES} />
@@ -688,7 +749,18 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
 
         {/* --- Danh sách lớp --- */}
         <div className="dash-card">
-          <h3 className="dash-card__title">Các lớp đã tạo tài khoản</h3>
+          <div className="dash-card__head">
+            <h3 className="dash-card__title">{CLASSES_TABLE}</h3>
+
+            {/* Tải TẤT CẢ các lớp, không chỉ mấy lớp đang hiện. Bảng trên màn
+                hình cắt bớt cho khỏi dài; file tải về mà cũng thiếu thì đúng lúc
+                cần tra một lớp yên ổn lại không có. */}
+            <ExportExcelButton
+              name={CLASSES_TABLE}
+              columns={CLASSES_COLUMNS}
+              rows={stats.byClass}
+            />
+          </div>
           <p className="dash-card__sub">
             {formatNumber(classes.total)} lớp thuộc {formatNumber(classes.schools)} trường, lớp
             cần chú ý xếp lên đầu. Cột học sinh là tổng cộng dồn; cột hội thoại tính trong
@@ -771,7 +843,15 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
 
         {/* --- Danh sách trường --- */}
         <div className="dash-card">
-          <h3 className="dash-card__title">Các trường đã tạo tài khoản</h3>
+          <div className="dash-card__head">
+            <h3 className="dash-card__title">{SCHOOLS_TABLE}</h3>
+
+            <ExportExcelButton
+              name={SCHOOLS_TABLE}
+              columns={SCHOOLS_COLUMNS}
+              rows={stats.bySchool}
+            />
+          </div>
           <p className="dash-card__sub">
             Gộp mọi lớp của cùng một trường. Tài khoản chưa khai trường không nằm trong bảng này.
           </p>

@@ -702,3 +702,26 @@
 
     color:#B3261E;
 }
+
+/* --- Nút tải bảng ra file Excel --------------------------------------------
+   Đẩy về mép phải của dòng tiêu đề. Tiêu đề bảng là thứ đọc trước, nút tải là
+   thứ tìm sau — để nút dính ngay sau chữ thì mắt vấp vào nó trước cả tên bảng. */
+
+.admin-export-btn{
+
+    margin-left:auto;
+}
+
+/* Dựng file chạy hết trong trình duyệt nên gần như không hỏng được. Nhưng nếu
+   hỏng thì phải nói ra, ngay cạnh nút vừa bấm — im lặng thì quản trị viên bấm
+   mãi mà không hiểu vì sao thư mục Downloads vẫn trống. */
+.admin-export-error{
+
+    margin-left:10px;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    color:#B91C1C;
+}
