@@ -2,7 +2,15 @@
    Đi kèm components/ui/AdminDashboard.jsx — nạp SAU AdminPage.css vì nó dùng lại
    .admin-panel, .admin-table và mấy nút .admin-btn của trang đó. */
 
-.admin-dash{
+/* Bảng màu của MỌI biểu đồ trong khu vực quản trị.
+   Khai trên CẢ HAI container vì biểu đồ giờ đứng ở hai chỗ: bảng điều khiển
+   (.admin-dash) và tab tần suất sử dụng (.usage-panel). Đây không phải chuyện
+   trang trí — mấy biến này là màu THẬT của cột. Container nào không có chúng thì
+   background:var(--dash-safe) không giải ra được và cột vẽ ra TRONG SUỐT: biểu
+   đồ trắng trơn trong khi mọi con số bên trên vẫn đúng, đúng loại lỗi im lặng
+   nhất. Dùng DayColumnChart ở chỗ mới thì nhớ thêm tên container vào đây. */
+.admin-dash,
+.usage-panel{
 
     /* --- Màu chrome: mượn đúng bảng màu trang quản trị đang dùng ------------ */
 
@@ -974,4 +982,84 @@
 .dash-card__head .dash-card__title{
 
     margin:0;
+}
+
+/* --- Tab tần suất sử dụng --------------------------------------------------- */
+
+.usage-controls{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:flex-end;
+
+    gap:16px;
+
+    margin:0 0 22px;
+}
+
+.usage-field{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:6px;
+
+    flex:1 1 260px;
+}
+
+.usage-field > span{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#5A6A85;
+}
+
+.usage-field--ranges{
+
+    flex:0 0 auto;
+}
+
+.usage-input{
+
+    padding:10px 14px;
+
+    border:2px solid #E4E8F0;
+
+    border-radius:var(--radius-md, 20px);
+
+    background:#F8FAFF;
+
+    font-family:inherit;
+
+    font-size:14px;
+
+    color:#2D3553;
+
+    outline:none;
+
+    transition:border-color .15s ease, background .15s ease;
+}
+
+.usage-input:focus{
+
+    border-color:#61C7FF;
+
+    background:#FFFFFF;
+}
+
+.usage-ranges{
+
+    display:flex;
+
+    gap:8px;
+}
+
+.usage-tiles{
+
+    margin-bottom:20px;
 }

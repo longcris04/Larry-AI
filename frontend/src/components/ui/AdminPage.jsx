@@ -1,13 +1,15 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { ADMIN_GUEST_MODE_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
-import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
 import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
+import { matchesQuery } from "../../utils/search";
+import { dateTimeCell } from "../../utils/xlsx";
 import AdminDashboard from "./AdminDashboard";
 import AlertEmailModal from "./AlertEmailModal";
 import ExportExcelButton from "./ExportExcelButton";
-import { dateTimeCell } from "../../utils/xlsx";
+import UsageFrequency from "./UsageFrequency";
+import UserSessionsPanel from "./UserSessionsPanel";
 import "../../styles/AdminPage.css";
 
 const EMPTY_FORM = {
@@ -21,21 +23,18 @@ const EMPTY_FORM = {
   className: "",
 };
 
-function formatTime(value) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("vi-VN");
-}
+// Hai tab của khu vực quản trị. Tách ra vì hai câu hỏi khác nhau: "cả trường
+// đang thế nào" (tổng quan) và "em này vào đều không" (tần suất). Nhét chung một
+// trang thì phải cuộn rất xa mới tới được thứ mình cần.
+const TABS = [
+  { id: "tong-quan", label: "📊 Tổng quan" },
+  { id: "tan-suat", label: "📈 Tần suất sử dụng" }
+];
 
-// Phiên được đánh dấu khi có BẤT KỲ dấu hiệu tiêu cực nào về học sinh, không chỉ
-// bắt nạt. Bản ghi cũ chỉ có bullyingDetected nên vẫn phải đọc tới nó.
-function isFlagged(session) {
-  return session.flagged ?? session.bullyingDetected === true;
-}
-
-function riskLevelOf(session) {
-  if (!isFlagged(session)) return "none";
-  return session.riskLevel && session.riskLevel !== "none" ? session.riskLevel : "low";
-}
+// Số dòng mỗi trang của bảng tài khoản. Mười dòng vừa một màn hình mà không phải
+// cuộn — quan trọng vì bấm vào một dòng giờ mở ra bảng chi tiết ngay bên dưới nó,
+// và người xem cần thấy được cả dòng lẫn phần vừa mở ra cùng lúc.
+const PAGE_SIZE = 10;
 
 // Tên bảng — dùng cho CẢ tiêu đề trên màn hình lẫn tên file tải về, khai một chỗ
 // để hai nơi không bao giờ lệch nhau.
@@ -76,13 +75,24 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedUser, setSelectedUser] = useState(null);
+  // Tab đang xem. Mặc định là tổng quan — nơi có việc cần làm (giáo viên chờ duyệt).
+  const [tab, setTab] = useState(TABS[0].id);
+
+  // --- Bảng tài khoản: tìm kiếm + phân trang ---------------------------------
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+
+  // Dòng đang mở bảng chi tiết bên dưới: { id, mode: "sessions" | "edit" | "delete" }.
+  // Mỗi lúc chỉ MỘT dòng được mở. Cho mở nhiều dòng cùng lúc thì bảng bị xé thành
+  // từng mảnh và không còn đọc được theo cột nữa.
+  const [expanded, setExpanded] = useState(null);
+
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
 
-  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Phiên đang được soạn email cảnh báo cho giáo viên chủ nhiệm
   const [alertSession, setAlertSession] = useState(null);
@@ -151,8 +161,14 @@ export default function AdminPage() {
     loadGuestMode();
   }, [loadUsers, loadGuestMode]);
 
+  // Đang mở đúng bảng đó ở đúng dòng đó thì bấm lần nữa là ĐÓNG lại. Cùng một
+  // nút vừa mở vừa đóng, không cần thêm dấu ✕ ở mỗi bảng.
+  const isOpen = (id, mode) => expanded?.id === id && expanded.mode === mode;
+
   const openSessions = async (target) => {
-    setSelectedUser(target);
+    if (isOpen(target.id, "sessions")) return setExpanded(null);
+
+    setExpanded({ id: target.id, mode: "sessions" });
     setSessions([]);
     setSessionsLoading(true);
     try {
@@ -166,7 +182,9 @@ export default function AdminPage() {
   };
 
   const startEdit = (target) => {
-    setEditingId(target.id);
+    if (isOpen(target.id, "edit")) return setExpanded(null);
+
+    setExpanded({ id: target.id, mode: "edit" });
     setForm({
       username: target.username || "",
       phone: target.phone || "",
@@ -197,7 +215,7 @@ export default function AdminPage() {
       if (form.password.trim()) body.password = form.password.trim();
 
       await axios.patch(`${API_BASE_URL}/api/admin/users/${id}`, body);
-      setEditingId(null);
+      setExpanded(null);
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.error || "Không lưu được thay đổi.");
@@ -228,28 +246,73 @@ export default function AdminPage() {
     }
   };
 
+  // Xoá đi qua HAI bước, và bước hỏi lại nằm ngay dưới dòng của tài khoản đó chứ
+  // không phải một hộp thoại window.confirm() bật ra giữa màn hình. Hộp thoại đó
+  // che mất chính cái dòng đang nói tới, nên người bấm không đối chiếu lại được
+  // tên mình vừa chọn — với thao tác không khôi phục được thì đó là chỗ sai.
   const removeUser = async (target) => {
-    const ok = window.confirm(
-      `Xoá tài khoản "${target.username}"?\nToàn bộ lịch sử hội thoại của tài khoản này cũng bị xoá và không khôi phục được.`
-    );
-    if (!ok) return;
-
+    setDeleting(true);
     setError("");
     try {
       await axios.delete(`${API_BASE_URL}/api/admin/users/${target.id}`);
-      if (selectedUser?.id === target.id) {
-        setSelectedUser(null);
-        setSessions([]);
-      }
+      setExpanded(null);
+      setSessions([]);
       await loadUsers();
     } catch (err) {
       setError(err.response?.data?.error || "Không xoá được tài khoản.");
+    } finally {
+      setDeleting(false);
     }
   };
 
   const pendingTeachers = users.filter(
     (u) => u.role === ROLES.TEACHER && u.status === STATUS.PENDING
   );
+
+  // --- Lọc và cắt trang -------------------------------------------------------
+  //
+  // Dò trên đủ mọi thứ có trong bảng: tên tài khoản, họ tên, trường, lớp, khối,
+  // email, số điện thoại. Gõ không dấu vẫn ra — "doan thi diem" tìm thấy "Đoàn
+  // Thị Điểm" (xem utils/search.js).
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((u) =>
+        matchesQuery(query, [
+          u.username,
+          u.profile?.fullName,
+          u.profile?.school,
+          u.profile?.className,
+          u.profile?.grade,
+          u.email,
+          u.phone
+        ])
+      ),
+    [users, query]
+  );
+
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  // Kẹp lại thay vì tin vào `page`: gõ thêm một chữ vào ô tìm kiếm có thể làm danh
+  // sách ngắn đi đột ngột, và lúc đó trang thứ 5 không còn tồn tại nữa — không kẹp
+  // thì bảng hiện ra trống trơn trong khi vẫn còn kết quả.
+  const safePage = Math.min(page, pageCount - 1);
+  const pageUsers = filteredUsers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
+  // Đổi từ khoá tìm kiếm thì quay về trang đầu — kết quả mới không liên quan gì
+  // tới việc mình đang đứng ở trang mấy của kết quả cũ.
+  useEffect(() => {
+    setPage(0);
+  }, [query]);
+
+  // Dòng đang mở bảng chi tiết mà trôi khỏi trang đang xem (do lọc hay chuyển
+  // trang) thì đóng lại: để mở thì nó sẽ bật ra ở một dòng khác của trang mới.
+  useEffect(() => {
+    if (expanded && !pageUsers.some((u) => u.id === expanded.id)) setExpanded(null);
+    // pageUsers dựng lại mỗi lần render nên chỉ nghe theo hai thứ thật sự đổi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, safePage, users]);
+
+  // Tài khoản của bảng chi tiết đang mở — AlertEmailModal cần tên em đó
+  const openUser = users.find((u) => u.id === expanded?.id) || null;
 
   return (
     <div className="admin-page">
@@ -280,6 +343,34 @@ export default function AdminPage() {
       </header>
 
       {error && <div className="admin-error">{error}</div>}
+
+      {/* Thanh tab. Dòng báo lỗi nằm TRÊN nó, ngoài mọi tab: lỗi tải danh sách tài
+          khoản vẫn phải đọc được kể cả khi đang đứng ở tab tần suất. */}
+      <nav className="admin-tabs" role="tablist" aria-label="Khu vực quản trị">
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            id={`tab-${item.id}`}
+            aria-selected={tab === item.id}
+            aria-controls={`panel-${item.id}`}
+            className={`admin-tab${tab === item.id ? " admin-tab--on" : ""}`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "tan-suat" && (
+        <div id="panel-tan-suat" role="tabpanel" aria-labelledby="tab-tan-suat">
+          <UsageFrequency users={users} onError={setError} />
+        </div>
+      )}
+
+      {tab === "tong-quan" && (
+      <div id="panel-tong-quan" role="tabpanel" aria-labelledby="tab-tong-quan">
 
       {/* Việc CẦN LÀM lên đầu trang. Giáo viên đã đăng ký mà chưa được duyệt thì
           không đăng nhập được — để lẫn trong bảng dài phía dưới là rất dễ quên,
@@ -387,11 +478,12 @@ export default function AdminPage() {
       <section className="admin-panel">
         <h2 className="admin-panel__title">
           {USERS_TABLE}
-          {/* File tải về mang đúng tên bảng: "Tài khoản người dùng.xlsx" */}
+          {/* File tải về mang đúng tên bảng, và chứa ĐÚNG những dòng đang lọc ra —
+              tìm "6A1" rồi bấm tải thì được danh sách lớp 6A1, không phải cả trường. */}
           <ExportExcelButton
             name={USERS_TABLE}
             columns={USERS_COLUMNS}
-            rows={users}
+            rows={filteredUsers}
             className="admin-btn admin-btn--sm admin-btn--ghost admin-export-btn"
           />
         </h2>
@@ -403,13 +495,50 @@ export default function AdminPage() {
           trường và lớp khớp nhau.
         </p>
 
+        {/* Ô tìm kiếm dò trên MỌI cột của bảng cùng lúc, và gõ không dấu vẫn ra.
+            Một trường cấp 2 có hàng trăm tài khoản; bắt nhớ chính xác cách gõ hoa
+            thường và dấu của tên trường thì ô này gần như vô dụng. */}
+        <div className="admin-toolbar">
+          <label className="admin-search">
+            <span className="admin-search__icon" aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm theo tên, trường, lớp, khối, email hay số điện thoại…"
+              aria-label="Tìm tài khoản"
+            />
+            {query && (
+              <button
+                type="button"
+                className="admin-search__clear"
+                onClick={() => setQuery("")}
+                aria-label="Xoá từ khoá tìm kiếm"
+              >
+                ✕
+              </button>
+            )}
+          </label>
+
+          <span className="admin-toolbar__count">
+            {query.trim()
+              ? `${filteredUsers.length} / ${users.length} tài khoản khớp`
+              : `${users.length} tài khoản`}
+          </span>
+        </div>
+
         {loading ? (
           <p className="admin-empty">Đang tải...</p>
         ) : users.length === 0 ? (
           <p className="admin-empty">Chưa có tài khoản nào.</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className="admin-empty">
+            Không có tài khoản nào khớp với “{query}”. Thử bớt từ khoá đi xem sao.
+          </p>
         ) : (
+          <>
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-table admin-table--users">
               <thead>
                 <tr>
                   <th>Tài khoản</th>
@@ -426,104 +555,12 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((row) =>
-                  editingId === row.id ? (
-                    <tr key={row.id} className="admin-row--editing">
-                      <td colSpan={9}>
-                        <div className="admin-edit">
-                          <div className="admin-edit__grid">
-                            <label>
-                              Tên tài khoản
-                              <input
-                                value={form.username}
-                                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                              />
-                            </label>
-                            {/* Danh tính của tài khoản — đổi số ở đây là đổi luôn
-                                cách người đó đăng nhập. Bỏ trống được, nhưng chỉ
-                                khi tài khoản còn email (backend chặn nếu trống cả
-                                hai, vì lúc đó không ai vào được nữa). */}
-                            <label>
-                              Số điện thoại
-                              <input
-                                value={form.phone}
-                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Email
-                              <input
-                                value={form.email}
-                                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Mật khẩu mới
-                              <input
-                                type="password"
-                                placeholder="Để trống nếu không đổi"
-                                value={form.password}
-                                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Tên
-                              <input
-                                value={form.fullName}
-                                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                              />
-                            </label>
-                            {/* Cùng thứ tự với cột trong bảng: Trường → Lớp → Khối */}
-                            <label>
-                              Trường
-                              <input
-                                value={form.school}
-                                onChange={(e) => setForm({ ...form, school: e.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Lớp
-                              <input
-                                value={form.className}
-                                onChange={(e) => setForm({ ...form, className: e.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Khối
-                              <input
-                                value={form.grade}
-                                onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                              />
-                            </label>
-                          </div>
-
-                          <div className="admin-edit__actions">
-                            <button
-                              type="button"
-                              className="admin-btn admin-btn--primary"
-                              disabled={saving}
-                              onClick={() => saveEdit(row.id)}
-                            >
-                              {saving ? "Đang lưu..." : "Lưu"}
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-btn admin-btn--ghost"
-                              onClick={() => setEditingId(null)}
-                            >
-                              Huỷ
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={row.id}>
+                {pageUsers.map((row) => (
+                  <React.Fragment key={row.id}>
+                    <tr className={expanded?.id === row.id ? "admin-row--open" : ""}>
                       <td>
                         <strong>{row.username}</strong>
-                        {row.id === user?.id && (
-                          <span className="admin-self"> (bạn)</span>
-                        )}
+                        {row.id === user?.id && <span className="admin-self"> (bạn)</span>}
                         {row.profile?.fullName && (
                           <div className="admin-muted">{row.profile.fullName}</div>
                         )}
@@ -571,7 +608,10 @@ export default function AdminPage() {
                           {row.role === ROLES.STUDENT && (
                             <button
                               type="button"
-                              className="admin-btn admin-btn--sm"
+                              className={`admin-btn admin-btn--sm${
+                                isOpen(row.id, "sessions") ? " admin-btn--primary" : ""
+                              }`}
+                              aria-expanded={isOpen(row.id, "sessions")}
                               onClick={() => openSessions(row)}
                             >
                               Hội thoại
@@ -599,7 +639,10 @@ export default function AdminPage() {
                           )}
                           <button
                             type="button"
-                            className="admin-btn admin-btn--sm admin-btn--ghost"
+                            className={`admin-btn admin-btn--sm${
+                              isOpen(row.id, "edit") ? " admin-btn--primary" : " admin-btn--ghost"
+                            }`}
+                            aria-expanded={isOpen(row.id, "edit")}
                             onClick={() => startEdit(row)}
                           >
                             Sửa
@@ -609,7 +652,12 @@ export default function AdminPage() {
                             <button
                               type="button"
                               className="admin-btn admin-btn--sm admin-btn--danger"
-                              onClick={() => removeUser(row)}
+                              aria-expanded={isOpen(row.id, "delete")}
+                              onClick={() =>
+                                setExpanded(
+                                  isOpen(row.id, "delete") ? null : { id: row.id, mode: "delete" }
+                                )
+                              }
                             >
                               Xoá
                             </button>
@@ -617,135 +665,225 @@ export default function AdminPage() {
                         </div>
                       </td>
                     </tr>
-                  )
-                )}
+
+                    {/* BẢNG CHI TIẾT, mở ra ngay dưới đúng dòng vừa bấm.
+                        Trước đây phần hội thoại nằm ở cuối trang: bấm xong phải
+                        cuộn qua cả bảng mới thấy, mà tới nơi thì không còn nhìn
+                        thấy mình vừa bấm vào ai. */}
+                    {expanded?.id === row.id && (
+                      <tr className="admin-row-panel">
+                        <td colSpan={9}>
+                          <div className={`admin-drawer admin-drawer--${expanded.mode}`}>
+                            {expanded.mode === "sessions" && (
+                              <>
+                                <div className="admin-drawer__head">
+                                  <h3 className="admin-drawer__title">
+                                    Hội thoại của <strong>{row.username}</strong>
+                                  </h3>
+                                  <button
+                                    type="button"
+                                    className="admin-btn admin-btn--sm admin-btn--ghost"
+                                    onClick={() => setExpanded(null)}
+                                  >
+                                    Đóng
+                                  </button>
+                                </div>
+
+                                <UserSessionsPanel
+                                  sessions={sessions}
+                                  loading={sessionsLoading}
+                                  onAlert={setAlertSession}
+                                />
+                              </>
+                            )}
+
+                            {expanded.mode === "edit" && (
+                              <div className="admin-edit">
+                                <div className="admin-drawer__head">
+                                  <h3 className="admin-drawer__title">
+                                    Sửa tài khoản <strong>{row.username}</strong>
+                                  </h3>
+                                </div>
+
+                                <div className="admin-edit__grid">
+                                  <label>
+                                    Tên tài khoản
+                                    <input
+                                      value={form.username}
+                                      onChange={(e) =>
+                                        setForm({ ...form, username: e.target.value })
+                                      }
+                                    />
+                                  </label>
+                                  {/* Danh tính của tài khoản — đổi số ở đây là đổi
+                                      luôn cách người đó đăng nhập. Bỏ trống được,
+                                      nhưng chỉ khi tài khoản còn email (backend chặn
+                                      nếu trống cả hai, vì lúc đó không ai vào được nữa). */}
+                                  <label>
+                                    Số điện thoại
+                                    <input
+                                      value={form.phone}
+                                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    Email
+                                    <input
+                                      value={form.email}
+                                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    Mật khẩu mới
+                                    <input
+                                      type="password"
+                                      placeholder="Để trống nếu không đổi"
+                                      value={form.password}
+                                      onChange={(e) =>
+                                        setForm({ ...form, password: e.target.value })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    Tên
+                                    <input
+                                      value={form.fullName}
+                                      onChange={(e) =>
+                                        setForm({ ...form, fullName: e.target.value })
+                                      }
+                                    />
+                                  </label>
+                                  {/* Cùng thứ tự với cột trong bảng: Trường → Lớp → Khối */}
+                                  <label>
+                                    Trường
+                                    <input
+                                      value={form.school}
+                                      onChange={(e) => setForm({ ...form, school: e.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    Lớp
+                                    <input
+                                      value={form.className}
+                                      onChange={(e) =>
+                                        setForm({ ...form, className: e.target.value })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    Khối
+                                    <input
+                                      value={form.grade}
+                                      onChange={(e) => setForm({ ...form, grade: e.target.value })}
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="admin-edit__actions">
+                                  <button
+                                    type="button"
+                                    className="admin-btn admin-btn--primary"
+                                    disabled={saving}
+                                    onClick={() => saveEdit(row.id)}
+                                  >
+                                    {saving ? "Đang lưu..." : "Lưu"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="admin-btn admin-btn--ghost"
+                                    onClick={() => setExpanded(null)}
+                                  >
+                                    Huỷ
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {expanded.mode === "delete" && (
+                              <div className="admin-confirm">
+                                <p className="admin-confirm__text">
+                                  Xoá tài khoản <strong>{row.username}</strong>
+                                  {row.profile?.fullName && ` (${row.profile.fullName})`}?
+                                  <br />
+                                  Toàn bộ <strong>{row.sessionCount} phiên hội thoại</strong> của
+                                  tài khoản này cũng bị xoá và{" "}
+                                  <strong>không khôi phục được</strong>.
+                                </p>
+
+                                <div className="admin-confirm__actions">
+                                  <button
+                                    type="button"
+                                    className="admin-btn admin-btn--sm admin-btn--danger"
+                                    disabled={deleting}
+                                    onClick={() => removeUser(row)}
+                                  >
+                                    {deleting ? "Đang xoá..." : "Xoá thật"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="admin-btn admin-btn--sm admin-btn--ghost"
+                                    onClick={() => setExpanded(null)}
+                                  >
+                                    Huỷ
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
 
-      {selectedUser && (
-        <section className="admin-panel">
-          <h2 className="admin-panel__title">
-            Hội thoại của <strong>{selectedUser.username}</strong>
-            <button
-              type="button"
-              className="admin-btn admin-btn--sm admin-btn--ghost"
-              onClick={() => setSelectedUser(null)}
-            >
-              Đóng
-            </button>
-          </h2>
+          {/* Phân trang. Chỉ hiện khi có nhiều hơn một trang — một mũi tên xám
+              không bấm được ở dưới bảng 3 dòng chỉ làm người ta phân vân. */}
+          {pageCount > 1 && (
+            <div className="admin-pager">
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm admin-btn--ghost"
+                disabled={safePage === 0}
+                onClick={() => setPage(safePage - 1)}
+                aria-label="Trước — 10 tài khoản trước đó"
+              >
+                ← Trước
+              </button>
 
-          {sessionsLoading ? (
-            <p className="admin-empty">Đang tải...</p>
-          ) : sessions.length === 0 ? (
-            <p className="admin-empty">
-              Tài khoản này chưa có phiên hội thoại nào được ghi nhận.
-            </p>
-          ) : (
-            <div className="admin-sessions">
-              {sessions.map((session) => {
-                const level = riskLevelOf(session);
+              <span className="admin-pager__info">
+                Trang <strong>{safePage + 1}</strong> / {pageCount}
+                <span className="admin-muted">
+                  {" "}
+                  · đang xem {safePage * PAGE_SIZE + 1}–
+                  {Math.min((safePage + 1) * PAGE_SIZE, filteredUsers.length)} trong{" "}
+                  {filteredUsers.length}
+                </span>
+              </span>
 
-                return (
-                  <article
-                    key={session.id}
-                    className={`admin-session${
-                      level === "none" ? "" : ` admin-session--flagged admin-session--${level}`
-                    }`}
-                  >
-                    <div className="admin-session__head">
-                      <span className="admin-session__time">
-                        {formatTime(session.startedAt)} → {formatTime(session.endedAt)}
-                      </span>
-                      <span className="admin-session__count">
-                        {session.messageCount} tin nhắn
-                      </span>
-                    </div>
-
-                    <div className="admin-session__status">
-                      {level === "none" ? (
-                        <span className="admin-badge">
-                          Học sinh ổn — không có dấu hiệu tiêu cực
-                        </span>
-                      ) : (
-                        <span className={`admin-badge admin-badge--${level}`}>
-                          🚩 {riskLevelLabel(level)}
-                        </span>
-                      )}
-
-                      {session.categories?.length > 0 && (
-                        <span className="admin-session__tags">
-                          {session.categories.map((code) => (
-                            <span key={code} className="admin-risk-tag">
-                              {riskCategoryLabel(code)}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Hội thoại có thể rất ngắn, khi đó phiếu là nguồn thông tin chính */}
-                    {session.checkinNote && (
-                      <p className="admin-session__checkin">
-                        📝 Phiếu cảm xúc: {session.checkinNote}
-                      </p>
-                    )}
-
-                    <p className="admin-session__summary">
-                      {session.summary || (
-                        <em className="admin-muted">
-                          {session.summaryError
-                            ? `Chưa tóm tắt được: ${session.summaryError}`
-                            : "Chưa có tóm tắt cho phiên này."}
-                        </em>
-                      )}
-                    </p>
-
-                    {session.concerns?.length > 0 && (
-                      <ul className="admin-session__concerns">
-                        {session.concerns.map((concern, i) => (
-                          <li key={i}>⚠️ {concern}</li>
-                        ))}
-                      </ul>
-                    )}
-
-                    <div className="admin-session__foot">
-                      {/* Chỉ phiên có dấu hiệu mới cần cảnh báo giáo viên chủ nhiệm */}
-                      {level !== "none" && (
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--sm admin-btn--primary"
-                          onClick={() => setAlertSession(session)}
-                        >
-                          ✉️ Cảnh báo GVCN
-                        </button>
-                      )}
-
-                      {session.alerts?.length > 0 && (
-                        <span className="admin-session__sent">
-                          ✅ Đã gửi tới {session.alerts[session.alerts.length - 1].to} lúc{" "}
-                          {formatTime(session.alerts[session.alerts.length - 1].sentAt)}
-                          {session.alerts.length > 1 && ` (${session.alerts.length} lần)`}
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm admin-btn--ghost"
+                disabled={safePage >= pageCount - 1}
+                onClick={() => setPage(safePage + 1)}
+                aria-label="Sau — 10 tài khoản tiếp theo"
+              >
+                Sau →
+              </button>
             </div>
           )}
-        </section>
+          </>
+        )}
+      </section>
+      </div>
       )}
 
       {alertSession && (
         <AlertEmailModal
           session={alertSession}
-          studentName={
-            selectedUser?.profile?.fullName || selectedUser?.username || "Học sinh"
-          }
+          studentName={openUser?.profile?.fullName || openUser?.username || "Học sinh"}
           onClose={() => setAlertSession(null)}
           onSent={(alert) => {
             // Ghi lại ngay vào danh sách đang hiển thị, không cần tải lại cả trang

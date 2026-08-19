@@ -2,7 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ADMIN_STATS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
+import {
+  formatDay,
+  formatNumber,
+  formatTime,
+  shiftDay,
+  todayKey
+} from "../../utils/days";
 import { dateTimeCell } from "../../utils/xlsx";
+import DayColumnChart from "./DayColumnChart";
 import ExportExcelButton from "./ExportExcelButton";
 import "../../styles/AdminDashboard.css";
 
@@ -22,54 +30,11 @@ import "../../styles/AdminDashboard.css";
 // Các cặp màu đứng cạnh nhau trong cùng một biểu đồ đã được kiểm tra khoảng cách
 // màu (kể cả với người mù màu) trước khi chọn — đừng đổi lẻ một mã màu.
 
-// Giờ Việt Nam, khớp với TZ_OFFSET_MINUTES của backend. Hai bên phải cắt ngày
-// giống nhau, nếu không thì nút "Hôm nay" ở đây hỏi một khoảng mà máy chủ hiểu
-// thành hôm khác.
-const TZ_OFFSET_MINUTES = 420;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function todayKey() {
-  return new Date(Date.now() + TZ_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
-}
-
-function shiftDay(key, deltaDays) {
-  return new Date(Date.parse(`${key}T00:00:00Z`) + deltaDays * DAY_MS)
-    .toISOString()
-    .slice(0, 10);
-}
-
-function formatDay(key, withYear = false) {
-  if (!key) return "—";
-  const [y, m, d] = key.split("-");
-  return withYear ? `${d}/${m}/${y}` : `${d}/${m}`;
-}
-
-function formatTime(value) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("vi-VN");
-}
-
-function formatNumber(value) {
-  return Number(value || 0).toLocaleString("vi-VN");
-}
-
 // Tỉ lệ phần trăm, chỉ dùng để đọc — không có mẫu số thì trả về chuỗi rỗng chứ
 // không phải "0%", vì 0% và "chưa có gì để tính" là hai chuyện khác nhau.
 function percentOf(part, total) {
   if (!total) return "";
   return `${Math.round((part / total) * 100)}%`;
-}
-
-/**
- * Trần "đẹp" cho trục dọc — luôn là số CHẴN để vạch giữa cũng là số nguyên.
- * Vạch trục lẻ kiểu 12,5 làm người đọc dừng lại đúng ở chỗ đáng lẽ phải liếc qua.
- */
-function niceMax(value) {
-  if (value <= 2) return 2;
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  const normalized = value / magnitude;
-  const step = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((s) => normalized <= s) || 10;
-  return Math.ceil((step * magnitude) / 2) * 2;
 }
 
 // --- Hàng lọc khoảng ngày -----------------------------------------------------
@@ -159,147 +124,6 @@ function StatTile({ label, value, hint, tone = "" }) {
   );
 }
 
-// --- Biểu đồ cột theo ngày ----------------------------------------------------
-//
-// Cột chồng: phần dưới là chuỗi thứ nhất, phần trên là chuỗi thứ hai. Vẽ bằng
-// div chứ không phải SVG — nhãn trục là chữ thật nên tự co giãn theo khổ màn
-// hình mà không phải đo đạc gì, và mỗi cột là một vùng chạm cao hết khung chứ
-// không phải mấy pixel của riêng cái cột thấp tè.
-
-function DayColumnChart({ days, series, emptyText }) {
-  const [cursor, setCursor] = useState(null);
-
-  const totals = days.map((day) => series.reduce((sum, s) => sum + (day[s.key] || 0), 0));
-  const max = niceMax(Math.max(0, ...totals));
-  const hasData = totals.some((t) => t > 0);
-
-  // Khoảng 7 nhãn ngày là vừa đọc; nhiều hơn thì chữ chồng lên nhau
-  const labelStep = Math.max(1, Math.ceil(days.length / 7));
-
-  const move = (delta) => {
-    setCursor((prev) => {
-      const next = (prev === null ? 0 : prev) + delta;
-      return Math.max(0, Math.min(days.length - 1, next));
-    });
-  };
-
-  const onKeyDown = (event) => {
-    if (event.key === "ArrowRight") move(1);
-    else if (event.key === "ArrowLeft") move(-1);
-    else if (event.key === "Home") setCursor(0);
-    else if (event.key === "End") setCursor(days.length - 1);
-    else if (event.key === "Escape") setCursor(null);
-    else return;
-    event.preventDefault();
-  };
-
-  const active = cursor === null ? null : days[cursor];
-
-  // Vị trí ngang của bảng đọc nhanh, tính theo bề ngang khung vẽ. Sát mép thì
-  // NEO THEO MÉP thay vì căn giữa: căn giữa ở cột đầu/cuối làm bảng tràn hẳn ra
-  // ngoài thẻ và bị cắt mất một nửa.
-  const tipLeft = cursor === null ? 0 : ((cursor + 0.5) / days.length) * 100;
-  const tipShift = tipLeft < 15 ? "0" : tipLeft > 85 ? "-100%" : "-50%";
-  const readout = active
-    ? `${formatDay(active.date, true)}: ${series
-        .map((s) => `${s.label} ${formatNumber(active[s.key])}`)
-        .join(", ")}`
-    : "";
-
-  if (!hasData) return <p className="dash-empty">{emptyText}</p>;
-
-  return (
-    <div className="dash-chart">
-      <div className="dash-chart__frame">
-        <div className="dash-chart__yaxis" aria-hidden="true">
-          <span>{formatNumber(max)}</span>
-          <span>{formatNumber(max / 2)}</span>
-          <span>0</span>
-        </div>
-
-        <div
-          className="dash-chart__plot"
-          tabIndex={0}
-          role="group"
-          aria-label="Biểu đồ theo ngày. Dùng phím mũi tên trái/phải để đọc từng ngày."
-          onKeyDown={onKeyDown}
-          onMouseLeave={() => setCursor(null)}
-          onBlur={() => setCursor(null)}
-        >
-          {/* Lưới ngang: nét mảnh, liền, chìm hẳn xuống dưới dữ liệu */}
-          <div className="dash-chart__grid" aria-hidden="true">
-            <i /><i /><i />
-          </div>
-
-          <div className="dash-chart__bars">
-            {days.map((day, index) => {
-              const total = totals[index];
-              // Đoạn trên cùng có dữ liệu mới được bo góc — bo cả hai đoạn thì
-              // chỗ nối giữa chúng lõm vào trông như thiếu mất một mẩu.
-              const topKey = [...series].reverse().find((s) => day[s.key] > 0)?.key;
-
-              return (
-                <div
-                  key={day.date}
-                  className={`dash-col${cursor === index ? " dash-col--on" : ""}`}
-                  onMouseEnter={() => setCursor(index)}
-                  onFocus={() => setCursor(index)}
-                >
-                  <div className="dash-col__stack">
-                    {series.map((s) => {
-                      const value = day[s.key] || 0;
-                      if (!value) return null;
-                      return (
-                        <div
-                          key={s.key}
-                          className="dash-col__seg"
-                          style={{
-                            height: `${(value / max) * 100}%`,
-                            background: `var(${s.color})`,
-                            borderRadius: s.key === topKey ? "4px 4px 0 0" : 0
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                  {total === 0 && <div className="dash-col__zero" />}
-                </div>
-              );
-            })}
-          </div>
-
-          {active && (
-            <div
-              className="dash-tip"
-              style={{ left: `${tipLeft}%`, transform: `translateX(${tipShift})` }}
-              role="presentation"
-            >
-              <div className="dash-tip__day">{formatDay(active.date, true)}</div>
-              {series.map((s) => (
-                <div key={s.key} className="dash-tip__row">
-                  <i className="dash-tip__key" style={{ background: `var(${s.color})` }} />
-                  <strong>{formatNumber(active[s.key])}</strong>
-                  <span>{s.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="dash-chart__xaxis" aria-hidden="true">
-        {days.map((day, index) => (
-          <span key={day.date} className="dash-chart__tick">
-            {index % labelStep === 0 && <i>{formatDay(day.date)}</i>}
-          </span>
-        ))}
-      </div>
-
-      {/* Người dùng bàn phím và trình đọc màn hình nghe đúng thứ chuột thấy */}
-      <p className="dash-sr" aria-live="polite">{readout}</p>
-    </div>
-  );
-}
 
 // Chú giải — luôn có mặt khi biểu đồ từ hai chuỗi trở lên, để danh tính không
 // bao giờ chỉ nằm ở màu sắc.

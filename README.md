@@ -67,6 +67,8 @@ Larry-AI/
 │       ├── utils/forceLayout.js  # Bố cục đồ thị bằng mô phỏng lực (tự viết)
 │       ├── utils/voicePref.js    # Nhớ lựa chọn tắt/bật giọng nói của Larry
 │       ├── utils/xlsx.js         # Dựng file .xlsx cho nút tải bảng (tự viết)
+│       ├── utils/days.js         # Ngày/giờ Việt Nam cho các biểu đồ thống kê
+│       ├── utils/search.js       # Tìm kiếm tiếng Việt — gõ không dấu vẫn ra
 │       ├── config/api.js   # Địa chỉ backend dùng chung
 │       ├── context/        # AuthContext (JWT)
 │       └── styles/
@@ -487,9 +489,16 @@ Log khởi động sẽ in `✅ Đã tạo quản trị viên từ biến môi t
 
 ### Tính năng quản trị viên
 
-Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) cho phép:
+Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) có **hai tab**:
 
-- **Xem** danh sách tài khoản kèm 3 cột Trường · Lớp · Khối, số phiên hội thoại và số phiên bị gắn cờ 🚩.
+| Tab | Trả lời câu hỏi |
+|---|---|
+| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển, khối chờ duyệt, chế độ khách, bảng tài khoản |
+| 📈 **Tần suất sử dụng** | "Em này vào đều không" — biểu đồ lượt trò chuyện theo ngày của MỘT học sinh |
+
+Ở tab Tổng quan, quản trị viên có thể:
+
+- **Xem** danh sách tài khoản kèm 3 cột Trường · Lớp · Khối, số phiên hội thoại và số phiên bị gắn cờ 🚩. Bảng hiện **10 dòng mỗi trang**, có ô tìm kiếm và nút ← Trước / Sau → (xem *Bảng tài khoản* bên dưới).
 - **Sửa** tên tài khoản, email, hồ sơ trường lớp, và đặt lại mật khẩu — kể cả tài khoản của chính mình. Đây cũng là **cách duy nhất** để cấp lại mật khẩu cho người quên (xem *Quên mật khẩu* ở mục 8).
 - **Xoá** tài khoản (kèm toàn bộ lịch sử hội thoại của tài khoản đó).
 - **Bấm "Hội thoại"** để xem các phiên trò chuyện: thời gian bắt đầu/kết thúc, số tin nhắn, bản tóm tắt, mức độ 🚩 và nhóm dấu hiệu phát hiện được.
@@ -521,6 +530,39 @@ API tương ứng, tất cả đều cần `authenticateToken + requireAdmin`:
 | `POST` | `/api/admin/sessions/:id/alert/send` | `{ to, subject, body }` → gửi thật và ghi vào `alerts[]` của phiên |
 
 Hai chốt chặn để hệ thống không tự khoá mình: không xoá được tài khoản đang đăng nhập, và không hạ quyền/xoá được quản trị viên cuối cùng.
+
+### Bảng tài khoản: tìm kiếm, phân trang, và bảng chi tiết mở tại chỗ
+
+**Mười dòng một trang.** Một trường cấp 2 có hàng trăm tài khoản; đổ hết ra một bảng thì mọi thứ bên dưới nó — kể cả nút tải Excel — trôi khỏi tầm nhìn. Nút ← Trước / Sau → ở cuối bảng, kèm dòng "Trang 2 / 5 · đang xem 11–20 trong 47" để biết mình đang ở đâu.
+
+**Ô tìm kiếm dò trên MỌI cột cùng lúc**: tên tài khoản, họ tên, trường, lớp, khối, email, số điện thoại.
+
+Hai điều làm ô này dùng được thật ([utils/search.js](frontend/src/utils/search.js)):
+
+| Gõ | Ra | Vì sao quan trọng |
+|---|---|---|
+| `doan thi diem` | Đoàn Thị Điểm | **Gõ không dấu vẫn ra.** Bắt gõ đúng dấu thì người dùng sẽ kết luận là trường đó chưa có trong hệ thống — một kết luận sai mà không có gì trên màn hình gợi ý là mình vừa sai |
+| `6a1 diem` | em lớp 6A1 trường Đoàn Thị Điểm | Mỗi **từ** khớp ở đâu cũng được, không cần đúng thứ tự và không cần cùng một cột — đúng cách người ta gõ khi đang nhớ mang máng vài mẩu |
+
+Lọc xong thì nút **⬇️ Tải Excel** xuất đúng những dòng đang lọc ra: tìm "6A1" rồi bấm tải là được danh sách lớp 6A1, không phải cả trường.
+
+**Bấm "Hội thoại" / "Sửa" / "Xoá" thì bảng chi tiết mở ra NGAY DƯỚI dòng đó.** Trước đây phần hội thoại nằm ở cuối trang: bấm xong phải cuộn qua cả bảng mới thấy, mà tới nơi thì không còn nhìn thấy mình vừa bấm vào ai. Ba điểm khác so với bản cũ:
+
+- **Dòng gốc vẫn còn nguyên** khi bấm Sửa. Bản cũ thay hẳn dòng đó bằng biểu mẫu, nên đang sửa thì không đối chiếu lại được dữ liệu cũ.
+- **Xoá hỏi lại ngay trong bảng mở ra**, không phải hộp thoại `window.confirm()` bật ra giữa màn hình. Hộp thoại đó che mất chính cái dòng đang nói tới, nên người bấm không đối chiếu lại được tên mình vừa chọn — với thao tác không khôi phục được thì đó là chỗ sai. Câu hỏi lại ghi rõ tên, họ tên và **số phiên hội thoại sẽ mất theo**.
+- **Mỗi lúc chỉ một dòng được mở**, và bấm lại đúng nút đó là đóng.
+
+### Tần suất sử dụng của một học sinh
+
+Tab **📈 Tần suất sử dụng** ([UsageFrequency.jsx](frontend/src/components/ui/UsageFrequency.jsx)): chọn một tài khoản học sinh → biểu đồ cột, **trục ngang là các ngày tăng dần tới hôm nay**, trục dọc là số lượt trò chuyện trong ngày. Chọn được **7 ngày** hoặc **30 ngày** gần nhất.
+
+Vì sao đáng nhìn: một em vào đều rồi **im hẳn ba hôm** là một tín hiệu, và tín hiệu đó không hiện ra ở bất cứ con số tổng nào của bảng điều khiển. Bốn ô số phía trên biểu đồ nói thẳng điều đó — tổng lượt, **số ngày có vào trên tổng số ngày**, trung bình mỗi ngày, và ngày nhiều nhất.
+
+> Trung bình chia cho **số ngày trong khoảng**, không chia cho số ngày có hoạt động: câu hỏi là "em vào đều không", mà bỏ ngày im lặng ra khỏi mẫu số thì em vào đúng một hôm với 3 lượt cũng ra "3 lượt/ngày".
+
+Lượt được tính theo `startedAt` (lúc em **mở** cuộc trò chuyện): một phiên bắt đầu 23h50 và chốt lúc 0h10 hôm sau vẫn là "em vào nói chuyện tối hôm đó". Ngày cắt theo **giờ Việt Nam**, giống hệt backend ([utils/days.js](frontend/src/utils/days.js) và [backend/stats.js](backend/stats.js)) — hai bên cắt lệch nhau thì hai biểu đồ cạnh nhau sẽ nói hai con số khác nhau về cùng một ngày.
+
+Tab này **không thêm API nào mới**: nó dùng lại đúng đường `/api/admin/users/:id/sessions` mà nút "Hội thoại" vẫn gọi, rồi tự đếm theo ngày ở phía trình duyệt. Biểu đồ cũng dùng chung component với bảng điều khiển ([DayColumnChart.jsx](frontend/src/components/ui/DayColumnChart.jsx)) — một chuỗi thì nó vẽ cột thường, nhiều chuỗi thì thành cột chồng.
 
 ### Tải bảng về máy dưới dạng Excel
 
