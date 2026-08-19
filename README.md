@@ -535,6 +535,8 @@ Hai chốt chặn để hệ thống không tự khoá mình: không xoá đư�
 
 **Mười dòng một trang.** Một trường cấp 2 có hàng trăm tài khoản; đổ hết ra một bảng thì mọi thứ bên dưới nó — kể cả nút tải Excel — trôi khỏi tầm nhìn. Nút ← Trước / Sau → ở cuối bảng, kèm dòng "Trang 2 / 5 · đang xem 11–20 trong 47" để biết mình đang ở đâu.
 
+**Lọc theo vai trò** bằng bốn nút ngay cạnh ô tìm kiếm — *Tất cả · Học sinh · Giáo viên chủ nhiệm · Quản trị viên* — mỗi nút in sẵn số lượng (`Học sinh 25`). Dạng nút bấm chứ không phải ô chọn xổ xuống: cả bốn lựa chọn luôn nhìn thấy kèm số lượng, nên liếc một cái là biết trường có bao nhiêu giáo viên mà không phải mở ra xem. Con số đếm trên **toàn bộ** danh sách, không đổi theo chính nút đang bật — nó trả lời "bấm vào đây thì được bao nhiêu dòng".
+
 **Ô tìm kiếm dò trên MỌI cột cùng lúc**: tên tài khoản, họ tên, trường, lớp, khối, email, số điện thoại.
 
 Hai điều làm ô này dùng được thật ([utils/search.js](frontend/src/utils/search.js)):
@@ -544,7 +546,11 @@ Hai điều làm ô này dùng được thật ([utils/search.js](frontend/src/u
 | `doan thi diem` | Đoàn Thị Điểm | **Gõ không dấu vẫn ra.** Bắt gõ đúng dấu thì người dùng sẽ kết luận là trường đó chưa có trong hệ thống — một kết luận sai mà không có gì trên màn hình gợi ý là mình vừa sai |
 | `6a1 diem` | em lớp 6A1 trường Đoàn Thị Điểm | Mỗi **từ** khớp ở đâu cũng được, không cần đúng thứ tự và không cần cùng một cột — đúng cách người ta gõ khi đang nhớ mang máng vài mẩu |
 
+Hai bộ lọc **cộng dồn**: chọn *Giáo viên chủ nhiệm* rồi gõ `doan thi diem` là ra đúng các thầy cô chủ nhiệm của trường đó. Đổi bộ lọc thì bảng quay về trang 1 — kết quả mới không liên quan gì tới việc mình đang đứng ở trang mấy của kết quả cũ.
+
 Lọc xong thì nút **⬇️ Tải Excel** xuất đúng những dòng đang lọc ra: tìm "6A1" rồi bấm tải là được danh sách lớp 6A1, không phải cả trường.
+
+Khi không còn dòng nào, câu báo nói rõ **thủ phạm là bộ lọc nào** ("Không có tài khoản giáo viên chủ nhiệm nào khớp với *khong-ton-tai*") và kèm nút **Xoá bộ lọc**. Câu báo chung chung sẽ khiến người dùng ngồi sửa từ khoá trong khi thứ đang chặn là cái nút vai trò họ bấm từ lúc nãy.
 
 **Bấm "Hội thoại" / "Sửa" / "Xoá" thì bảng chi tiết mở ra NGAY DƯỚI dòng đó.** Trước đây phần hội thoại nằm ở cuối trang: bấm xong phải cuộn qua cả bảng mới thấy, mà tới nơi thì không còn nhìn thấy mình vừa bấm vào ai. Ba điểm khác so với bản cũ:
 

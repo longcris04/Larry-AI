@@ -31,6 +31,18 @@ const TABS = [
   { id: "tan-suat", label: "📈 Tần suất sử dụng" }
 ];
 
+// Bộ lọc vai trò. "" = tất cả, và nó đứng đầu vì đó là trạng thái mặc định —
+// người dùng phải thấy ngay cách quay về "xem hết" mà không cần đoán.
+//
+// Có cả Quản trị viên dù danh sách đó thường chỉ một dòng: bảng vẫn hiện họ, nên
+// một bộ lọc thiếu đúng nhóm đang nhìn thấy sẽ khiến người dùng tưởng nó hỏng.
+const ROLE_FILTERS = [
+  { value: "", label: "Tất cả" },
+  { value: ROLES.STUDENT, label: "Học sinh" },
+  { value: ROLES.TEACHER, label: "Giáo viên chủ nhiệm" },
+  { value: ROLES.ADMIN, label: "Quản trị viên" }
+];
+
 // Số dòng mỗi trang của bảng tài khoản. Mười dòng vừa một màn hình mà không phải
 // cuộn — quan trọng vì bấm vào một dòng giờ mở ra bảng chi tiết ngay bên dưới nó,
 // và người xem cần thấy được cả dòng lẫn phần vừa mở ra cùng lúc.
@@ -80,6 +92,8 @@ export default function AdminPage() {
 
   // --- Bảng tài khoản: tìm kiếm + phân trang ---------------------------------
   const [query, setQuery] = useState("");
+  // "" = mọi vai trò
+  const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(0);
 
   // Dòng đang mở bảng chi tiết bên dưới: { id, mode: "sessions" | "edit" | "delete" }.
@@ -276,19 +290,30 @@ export default function AdminPage() {
   // Thị Điểm" (xem utils/search.js).
   const filteredUsers = useMemo(
     () =>
-      users.filter((u) =>
-        matchesQuery(query, [
-          u.username,
-          u.profile?.fullName,
-          u.profile?.school,
-          u.profile?.className,
-          u.profile?.grade,
-          u.email,
-          u.phone
-        ])
-      ),
-    [users, query]
+      users
+        .filter((u) => !roleFilter || u.role === roleFilter)
+        .filter((u) =>
+          matchesQuery(query, [
+            u.username,
+            u.profile?.fullName,
+            u.profile?.school,
+            u.profile?.className,
+            u.profile?.grade,
+            u.email,
+            u.phone
+          ])
+        ),
+    [users, query, roleFilter]
   );
+
+  // Số tài khoản của từng vai trò, để in ngay trên nút lọc. Đếm trên TOÀN BỘ
+  // danh sách chứ không phải phần đang lọc: con số này trả lời "bấm vào đây thì
+  // được bao nhiêu dòng", nên nó không được đổi theo chính nút đang bật.
+  const roleCounts = useMemo(() => {
+    const counts = { "": users.length };
+    for (const u of users) counts[u.role] = (counts[u.role] || 0) + 1;
+    return counts;
+  }, [users]);
 
   const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   // Kẹp lại thay vì tin vào `page`: gõ thêm một chữ vào ô tìm kiếm có thể làm danh
@@ -297,11 +322,11 @@ export default function AdminPage() {
   const safePage = Math.min(page, pageCount - 1);
   const pageUsers = filteredUsers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
-  // Đổi từ khoá tìm kiếm thì quay về trang đầu — kết quả mới không liên quan gì
-  // tới việc mình đang đứng ở trang mấy của kết quả cũ.
+  // Đổi từ khoá hay đổi vai trò thì quay về trang đầu — kết quả mới không liên
+  // quan gì tới việc mình đang đứng ở trang mấy của kết quả cũ.
   useEffect(() => {
     setPage(0);
-  }, [query]);
+  }, [query, roleFilter]);
 
   // Dòng đang mở bảng chi tiết mà trôi khỏi trang đang xem (do lọc hay chuyển
   // trang) thì đóng lại: để mở thì nó sẽ bật ra ở một dòng khác của trang mới.
@@ -309,7 +334,7 @@ export default function AdminPage() {
     if (expanded && !pageUsers.some((u) => u.id === expanded.id)) setExpanded(null);
     // pageUsers dựng lại mỗi lần render nên chỉ nghe theo hai thứ thật sự đổi
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, safePage, users]);
+  }, [query, roleFilter, safePage, users]);
 
   // Tài khoản của bảng chi tiết đang mở — AlertEmailModal cần tên em đó
   const openUser = users.find((u) => u.id === expanded?.id) || null;
@@ -520,8 +545,26 @@ export default function AdminPage() {
             )}
           </label>
 
+          {/* Lọc theo vai trò. Dạng nút bấm chứ không phải ô chọn xổ xuống: cả
+              bốn lựa chọn luôn nhìn thấy kèm số lượng, nên biết ngay trường có
+              bao nhiêu giáo viên mà không phải mở ra xem. */}
+          <div className="admin-rolefilter" role="group" aria-label="Lọc theo vai trò">
+            {ROLE_FILTERS.map((item) => (
+              <button
+                key={item.value || "all"}
+                type="button"
+                className={`admin-chip${roleFilter === item.value ? " admin-chip--on" : ""}`}
+                aria-pressed={roleFilter === item.value}
+                onClick={() => setRoleFilter(item.value)}
+              >
+                {item.label}
+                <span className="admin-chip__count">{roleCounts[item.value] || 0}</span>
+              </button>
+            ))}
+          </div>
+
           <span className="admin-toolbar__count">
-            {query.trim()
+            {query.trim() || roleFilter
               ? `${filteredUsers.length} / ${users.length} tài khoản khớp`
               : `${users.length} tài khoản`}
           </span>
@@ -533,7 +576,23 @@ export default function AdminPage() {
           <p className="admin-empty">Chưa có tài khoản nào.</p>
         ) : filteredUsers.length === 0 ? (
           <p className="admin-empty">
-            Không có tài khoản nào khớp với “{query}”. Thử bớt từ khoá đi xem sao.
+            {query.trim() && roleFilter
+              ? `Không có tài khoản ${roleLabel(roleFilter).toLowerCase()} nào khớp với “${query}”.`
+              : roleFilter
+                ? `Chưa có tài khoản ${roleLabel(roleFilter).toLowerCase()} nào.`
+                : `Không có tài khoản nào khớp với “${query}”. Thử bớt từ khoá đi xem sao.`}
+            {(query.trim() || roleFilter) && (
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm admin-btn--ghost admin-empty__reset"
+                onClick={() => {
+                  setQuery("");
+                  setRoleFilter("");
+                }}
+              >
+                Xoá bộ lọc
+              </button>
+            )}
           </p>
         ) : (
           <>
