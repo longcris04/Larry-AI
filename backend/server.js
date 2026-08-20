@@ -54,7 +54,9 @@ const {
   SETTINGS_FILE,
   getPublicSettings,
   isGuestModeEnabled,
-  setGuestMode
+  isTtsEnabled,
+  setGuestMode,
+  setTtsEnabled
 } = require("./settings");
 const { sessions, persistSessions } = require("./sessionStore");
 const { createChatRouter } = require("./routes/chat");
@@ -367,7 +369,12 @@ app.get("/api/settings", (req, res) => {
 function publicVoiceStatus() {
   const status = voiceStatus();
   const keyed = hasApiKey();
-  return { stt: status.stt && keyed, tts: status.tts && keyed };
+  return {
+    stt: status.stt && keyed,
+    // Quản trị viên tắt loa thì ở đây báo TẮT luôn, y như khi máy chủ chưa khai
+    // TTS_MODEL — nút loa biến mất chứ không hiện ra rồi bấm vào báo lỗi.
+    tts: status.tts && keyed && isTtsEnabled()
+  };
 }
 
 // Guest endpoint — vào chat ngay, không cần tài khoản.
@@ -457,6 +464,41 @@ app.patch("/api/admin/settings/guest-mode", adminOnly, (req, res) => {
       `⚙️  ${req.user.username} ${enabled ? "BẬT" : "TẮT"} chế độ khách (trò chuyện không cần đăng nhập).`
     );
     res.json({ guestMode: settings.guestMode });
+  } catch (err) {
+    console.error("Không lưu được cài đặt:", err);
+    res.status(500).json({ error: "Không lưu được cài đặt. Xem log máy chủ." });
+  }
+});
+
+// Bật/tắt việc Larry đọc thành tiếng (TTS).
+//
+// Đây là công tắc TIẾT KIỆM CHI PHÍ: mỗi câu trả lời được đọc lên là một lần gọi
+// model TTS tính tiền theo số chữ. Tắt đi thì khung chat vẫn đủ chức năng — chữ
+// đã hiện sẵn trên màn hình rồi — chỉ là không còn tiếng nói.
+//
+// Tắt ở đây đóng CẢ HAI đầu: /api/settings và /api/voice/config đều báo tts=false
+// nên giao diện không vẽ nút loa, và /api/voice/tts từ chối thẳng — giấu nút chỉ
+// là giấu, ai biết địa chỉ API vẫn gọi vào đốt token được.
+//
+// Micro (STT) KHÔNG đụng tới: đó là đường VÀO của học sinh chưa gõ thạo, tắt đi
+// là mất một cách nhập, khác hẳn với việc thôi đọc lại thứ đã có trên màn hình.
+app.patch("/api/admin/settings/tts", adminOnly, (req, res) => {
+  const { enabled } = req.body || {};
+
+  if (typeof enabled !== "boolean") {
+    return res.status(400).json({ error: "Cần trường 'enabled' là true hoặc false." });
+  }
+
+  try {
+    const settings = setTtsEnabled(enabled);
+    console.log(
+      `⚙️  ${req.user.username} ${enabled ? "BẬT" : "TẮT"} giọng đọc của Larry (TTS).`
+    );
+    // Trả kèm trạng thái hiệu lực để trang quản trị nói đúng sự thật: bật công
+    // tắc lên mà máy chủ chưa khai TTS_MODEL (hoặc thiếu khoá API) thì loa vẫn
+    // câm, và người bấm phải thấy điều đó ngay chứ không phải sau khi đi hỏi
+    // học sinh vì sao không nghe được gì.
+    res.json({ ttsEnabled: settings.ttsEnabled, voice: publicVoiceStatus() });
   } catch (err) {
     console.error("Không lưu được cài đặt:", err);
     res.status(500).json({ error: "Không lưu được cài đặt. Xem log máy chủ." });
@@ -1109,7 +1151,10 @@ app.listen(PORT, () => {
   );
   console.log(
     `Loa (TTS_MODEL)  : ${ttsModel() || "(không đặt — Larry chỉ hiện chữ)"}` +
-      (voice.tts ? ` — giọng ${voice.voice}` : "")
+      (voice.tts ? ` — giọng ${voice.voice}` : "") +
+      // Công tắc của quản trị viên nằm ngoài .env nên phải in ra ở đây: đã khai
+      // model mà loa vẫn câm thì dòng này là chỗ đầu tiên người vận hành nhìn.
+      (voice.tts && !isTtsEnabled() ? " — QUẢN TRỊ VIÊN ĐANG TẮT" : "")
   );
 
   const missing = [...missingAgentModels(), ...missingBackgroundModels()];
@@ -1144,6 +1189,7 @@ app.listen(PORT, () => {
   // In ra để lúc deploy nhìn log là biết cài đặt có rơi vào ổ đĩa lâu dài không.
   // Nằm trong thư mục mã nguồn nghĩa là mỗi lần deploy sẽ mất — xem settings.js.
   console.log(
-    `Chế độ khách: ${isGuestModeEnabled() ? "BẬT" : "TẮT"} — lưu tại ${SETTINGS_FILE}`
+    `Chế độ khách: ${isGuestModeEnabled() ? "BẬT" : "TẮT"} · ` +
+      `Giọng đọc: ${isTtsEnabled() ? "BẬT" : "TẮT"} — lưu tại ${SETTINGS_FILE}`
   );
 });

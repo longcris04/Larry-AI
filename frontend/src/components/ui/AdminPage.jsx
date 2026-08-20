@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-import { ADMIN_GUEST_MODE_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
+import { ADMIN_GUEST_MODE_URL, ADMIN_TTS_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
 import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
 import { matchesQuery } from "../../utils/search";
 import { dateTimeCell } from "../../utils/xlsx";
@@ -116,17 +116,35 @@ export default function AdminPage() {
   const [guestMode, setGuestMode] = useState(null);
   const [guestModeSaving, setGuestModeSaving] = useState(false);
 
+  // Giọng đọc của Larry. Cần HAI giá trị chứ không phải một, vì có hai lý do rất
+  // khác nhau khiến học sinh không nghe thấy gì:
+  //
+  //   ttsEnabled    công tắc trên trang này — bấm tắt để tiết kiệm token
+  //   ttsEffective  loa có thật sự kêu không, tức công tắc BẬT *và* máy chủ khai
+  //                 đủ TTS_MODEL + khoá API (chính là voice.tts máy chủ trả về)
+  //
+  // Gộp hai thứ vào một ô trạng thái thì bật công tắc lên mà vẫn im tiếng sẽ
+  // trông y hệt một cái nút hỏng. Tách ra thì màn hình nói thẳng được là "đã bật
+  // nhưng máy chủ chưa cấu hình model" — hai lỗi, hai chỗ sửa khác nhau.
+  const [ttsEnabled, setTtsEnabled] = useState(null);
+  const [ttsEffective, setTtsEffective] = useState(false);
+  const [ttsSaving, setTtsSaving] = useState(false);
+
   // Nút "Tải lại" ở đầu trang phải làm mới CẢ bảng điều khiển. Bảng đó tự quản
   // khoảng ngày của nó nên trang này không gọi API hộ được — tăng số đếm là cách
   // bảo nó tải lại mà không phải kéo state khoảng ngày lên đây.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const loadGuestMode = useCallback(async () => {
+  // MỘT lần gọi cho mọi công tắc — /api/settings trả cả gói. Tách thành hai lần
+  // gọi thì có lúc một cái xong một cái lỗi, và trang hiện nửa thật nửa cũ.
+  const loadSettings = useCallback(async () => {
     try {
       const res = await axios.get(SETTINGS_URL);
       setGuestMode(Boolean(res.data?.guestMode));
+      setTtsEnabled(Boolean(res.data?.ttsEnabled));
+      setTtsEffective(Boolean(res.data?.voice?.tts));
     } catch (err) {
-      setError("Không đọc được cài đặt chế độ khách.");
+      setError("Không đọc được cài đặt hệ thống.");
     }
   }, []);
 
@@ -157,6 +175,35 @@ export default function AdminPage() {
     }
   };
 
+  const toggleTts = async () => {
+    const next = !ttsEnabled;
+
+    // Hỏi lại khi TẮT, không hỏi khi bật — cùng lối với chế độ khách: bật là trả
+    // lại thứ vốn có, tắt mới là gỡ đi một thứ học sinh đang dùng.
+    if (!next) {
+      const ok = window.confirm(
+        "Tắt giọng đọc của Larry?\n\n" +
+          "Larry sẽ không đọc câu trả lời thành tiếng nữa, nút loa biến mất khỏi trang " +
+          "đăng nhập và khung chat. Đổi lại, hệ thống không tốn token cho model đọc — " +
+          "phần trò chuyện bằng chữ và micro của học sinh vẫn chạy bình thường.\n\n" +
+          "Bạn có thể bật lại bất cứ lúc nào."
+      );
+      if (!ok) return;
+    }
+
+    setTtsSaving(true);
+    setError("");
+    try {
+      const res = await axios.patch(ADMIN_TTS_URL, { enabled: next });
+      setTtsEnabled(Boolean(res.data?.ttsEnabled));
+      setTtsEffective(Boolean(res.data?.voice?.tts));
+    } catch (err) {
+      setError(err.response?.data?.error || "Không đổi được cài đặt giọng đọc.");
+    } finally {
+      setTtsSaving(false);
+    }
+  };
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -172,8 +219,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadUsers();
-    loadGuestMode();
-  }, [loadUsers, loadGuestMode]);
+    loadSettings();
+  }, [loadUsers, loadSettings]);
 
   // Đang mở đúng bảng đó ở đúng dòng đó thì bấm lần nữa là ĐÓNG lại. Cùng một
   // nút vừa mở vừa đóng, không cần thêm dấu ✕ ở mỗi bảng.
@@ -354,8 +401,8 @@ export default function AdminPage() {
             className="admin-btn"
             onClick={() => {
               loadUsers();
-              // Tải lại cả công tắc: có thể quản trị viên khác vừa đổi ở máy họ
-              loadGuestMode();
+              // Tải lại cả các công tắc: có thể quản trị viên khác vừa đổi ở máy họ
+              loadSettings();
               setRefreshKey((n) => n + 1);
             }}
           >
@@ -496,6 +543,50 @@ export default function AdminPage() {
               : guestMode
                 ? "Tắt chế độ khách"
                 : "Bật chế độ khách"}
+          </button>
+        </div>
+      </section>
+
+      {/* Công tắc giọng đọc. Đặt cạnh chế độ khách vì cùng loại: hai thứ tác động
+          tới MỌI người vào web, không phải việc của từng tài khoản. */}
+      <section className="admin-panel">
+        <h2 className="admin-panel__title">Giọng đọc của Larry (TTS)</h2>
+
+        <p className="admin-note">
+          Larry đọc câu trả lời thành tiếng cho học sinh nghe. Mỗi lượt đọc là một lần gọi
+          model đọc và <strong>tính tiền theo số chữ</strong>, nên đây là công tắc tiết kiệm
+          token: tắt đi thì nút loa biến mất ở trang đăng nhập lẫn khung chat, và máy chủ từ
+          chối mọi yêu cầu đọc — kể cả khi có người gọi thẳng vào API. Phần trò chuyện bằng
+          chữ và micro của học sinh <strong>không bị ảnh hưởng</strong>.
+        </p>
+
+        <div className="admin-setting">
+          <div className="admin-setting__info">
+            <strong>
+              {ttsEnabled === null
+                ? "Đang đọc cài đặt..."
+                : ttsEnabled
+                  ? "🟢 Đang BẬT"
+                  : "🔴 Đang TẮT"}
+            </strong>
+            <div className="admin-muted">
+              {ttsEnabled === null
+                ? "Chờ máy chủ trả lời."
+                : !ttsEnabled
+                  ? "Larry chỉ trả lời bằng chữ. Không tốn token cho model đọc."
+                  : ttsEffective
+                    ? "Larry đọc câu trả lời thành tiếng khi học sinh bật nút loa."
+                    : "⚠️ Đã bật ở đây nhưng máy chủ chưa gọi được model đọc — kiểm tra TTS_MODEL và OPENROUTER_API_KEY trong backend/.env."}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={`admin-btn ${ttsEnabled ? "admin-btn--danger" : "admin-btn--primary"}`}
+            onClick={toggleTts}
+            disabled={ttsEnabled === null || ttsSaving}
+          >
+            {ttsSaving ? "Đang lưu..." : ttsEnabled ? "Tắt giọng đọc" : "Bật giọng đọc"}
           </button>
         </div>
       </section>

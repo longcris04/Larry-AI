@@ -13,6 +13,7 @@ const express = require("express");
 
 const { authenticateToken, blockAdmin } = require("../auth");
 const { hasApiKey } = require("../agents/llm");
+const { isTtsEnabled } = require("../settings");
 const {
   transcribeAudio,
   synthesizeSpeech,
@@ -29,11 +30,20 @@ function createVoiceRouter() {
   const router = express.Router();
   const voiceOnly = [authenticateToken, blockAdmin];
 
-  // Không có khoá thì cả hai chiều đều tắt, dù đã khai tên model
+  // Không có khoá thì cả hai chiều đều tắt, dù đã khai tên model.
+  //
+  // Chiều NÓI còn phụ thuộc công tắc của quản trị viên (settings.ttsEnabled) —
+  // công tắc tiết kiệm token, tắt là không gọi model TTS nữa. Đọc mỗi lượt chứ
+  // không nhớ lại lúc dựng router: quản trị viên bấm tắt lúc 9h thì 9h01 học
+  // sinh đang mở sẵn khung chat cũng thôi phát tiếng, không cần khởi động lại.
   function ready() {
     const status = voiceStatus();
     const keyed = hasApiKey();
-    return { ...status, stt: status.stt && keyed, tts: status.tts && keyed };
+    return {
+      ...status,
+      stt: status.stt && keyed,
+      tts: status.tts && keyed && isTtsEnabled()
+    };
   }
 
   // --- Micro có bật được không ----------------------------------------------
@@ -77,6 +87,14 @@ function createVoiceRouter() {
   // --- Nói ------------------------------------------------------------------
 
   router.post("/api/voice/tts", ...voiceOnly, async (req, res) => {
+    // Phân biệt hai lý do câm, vì cách sửa khác hẳn nhau: một cái là quản trị
+    // viên bấm tắt trên trang quản trị, một cái là máy chủ chưa khai model.
+    if (!isTtsEnabled()) {
+      return res
+        .status(503)
+        .json({ error: "Quản trị viên đang tắt giọng đọc của Larry." });
+    }
+
     if (!ready().tts) {
       return res.status(503).json({ error: "Chưa cấu hình TTS_MODEL trong backend/.env." });
     }

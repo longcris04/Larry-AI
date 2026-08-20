@@ -13,6 +13,7 @@
     "create-admin": "node create-admin.js",
     "test-email": "node test-email.js",
     "test:ratelimit": "node --test rateLimit.test.js",
+    "test:settings": "node --test settings.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

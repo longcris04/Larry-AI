@@ -36,12 +36,18 @@ function resolveSettingsFile() {
 
 const SETTINGS_FILE = resolveSettingsFile();
 
-// guestMode MẶC ĐỊNH BẬT: đây là hành vi đã có từ trước khi có công tắc này.
-// Để mặc định tắt thì chỉ cần nâng cấp mã nguồn là nút "Trò chuyện với Larry
-// ngay" tự biến mất ở mọi nơi đang chạy, không ai bấm gì cả — một thay đổi âm
-// thầm đúng kiểu khó lần ra.
+// Mọi cài đặt ở đây đều MẶC ĐỊNH BẬT: đó là hành vi đã có từ trước khi có mấy
+// công tắc này. Để mặc định tắt thì chỉ cần nâng cấp mã nguồn là nút "Trò chuyện
+// với Larry ngay" hay nút loa tự biến mất ở mọi nơi đang chạy, không ai bấm gì cả
+// — một thay đổi âm thầm đúng kiểu khó lần ra.
+//
+//   guestMode   trò chuyện không cần đăng nhập
+//   ttsEnabled  Larry đọc câu trả lời thành tiếng. Mỗi lượt đọc là một lần gọi
+//               model TTS và tính tiền theo số chữ, nên đây là công tắc tiết kiệm
+//               chi phí: tắt đi thì chat vẫn chạy đủ, chỉ không còn tiếng nói.
 const DEFAULTS = {
-  guestMode: true
+  guestMode: true,
+  ttsEnabled: true
 };
 
 let cache = null;
@@ -67,12 +73,15 @@ function readFromDisk() {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("nội dung không phải object");
     }
-    return {
-      ...DEFAULTS,
-      // Chỉ nhận đúng kiểu boolean. Ai đó sửa tay thành "false" (chuỗi) thì rơi
-      // về mặc định, chứ không thành true vì chuỗi rỗng khác rỗng.
-      ...(typeof parsed.guestMode === "boolean" ? { guestMode: parsed.guestMode } : {})
-    };
+
+    const next = { ...DEFAULTS };
+    // Chỉ nhận đúng kiểu boolean, và chỉ nhận những khoá mình biết. Ai đó sửa tay
+    // thành "false" (chuỗi) thì rơi về mặc định, chứ không thành true vì chuỗi
+    // rỗng khác rỗng.
+    for (const key of Object.keys(DEFAULTS)) {
+      if (typeof parsed[key] === "boolean") next[key] = parsed[key];
+    }
+    return next;
   } catch (err) {
     console.warn(
       `⚠️  ${path.basename(SETTINGS_FILE)} không đọc được (${err.message}) — dùng cài đặt mặc định.`
@@ -96,11 +105,33 @@ function getSettings() {
 // quyết định có vẽ nút vào chat không, nên nó nằm sau một route công khai — vì
 // vậy ở đây chỉ trả đúng những gì không nhạy cảm, đừng trả nguyên object.
 function getPublicSettings() {
-  return { guestMode: getSettings().guestMode };
+  const settings = getSettings();
+  return { guestMode: settings.guestMode, ttsEnabled: settings.ttsEnabled };
 }
 
 function isGuestModeEnabled() {
   return getSettings().guestMode;
+}
+
+function isTtsEnabled() {
+  return getSettings().ttsEnabled;
+}
+
+// Một chỗ ghi duy nhất cho mọi công tắc: kiểm kiểu, ghi đĩa, cập nhật cache. Mỗi
+// công tắc tự viết lại ba bước này là cách để một hôm nào đó có cái quên cập nhật
+// cache rồi trả về giá trị cũ cho tới lần khởi động sau.
+function setFlag(key, enabled) {
+  if (!(key in DEFAULTS)) {
+    throw new Error(`Không có cài đặt tên '${key}'.`);
+  }
+  if (typeof enabled !== "boolean") {
+    throw new Error(`${key} phải là true hoặc false.`);
+  }
+
+  const next = { ...getSettings(), [key]: enabled };
+  writeToDisk(next);
+  cache = next;
+  return { ...next };
 }
 
 /**
@@ -109,14 +140,21 @@ function isGuestModeEnabled() {
  * @returns {object} cài đặt sau khi đổi
  */
 function setGuestMode(enabled) {
-  if (typeof enabled !== "boolean") {
-    throw new Error("guestMode phải là true hoặc false.");
-  }
+  return setFlag("guestMode", enabled);
+}
 
-  const next = { ...getSettings(), guestMode: enabled };
-  writeToDisk(next);
-  cache = next;
-  return { ...next };
+/**
+ * Bật/tắt việc Larry đọc thành tiếng (TTS).
+ *
+ * Tắt là để TIẾT KIỆM token/chi phí: không còn lượt gọi model TTS nào, cả nút loa
+ * lẫn đường /api/voice/tts đều đóng. Nghe (STT) không đụng tới — micro là đường
+ * VÀO của học sinh chưa gõ thạo, tắt nhầm thì mất luôn cách nhập, còn tắt loa thì
+ * chỉ mất phần đọc lại thứ đã hiện sẵn trên màn hình.
+ * @param {boolean} enabled
+ * @returns {object} cài đặt sau khi đổi
+ */
+function setTtsEnabled(enabled) {
+  return setFlag("ttsEnabled", enabled);
 }
 
 module.exports = {
@@ -125,5 +163,7 @@ module.exports = {
   getSettings,
   getPublicSettings,
   isGuestModeEnabled,
-  setGuestMode
+  isTtsEnabled,
+  setGuestMode,
+  setTtsEnabled
 };

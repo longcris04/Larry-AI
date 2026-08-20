@@ -268,6 +268,7 @@ Khách vẫn được cấp JWT thật nên endpoint `/chat` giữ nguyên cơ c
 | `POST` | `/chat` | ✅ | Dự phòng, không stream. Cùng body → `{ messages[], groups, agents, fallback }` |
 | `POST` | `/api/session/end` | ✅ | `{ sessionId, history, emotion, checkin }` → chốt bản tóm tắt cuối |
 | `GET` | `/api/feedback-links` | – | `{ student, teacher }` — hai link biểu mẫu khai trong `backend/.env` |
+| `GET` | `/api/settings` | – | `{ guestMode, ttsEnabled, voice: { stt, tts } }` — công tắc quản trị viên + micro/loa có dùng được không. **Công khai** vì trang đăng nhập phải đọc trước khi có ai đăng nhập; chỉ toàn giá trị đúng/sai, không lộ tên model hay khoá API |
 | `GET` | `/api/knowledge/graph` | – | Kho tri thức dạng `{ nodes, edges, ... }` cho trang giới thiệu vẽ đồ thị |
 | `POST` | `/api/admin/users/:id/approval` | 👑 | `{ status: "approved" \| "rejected" }` — duyệt tài khoản giáo viên chủ nhiệm |
 | `GET` | `/api/teacher/students` | 🍎 | Học sinh lớp mình, kèm số phiên / số phiên đáng lo / số email đã gửi |
@@ -493,7 +494,7 @@ Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) có *
 
 | Tab | Trả lời câu hỏi |
 |---|---|
-| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển, khối chờ duyệt, chế độ khách, bảng tài khoản |
+| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển, khối chờ duyệt, hai công tắc hệ thống (chế độ khách · giọng đọc), bảng tài khoản |
 | 📈 **Tần suất sử dụng** | "Em này vào đều không" — biểu đồ lượt trò chuyện theo ngày của MỘT học sinh |
 
 Ở tab Tổng quan, quản trị viên có thể:
@@ -504,6 +505,7 @@ Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) có *
 - **Bấm "Hội thoại"** để xem các phiên trò chuyện: thời gian bắt đầu/kết thúc, số tin nhắn, bản tóm tắt, mức độ 🚩 và nhóm dấu hiệu phát hiện được.
 - **Bấm "✉️ Cảnh báo GVCN"** ở phiên bị gắn cờ để AI soạn email cảnh báo, đọc lại rồi gửi cho giáo viên chủ nhiệm (xem cuối mục này).
 - **Bấm "⬇️ Tải Excel"** ở góc phải mỗi bảng để tải bảng đó về máy, file mang đúng tên bảng (xem *Tải bảng về máy dưới dạng Excel* bên dưới).
+- **Bật/tắt chế độ khách** và **bật/tắt giọng đọc của Larry** bằng hai công tắc ngay trên bảng tài khoản (xem *Hai công tắc hệ thống* bên dưới).
 
 **Cơ chế gắn cờ:** phiên được gắn cờ khi có **bất kỳ dấu hiệu tiêu cực nào** về học sinh — không chỉ bắt nạt/bạo lực học đường mà cả bị xâm hại, bạo hành gia đình, tự làm đau bản thân, suy sụp tinh thần, sợ hãi, suy nhược thể chất, áp lực học tập, cô đơn... Chỉ những phiên học sinh vui vẻ/bình thường mới không bị gắn cờ; nghi ngờ thì vẫn gắn cờ. Mỗi phiên gắn cờ có `riskLevel` là `low` (Cần chú ý), `medium` (Đáng lo) hoặc `high` (Khẩn cấp), kèm `categories` — mã nhóm dấu hiệu, nhãn tiếng Việt nằm ở [riskCategories.js](frontend/src/constants/riskCategories.js).
 
@@ -528,8 +530,37 @@ API tương ứng, tất cả đều cần `authenticateToken + requireAdmin`:
 | `GET` | `/api/admin/alert/config` | Trạng thái tài khoản gửi email: `{ ready, error, from, defaultTo, model }` |
 | `POST` | `/api/admin/sessions/:id/alert/draft` | AI soạn nháp email cảnh báo GVCN → `{ subject, body, to, from }`. **Không gửi gì** |
 | `POST` | `/api/admin/sessions/:id/alert/send` | `{ to, subject, body }` → gửi thật và ghi vào `alerts[]` của phiên |
+| `PATCH` | `/api/admin/settings/guest-mode` | `{ enabled }` → `{ guestMode }` — bật/tắt trò chuyện không cần đăng nhập |
+| `PATCH` | `/api/admin/settings/tts` | `{ enabled }` → `{ ttsEnabled, voice }` — bật/tắt giọng đọc của Larry |
 
 Hai chốt chặn để hệ thống không tự khoá mình: không xoá được tài khoản đang đăng nhập, và không hạ quyền/xoá được quản trị viên cuối cùng.
+
+### Hai công tắc hệ thống
+
+Nằm ngay trên bảng tài khoản, vì chúng tác động tới **mọi** người vào web chứ không phải từng tài khoản một. Cả hai lưu vào `settings.json` — **cùng thư mục với `account.json`**, không phải trong thư mục mã nguồn, nên lựa chọn không bị đặt lại sau mỗi lần deploy ([settings.js](backend/settings.js)).
+
+| Công tắc | Tắt đi thì | Mặc định |
+|---|---|---|
+| **Chế độ khách** | Nút "Trò chuyện với Larry ngay" biến mất, `/api/guest` trả 403 | BẬT |
+| **Giọng đọc của Larry (TTS)** | Nút loa biến mất ở trang đăng nhập lẫn khung chat, `/api/voice/tts` trả 503 | BẬT |
+
+**Công tắc giọng đọc là để tiết kiệm token.** Mỗi câu trả lời được đọc lên là một lần gọi model TTS tính tiền theo số chữ — mà chữ thì đã hiện sẵn trên màn hình rồi. Tắt đi, khung chat vẫn đủ chức năng: Larry vẫn trả lời, học sinh vẫn nói vào **micro** được (STT không bị đụng tới — đó là đường *vào* của những em chưa gõ thạo, tắt nhầm là mất luôn một cách nhập).
+
+Tắt đóng **cả hai đầu**, không chỉ giấu nút:
+
+```
+PATCH /api/admin/settings/tts  { enabled: false }
+        │
+        ├─> /api/settings      → voice.tts = false  → trang đăng nhập không vẽ nút loa
+        ├─> /api/voice/config  → tts = false        → khung chat không vẽ nút loa
+        └─> POST /api/voice/tts → 503 "Quản trị viên đang tắt giọng đọc của Larry."
+```
+
+Đóng ở máy chủ mới là đóng thật: giấu nút chỉ là giấu, ai biết địa chỉ API vẫn gọi thẳng vào đốt token được. Ba đường trên đọc lại cài đặt ở **mỗi lượt** chứ không nhớ lúc khởi động — bấm tắt lúc 9h thì 9h01 em đang mở sẵn khung chat cũng thôi phát tiếng, không cần khởi động lại backend.
+
+Trang quản trị phân biệt **"tôi tắt"** với **"máy chủ chưa cấu hình"**: bật công tắc lên mà `TTS_MODEL`/`OPENROUTER_API_KEY` còn thiếu thì ô trạng thái nói thẳng ra điều đó, thay vì trông như một cái nút hỏng. Log lúc khởi động cũng in kèm — `Loa (TTS_MODEL): ... — QUẢN TRỊ VIÊN ĐANG TẮT`.
+
+Kiểm nhanh: `npm run test:settings` trong `backend/` ([settings.test.js](backend/settings.test.js)) — 7 bài, gồm cả "công tắc sống sót qua lần khởi động lại" và "file `settings.json` cũ chỉ có `guestMode` vẫn đọc được".
 
 ### Bảng tài khoản: tìm kiếm, phân trang, và bảng chi tiết mở tại chỗ
 
@@ -1024,6 +1055,8 @@ Hai nút đó là **một lựa chọn duy nhất**, không phải hai công t�
 
 Lựa chọn được **nhớ lại giữa các lần vào app**, và mở app ở hai tab cũng không lệch trạng thái (nghe cả sự kiện `storage` của trình duyệt). Trang đăng nhập biết có nên vẽ nút hay không nhờ `/api/settings` — đường **công khai**, trả về đúng hai giá trị đúng/sai `{ stt, tts }`, không lộ tên model hay khoá API. Backend chưa khai `TTS_MODEL` thì nút không hiện ở cả hai nơi.
 
+Nút 🔇 này là lựa chọn của **từng học sinh**. Trên nó còn một công tắc nữa của **quản trị viên** — tắt là cả trường thôi đọc thành tiếng, để tiết kiệm token (xem *Hai công tắc hệ thống* ở mục 8). Hai thứ độc lập: quản trị viên tắt thì nút 🔇 không còn được vẽ ra nữa.
+
 ### Thiếu cấu hình thì sao?
 
 Giọng nói là tính năng **thêm vào**, không phải điều kiện để chat chạy:
@@ -1158,7 +1191,7 @@ curl -s https://<backend-cua-ban>.onrender.com/api/settings
 | Chat báo "Larry không kết nối được server" | Backend chưa chạy, hoặc `REACT_APP_API_URL` sai. Kiểm tra `curl http://localhost:5000/api/health`. |
 | Camera không hiện | Chưa cấp quyền camera, hoặc đang mở qua IP/HTTP thay vì `localhost`. |
 | Không thấy nút micro 🎤 | Chưa khai `STT_MODEL` trong `backend/.env`, hoặc thiếu API key. Kiểm tra: `curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/voice/config`. |
-| Larry không đọc thành tiếng | Chưa khai `TTS_MODEL`, đang bật 🔇, hoặc trình duyệt chặn tự phát tiếng khi chưa bấm vào trang lần nào (bấm một cái là mở khoá). |
+| Larry không đọc thành tiếng | Chưa khai `TTS_MODEL`, **quản trị viên đang tắt giọng đọc** ở trang `/admin`, đang bật 🔇, hoặc trình duyệt chặn tự phát tiếng khi chưa bấm vào trang lần nào (bấm một cái là mở khoá). Kiểm tra: `curl http://localhost:5000/api/settings` — `ttsEnabled` là công tắc quản trị, `voice.tts` là trạng thái hiệu lực. |
 | Bấm micro báo "chưa cho phép dùng micro" | Chưa cấp quyền micro, hoặc đang mở qua IP/HTTP thay vì `localhost`/HTTPS. |
 | Nhận dạng ra chữ sai nhiều | Đặt `STT_LANGUAGE=vi`, thu ở nơi bớt ồn, và nói cách micro khoảng một gang tay. |
 | Nhận diện cảm xúc không chạy | Thiếu model trong `frontend/public/models/` — cần đủ 4 file `tiny_face_detector_*` và `face_expression_*`. |

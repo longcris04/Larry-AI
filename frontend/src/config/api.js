@@ -11,11 +11,13 @@ export const SESSION_END_URL = `${API_BASE_URL}/api/session/end`;
 // Kho tri thức Larry truy vấn, bản công khai cho trang giới thiệu vẽ đồ thị
 export const KNOWLEDGE_GRAPH_URL = `${API_BASE_URL}/api/knowledge/graph`;
 
-// Cài đặt quản trị viên bật/tắt được — hiện có mỗi chế độ khách. Đường đọc là
-// CÔNG KHAI vì trang đăng nhập phải biết trước khi có ai đăng nhập; đường ghi
-// nằm sau /api/admin nên chỉ quản trị viên đổi được.
+// Cài đặt quản trị viên bật/tắt được: chế độ khách và giọng đọc của Larry (TTS —
+// tắt để tiết kiệm token). Đường đọc là CÔNG KHAI vì trang đăng nhập phải biết
+// trước khi có ai đăng nhập; đường ghi nằm sau /api/admin nên chỉ quản trị viên
+// đổi được.
 export const SETTINGS_URL = `${API_BASE_URL}/api/settings`;
 export const ADMIN_GUEST_MODE_URL = `${API_BASE_URL}/api/admin/settings/guest-mode`;
+export const ADMIN_TTS_URL = `${API_BASE_URL}/api/admin/settings/tts`;
 
 // Số liệu bảng điều khiển. Nhận ?from=yyyy-mm-dd&to=yyyy-mm-dd — toàn bộ màn
 // hình lấy từ MỘT lần gọi này để mọi ô trên trang chắc chắn nói về cùng một
