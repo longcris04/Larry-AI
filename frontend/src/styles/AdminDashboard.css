@@ -882,6 +882,111 @@
     color:var(--dash-muted);
 }
 
+/* --- Thanh lọc của bảng lớp ------------------------------------------------
+   Một ô gõ chữ + bốn ô chọn (trường · lớp · khối · GVCN), cuốn xuống dòng trên
+   màn hình hẹp. Ô gõ chữ được co giãn (flex:1) còn bốn ô chọn giữ nguyên bề
+   rộng theo nội dung: tên trường dài nhất quyết định bề rộng ô Trường, nên đọc
+   được cả tên mà không phải mở ra. */
+.dash-classfilter{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:10px;
+
+    margin-bottom:14px;
+
+    padding:12px 14px;
+
+    border:2px solid #EDF1FA;
+
+    border-radius:14px;
+
+    background:var(--dash-plane);
+}
+
+.dash-classfilter__search{
+
+    flex:1 1 240px;
+
+    min-width:0;
+}
+
+.dash-facet{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:7px;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:var(--dash-ink-2);
+}
+
+.dash-facet__label{
+
+    white-space:nowrap;
+}
+
+.dash-facet__select{
+
+    max-width:220px;
+
+    padding:8px 10px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:10px;
+
+    background:#fff;
+
+    font-family:inherit;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:var(--dash-ink);
+
+    outline:none;
+
+    cursor:pointer;
+}
+
+.dash-facet__select:focus{
+
+    border-color:#56C6FF;
+}
+
+/* Ô đang lọc phải nhìn ra được giữa bốn ô giống hệt nhau — nếu không, bảng thiếu
+   dòng mà không ai nhớ mình đã đặt lọc ở đâu. */
+.dash-facet__select--on{
+
+    border-color:#56C6FF;
+
+    background:#F0FAFF;
+}
+
+.dash-classfilter__count{
+
+    margin-left:auto;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    font-variant-numeric:tabular-nums;
+
+    color:var(--dash-muted);
+}
+
 /* --- Bảng ----------------------------------------------------------------- */
 
 .dash-table{

@@ -494,7 +494,7 @@ Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) có *
 
 | Tab | Trả lời câu hỏi |
 |---|---|
-| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển, khối chờ duyệt, hai công tắc hệ thống (chế độ khách · giọng đọc), bảng tài khoản |
+| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển (kèm bảng lớp lọc được theo trường · lớp · khối · GVCN), khối chờ duyệt, hai công tắc hệ thống (chế độ khách · giọng đọc), bảng tài khoản |
 | 📈 **Tần suất sử dụng** | "Em này vào đều không" — biểu đồ lượt trò chuyện theo ngày của MỘT học sinh |
 
 Ở tab Tổng quan, quản trị viên có thể:
@@ -562,6 +562,29 @@ Trang quản trị phân biệt **"tôi tắt"** với **"máy chủ chưa cấu
 
 Kiểm nhanh: `npm run test:settings` trong `backend/` ([settings.test.js](backend/settings.test.js)) — 7 bài, gồm cả "công tắc sống sót qua lần khởi động lại" và "file `settings.json` cũ chỉ có `guestMode` vẫn đọc được".
 
+### Bảng lớp: bốn ô lọc ăn theo nhau
+
+Bảng **Các lớp đã tạo tài khoản** có một thanh lọc riêng: ô tìm nhanh 🔍 cộng bốn ô chọn — **Trường · Lớp · Khối · GVCN**.
+
+Bốn chiều đó là ô **chọn** chứ không phải ô gõ chữ, vì mỗi chiều ở đây là một tập **đóng** lấy thẳng từ dữ liệu: trường nào đã có tài khoản, lớp nào đã tồn tại, ai đang chủ nhiệm. Mở ra là thấy hết những gì có thật — không phải gõ thử rồi kết luận nhầm là "trường đó chưa có trong hệ thống". Mỗi mục in sẵn số lượng (`Đoàn Thị Điểm (12)`), nên chưa bấm đã biết bấm vào được mấy dòng.
+
+**Bốn ô ăn theo nhau.** Danh sách mục của mỗi ô dựng từ những dòng **còn lại sau các ô kia**: chọn trường Đoàn Thị Điểm xong thì ô *Lớp* chỉ còn lớp của trường đó, ô *GVCN* chỉ còn thầy cô của trường đó. Hệ quả là **không bấm ra được tổ hợp rỗng** — không có chuyện chọn hai thứ hợp lệ rồi nhận về một cái bảng trống không hiểu vì sao.
+
+Hai chi tiết nhỏ nhưng là ranh giới giữa "bộ lọc" và "cái bẫy":
+
+| | Vì sao |
+|---|---|
+| Ô đang lọc **không tự thu hẹp theo chính nó** | Nếu không, mở ô *Trường* ra chỉ còn đúng cái trường đang chọn — và không đổi sang trường khác được nữa |
+| Mục đang chọn **ở lại trong danh sách kể cả khi về 0 dòng** | Biến mất khỏi ô chọn thì không còn cách nào bỏ chọn nó, và bảng cứ trống mãi |
+
+**Chọn được cả ô trống.** Mục `— Chưa có GVCN —` lọc ra đúng những lớp chưa có ai chủ nhiệm — câu hỏi hay gặp nhất ở bảng này, vì đó là danh sách phải đi nhắc. Tương tự có `— Chưa khai khối —`. Chuỗi rỗng không dùng làm mã được (nó đã là giá trị của mục *Tất cả*) nên trong mã nguồn ô trống mang ký hiệu tập rỗng `∅`.
+
+**Ô tìm nhanh 🔍 lọc TRƯỚC**, rồi bốn ô chọn lọc tiếp trên phần còn lại — nên gõ `doan thi diem` (không dấu vẫn ra, xem [utils/search.js](frontend/src/utils/search.js)) thì cả bốn ô chọn cũng thu hẹp theo. Đây cũng là đường duy nhất tới được bảng trống, và lúc đó câu báo kèm nút **Xoá bộ lọc**.
+
+Lọc xong thì nút **⬇️ Tải Excel** xuất **đúng những dòng đang lọc ra** — nhưng không cắt theo phần đang hiện: lọc một trường rồi bấm tải là được cả trường đó, kể cả những lớp còn nằm sau nút "Xem tất cả". Bảng cắt còn 15 dòng là để trang khỏi dài, không phải để bớt dữ liệu.
+
+Kiểm nhanh: `npx react-scripts test AdminDashboard` trong `frontend/` ([AdminDashboard.test.js](frontend/src/components/ui/AdminDashboard.test.js)) — 12 bài, gồm cả "chọn trường xong thì ô Lớp chỉ còn lớp của trường đó" và "mục đang chọn vẫn còn trong ô để bỏ chọn, dù đã về 0 dòng".
+
 ### Bảng tài khoản: tìm kiếm, phân trang, và bảng chi tiết mở tại chỗ
 
 **Mười dòng một trang.** Một trường cấp 2 có hàng trăm tài khoản; đổ hết ra một bảng thì mọi thứ bên dưới nó — kể cả nút tải Excel — trôi khỏi tầm nhìn. Nút ← Trước / Sau → ở cuối bảng, kèm dòng "Trang 2 / 5 · đang xem 11–20 trong 47" để biết mình đang ở đâu.
@@ -609,7 +632,7 @@ Mỗi bảng ở khu vực quản trị có nút **⬇️ Tải Excel** ở góc
 |---|---|---|
 | Tài khoản người dùng | `Tài khoản người dùng.xlsx` | Toàn bộ tài khoản: danh tính, trường/lớp/khối, số phiên, số phiên có dấu hiệu và khẩn cấp |
 | Hội thoại theo ngày | `Hội thoại theo ngày.xlsx` | Từng ngày trong khoảng đang chọn |
-| Các lớp đã tạo tài khoản | `Các lớp đã tạo tài khoản.xlsx` | **Tất cả** các lớp, không chỉ mấy lớp đang hiện trên màn hình |
+| Các lớp đã tạo tài khoản | `Các lớp đã tạo tài khoản.xlsx` | Các lớp **đang lọc ra**, không chỉ mấy lớp đang hiện trên màn hình |
 | Các trường đã tạo tài khoản | `Các trường đã tạo tài khoản.xlsx` | Gộp theo trường |
 
 Ba điều đáng nói về cách nó chạy:

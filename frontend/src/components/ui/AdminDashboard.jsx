@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ADMIN_STATS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
+import { matchesQuery } from "../../utils/search";
 import {
   formatDay,
   formatNumber,
@@ -206,6 +207,97 @@ const ACCOUNT_SERIES = [
 // Số dòng bảng lớp hiện sẵn trước khi phải bấm xem thêm
 const CLASS_TABLE_LIMIT = 15;
 
+// --- Bộ lọc bảng lớp ----------------------------------------------------------
+//
+// Bốn chiều lọc, đúng bốn cột đầu của bảng. Đều là ô CHỌN chứ không phải ô gõ
+// chữ, vì mỗi chiều ở đây là một tập ĐÓNG lấy thẳng từ dữ liệu — trường nào đã
+// có tài khoản, lớp nào đã tồn tại, ai đang chủ nhiệm. Mở ra là thấy hết những
+// gì có thật, không phải đoán xem mình gõ đúng tên chưa rồi kết luận nhầm là
+// "trường đó chưa có trong hệ thống".
+//
+// Ô gõ chữ 🔍 đứng cạnh lo phần còn lại: nhớ mang máng vài chữ, gõ không dấu
+// cũng ra (xem utils/search.js).
+const CLASS_FILTERS = [
+  { id: "school", label: "Trường", all: "Tất cả trường", empty: "— Chưa khai trường —", of: (r) => r.school },
+  { id: "className", label: "Lớp", all: "Tất cả lớp", empty: "— Chưa khai lớp —", of: (r) => r.className },
+  { id: "grade", label: "Khối", all: "Tất cả khối", empty: "— Chưa khai khối —", of: (r) => r.grade },
+  { id: "teacherName", label: "GVCN", all: "Tất cả GVCN", empty: "— Chưa có GVCN —", of: (r) => r.teacherName }
+];
+
+const NO_CLASS_FILTERS = { school: "", className: "", grade: "", teacherName: "" };
+
+// Ô trống cũng phải chọn được — "lớp nào CHƯA CÓ giáo viên chủ nhiệm" là câu hỏi
+// hay gặp nhất ở bảng này, mà chuỗi rỗng thì đã là giá trị của mục "Tất cả" rồi.
+// Lấy ký hiệu tập rỗng làm mã riêng vì không tên trường/lớp/người nào chứa nó.
+const NONE = "\u2205";
+
+function facetValue(raw) {
+  const text = String(raw ?? "").trim();
+  return text || NONE;
+}
+
+function ClassFilterBar({ query, onQuery, filters, onFilter, facets, shown, total, active, onReset }) {
+  return (
+    <div className="dash-classfilter">
+      <label className="admin-search dash-classfilter__search">
+        <span className="admin-search__icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder="Tìm nhanh theo trường, lớp, khối hay tên GVCN…"
+          aria-label="Tìm trong bảng lớp"
+        />
+        {query && (
+          <button
+            type="button"
+            className="admin-search__clear"
+            onClick={() => onQuery("")}
+            aria-label="Xoá từ khoá tìm kiếm"
+          >
+            ✕
+          </button>
+        )}
+      </label>
+
+      {facets.map((facet) => (
+        <label key={facet.id} className="dash-facet">
+          <span className="dash-facet__label">{facet.label}</span>
+          {/* Tên gọi cho trình đọc màn hình phải khai thẳng ở đây. Thẻ <label>
+              bọc cả ô chọn, mà chữ của một <label> gồm luôn chữ của MỌI mục bên
+              trong — không có dòng này thì ô Trường được đọc thành "Trường Tất
+              cả trường Đoàn Thị Điểm Lê Quý Đôn…" */}
+          <select
+            aria-label={`Lọc theo ${facet.label}`}
+            className={`dash-facet__select${filters[facet.id] ? " dash-facet__select--on" : ""}`}
+            value={filters[facet.id]}
+            onChange={(e) => onFilter(facet.id, e.target.value)}
+          >
+            <option value="">
+              {facet.all} ({facet.total})
+            </option>
+            {facet.options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label} ({opt.count})
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
+
+      <span className="dash-classfilter__count">
+        {active ? `${shown} / ${total} lớp khớp` : `${total} lớp`}
+      </span>
+
+      {active && (
+        <button type="button" className="admin-btn admin-btn--sm admin-btn--ghost" onClick={onReset}>
+          Xoá bộ lọc
+        </button>
+      )}
+    </div>
+  );
+}
+
 const RISK_ROWS = [
   { key: "high", color: "--dash-high", icon: "🔴" },
   { key: "medium", color: "--dash-medium", icon: "🟠" },
@@ -279,6 +371,11 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
   // xếp lên đầu (xem byClass trong stats.js) nên phần cắt đi là phần yên ổn.
   const [allClasses, setAllClasses] = useState(false);
 
+  // Bộ lọc của bảng lớp. Sống ở đây chứ không ở URL hay ở trang cha: nó chỉ nói
+  // về MỘT bảng, và khoảng ngày ở trên cùng mới là thứ chi phối cả màn hình.
+  const [classQuery, setClassQuery] = useState("");
+  const [classFilters, setClassFilters] = useState(NO_CLASS_FILTERS);
+
   const load = useCallback(async () => {
     setBusy(true);
     try {
@@ -316,14 +413,105 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
     return rows.slice(0, 8);
   }, [stats]);
 
-  const visibleClasses = useMemo(
-    () => (allClasses ? stats?.byClass || [] : (stats?.byClass || []).slice(0, CLASS_TABLE_LIMIT)),
-    [stats, allClasses]
+  // Ô gõ chữ lọc trước, bốn ô chọn lọc sau. Tách hai bước vì các ô chọn phải
+  // liệt kê option dựa trên KẾT QUẢ TÌM KIẾM — gõ "diem" xong thì ô Trường chỉ
+  // còn mấy trường khớp, chứ không phải cả danh sách toàn huyện.
+  const searchedClasses = useMemo(
+    () =>
+      (stats?.byClass || []).filter((row) =>
+        matchesQuery(classQuery, [row.school, row.className, row.grade, row.teacherName])
+      ),
+    [stats, classQuery]
   );
+
+  const filteredClasses = useMemo(
+    () =>
+      searchedClasses.filter((row) =>
+        CLASS_FILTERS.every(
+          (f) => !classFilters[f.id] || facetValue(f.of(row)) === classFilters[f.id]
+        )
+      ),
+    [searchedClasses, classFilters]
+  );
+
+  // Mỗi ô chọn liệt kê những gì CÒN LẠI sau các ô KIA — chọn trường xong thì ô
+  // Lớp chỉ còn lớp của trường đó, ô GVCN chỉ còn thầy cô của trường đó. Nhờ vậy
+  // không có tổ hợp nào bấm vào lại ra bảng trống, và con số in cạnh mỗi mục
+  // luôn trả lời đúng câu "chọn cái này thì được mấy dòng".
+  //
+  // Phải trừ CHÍNH nó ra khỏi phép lọc, nếu không mở ô Trường ra chỉ còn thấy
+  // mỗi cái trường đang chọn — và không đổi sang trường khác được nữa.
+  const classFacets = useMemo(
+    () =>
+      CLASS_FILTERS.map((field) => {
+        const counts = new Map();
+
+        for (const row of searchedClasses) {
+          const passesOthers = CLASS_FILTERS.every(
+            (other) =>
+              other.id === field.id ||
+              !classFilters[other.id] ||
+              facetValue(other.of(row)) === classFilters[other.id]
+          );
+          if (!passesOthers) continue;
+
+          const value = facetValue(field.of(row));
+          counts.set(value, (counts.get(value) || 0) + 1);
+        }
+
+        // Mục đang chọn phải luôn còn trong danh sách, kể cả khi ô tìm kiếm vừa
+        // lọc nó về 0: biến mất khỏi ô chọn thì không còn cách nào bỏ chọn nó.
+        const selected = classFilters[field.id];
+        if (selected && !counts.has(selected)) counts.set(selected, 0);
+
+        const options = [...counts.entries()]
+          // "Chưa khai" xuống cuối — nó là chỗ trống của dữ liệu, không phải một
+          // cái tên, nên xếp lẫn theo bảng chữ cái chỉ làm rối. numeric để 6A10
+          // đứng sau 6A9 chứ không phải sau 6A1.
+          .sort((a, b) => {
+            if (a[0] === NONE) return 1;
+            if (b[0] === NONE) return -1;
+            return a[0].localeCompare(b[0], "vi", { numeric: true });
+          })
+          .map(([value, count]) => ({
+            value,
+            count,
+            label: value === NONE ? field.empty : value
+          }));
+
+        return {
+          id: field.id,
+          label: field.label,
+          all: field.all,
+          options,
+          total: options.reduce((sum, opt) => sum + opt.count, 0)
+        };
+      }),
+    [searchedClasses, classFilters]
+  );
+
+  const visibleClasses = useMemo(
+    () => (allClasses ? filteredClasses : filteredClasses.slice(0, CLASS_TABLE_LIMIT)),
+    [filteredClasses, allClasses]
+  );
+
+  // Đổi bộ lọc thì thu bảng về lại 15 dòng đầu: danh sách mới không liên quan gì
+  // tới việc mình vừa bấm "xem tất cả" trên danh sách cũ.
+  useEffect(() => {
+    setAllClasses(false);
+  }, [classQuery, classFilters]);
 
   const maxClassSessions = Math.max(1, ...topClasses.map((r) => r.sessions));
   const maxCategory = Math.max(1, ...(stats?.byCategory || []).map((c) => c.count));
   const maxRisk = Math.max(1, ...RISK_ROWS.map((r) => stats?.conversations?.[r.key] || 0));
+
+  const classFiltersOn =
+    Boolean(classQuery.trim()) || CLASS_FILTERS.some((f) => classFilters[f.id]);
+
+  const resetClassFilters = () => {
+    setClassQuery("");
+    setClassFilters(NO_CLASS_FILTERS);
+  };
 
   if (!stats) {
     return (
@@ -576,13 +764,14 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
           <div className="dash-card__head">
             <h3 className="dash-card__title">{CLASSES_TABLE}</h3>
 
-            {/* Tải TẤT CẢ các lớp, không chỉ mấy lớp đang hiện. Bảng trên màn
-                hình cắt bớt cho khỏi dài; file tải về mà cũng thiếu thì đúng lúc
-                cần tra một lớp yên ổn lại không có. */}
+            {/* Tải đúng những dòng ĐANG LỌC RA, nhưng không cắt theo phần đang
+                hiện: lọc trường Đoàn Thị Điểm rồi bấm tải thì được cả trường đó,
+                kể cả những lớp còn nằm sau nút "Xem tất cả". Bảng cắt bớt là để
+                trang khỏi dài, không phải để bớt dữ liệu. */}
             <ExportExcelButton
               name={CLASSES_TABLE}
               columns={CLASSES_COLUMNS}
-              rows={stats.byClass}
+              rows={filteredClasses}
             />
           </div>
           <p className="dash-card__sub">
@@ -594,74 +783,104 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
           {stats.byClass.length === 0 ? (
             <p className="dash-empty">Chưa có lớp nào — chưa tài khoản nào khai đủ trường và lớp.</p>
           ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-table dash-table">
-                <thead>
-                  <tr>
-                    <th>Trường</th>
-                    <th>Lớp</th>
-                    <th>Khối</th>
-                    <th>GVCN</th>
-                    <th>Học sinh</th>
-                    <th>Hội thoại</th>
-                    <th>Bị gắn cờ</th>
-                    <th>Khẩn cấp</th>
-                    <th>Gần nhất</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleClasses.map((row) => (
-                    <tr key={row.key}>
-                      <td>{row.school}</td>
-                      <td><strong>{row.className}</strong></td>
-                      <td className="admin-muted">{row.grade || "—"}</td>
-                      <td>
-                        {row.teacherName ? (
-                          <>
-                            {row.teacherName}
-                            {row.teacherStatus !== "approved" && (
-                              <div className="admin-status admin-status--pending">Chờ duyệt</div>
-                            )}
-                          </>
-                        ) : (
-                          <span className="dash-gap">Chưa có</span>
-                        )}
-                      </td>
-                      <td>
-                        {formatNumber(row.students)}
-                        {row.activeStudents > 0 && (
-                          <span className="admin-muted"> ({row.activeStudents} đang dùng)</span>
-                        )}
-                      </td>
-                      <td>{formatNumber(row.sessions)}</td>
-                      <td>{row.flagged > 0 ? `🚩 ${formatNumber(row.flagged)}` : "—"}</td>
-                      <td>
-                        {row.high > 0 ? (
-                          <span className="dash-high-cell">❗ {formatNumber(row.high)}</span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="admin-muted">{formatTime(row.lastActivityAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <>
+              <ClassFilterBar
+                query={classQuery}
+                onQuery={setClassQuery}
+                filters={classFilters}
+                onFilter={(id, value) => setClassFilters((prev) => ({ ...prev, [id]: value }))}
+                facets={classFacets}
+                shown={filteredClasses.length}
+                total={stats.byClass.length}
+                active={classFiltersOn}
+                onReset={resetClassFilters}
+              />
 
-              {stats.byClass.length > CLASS_TABLE_LIMIT && (
-                <div className="dash-more">
+              {filteredClasses.length === 0 ? (
+                <p className="dash-empty">
+                  Không có lớp nào khớp bộ lọc đang đặt.
                   <button
                     type="button"
-                    className="admin-btn admin-btn--sm admin-btn--ghost"
-                    onClick={() => setAllClasses((v) => !v)}
+                    className="admin-btn admin-btn--sm admin-btn--ghost admin-empty__reset"
+                    onClick={resetClassFilters}
                   >
-                    {allClasses
-                      ? `Thu gọn — chỉ hiện ${CLASS_TABLE_LIMIT} lớp đầu`
-                      : `Xem tất cả ${formatNumber(stats.byClass.length)} lớp`}
+                    Xoá bộ lọc
                   </button>
+                </p>
+              ) : (
+                <div className="admin-table-wrap">
+                  {/* Ba bảng trên cùng một màn hình thì phải gọi được tên từng cái
+                      — trình đọc màn hình liệt kê bảng theo tên, và "bảng, 9 cột"
+                      ba lần liền thì không ai biết mình đang đứng ở bảng nào. */}
+                  <table className="admin-table dash-table" aria-label={CLASSES_TABLE}>
+                    <thead>
+                      <tr>
+                        <th>Trường</th>
+                        <th>Lớp</th>
+                        <th>Khối</th>
+                        <th>GVCN</th>
+                        <th>Học sinh</th>
+                        <th>Hội thoại</th>
+                        <th>Bị gắn cờ</th>
+                        <th>Khẩn cấp</th>
+                        <th>Gần nhất</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleClasses.map((row) => (
+                        <tr key={row.key}>
+                          <td>{row.school}</td>
+                          <td><strong>{row.className}</strong></td>
+                          <td className="admin-muted">{row.grade || "—"}</td>
+                          <td>
+                            {row.teacherName ? (
+                              <>
+                                {row.teacherName}
+                                {row.teacherStatus !== "approved" && (
+                                  <div className="admin-status admin-status--pending">Chờ duyệt</div>
+                                )}
+                              </>
+                            ) : (
+                              <span className="dash-gap">Chưa có</span>
+                            )}
+                          </td>
+                          <td>
+                            {formatNumber(row.students)}
+                            {row.activeStudents > 0 && (
+                              <span className="admin-muted"> ({row.activeStudents} đang dùng)</span>
+                            )}
+                          </td>
+                          <td>{formatNumber(row.sessions)}</td>
+                          <td>{row.flagged > 0 ? `🚩 ${formatNumber(row.flagged)}` : "—"}</td>
+                          <td>
+                            {row.high > 0 ? (
+                              <span className="dash-high-cell">❗ {formatNumber(row.high)}</span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="admin-muted">{formatTime(row.lastActivityAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {filteredClasses.length > CLASS_TABLE_LIMIT && (
+                    <div className="dash-more">
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--sm admin-btn--ghost"
+                        onClick={() => setAllClasses((v) => !v)}
+                      >
+                        {allClasses
+                          ? `Thu gọn — chỉ hiện ${CLASS_TABLE_LIMIT} lớp đầu`
+                          : `Xem tất cả ${formatNumber(filteredClasses.length)} lớp`}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
