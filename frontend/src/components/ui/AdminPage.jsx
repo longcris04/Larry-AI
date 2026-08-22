@@ -4,10 +4,14 @@ import { useAuth } from "../../context/AuthContext";
 import { ADMIN_GUEST_MODE_URL, ADMIN_TTS_URL, API_BASE_URL, SETTINGS_URL } from "../../config/api";
 import { ROLES, STATUS, roleLabel, statusLabel } from "../../constants/roles";
 import { matchesQuery } from "../../utils/search";
+import { buildFacets, filterByFacets, hasFilters, noFilters } from "../../utils/facets";
 import { dateTimeCell } from "../../utils/xlsx";
 import AdminDashboard from "./AdminDashboard";
 import AlertEmailModal from "./AlertEmailModal";
 import ExportExcelButton from "./ExportExcelButton";
+import FacetSelect from "./FacetSelect";
+import SortHeader, { cycleSort } from "./SortHeader";
+import TablePager from "./TablePager";
 import UsageFrequency from "./UsageFrequency";
 import UserSessionsPanel from "./UserSessionsPanel";
 import "../../styles/AdminPage.css";
@@ -31,17 +35,116 @@ const TABS = [
   { id: "tan-suat", label: "📈 Tần suất sử dụng" }
 ];
 
-// Bộ lọc vai trò. "" = tất cả, và nó đứng đầu vì đó là trạng thái mặc định —
-// người dùng phải thấy ngay cách quay về "xem hết" mà không cần đoán.
+// --- Bốn ô chọn lọc của bảng tài khoản ---------------------------------------
 //
-// Có cả Quản trị viên dù danh sách đó thường chỉ một dòng: bảng vẫn hiện họ, nên
-// một bộ lọc thiếu đúng nhóm đang nhìn thấy sẽ khiến người dùng tưởng nó hỏng.
-const ROLE_FILTERS = [
-  { value: "", label: "Tất cả" },
-  { value: ROLES.STUDENT, label: "Học sinh" },
-  { value: ROLES.TEACHER, label: "Giáo viên chủ nhiệm" },
-  { value: ROLES.ADMIN, label: "Quản trị viên" }
+// Bốn chiều này là bốn cột đầu của bảng, và đều là tập ĐÓNG lấy thẳng từ dữ liệu:
+// vai trò nào đang có, trường nào đã có tài khoản, lớp nào đã tồn tại. Mở ô chọn
+// ra là thấy hết những gì có thật, kèm số lượng — không phải gõ thử rồi kết luận
+// nhầm là "trường đó chưa có trong hệ thống".
+//
+// Bốn ô ĂN THEO NHAU và ăn theo cả ô tìm kiếm (xem utils/facets.js), y hệt bảng
+// lớp của bảng điều khiển — hai bảng lọc theo cùng mấy chiều thì phải cư xử
+// giống nhau, nếu không thì cùng một thao tác ở hai chỗ lại ra hai kết quả khác
+// nhau và không ai biết chỗ nào đúng.
+//
+// Vai trò cũng là MỘT ô chọn như ba chiều kia, không phải hàng nút riêng: bốn ô
+// đứng cạnh nhau thì nhìn là biết bảng đang bị lọc theo những gì, và lọc theo
+// trường xong thì ô Vai trò chỉ còn những vai trò thật sự có ở trường đó.
+const USER_FACETS = [
+  {
+    id: "role",
+    label: "Vai trò",
+    all: "Tất cả vai trò",
+    empty: "— Chưa rõ —",
+    of: (u) => u.role,
+    // Trong dữ liệu vai trò là "user"/"teacher"/"admin", trên màn hình phải đọc
+    // ra tiếng Việt — nhưng giá trị lọc vẫn là mã, để không phụ thuộc vào chữ.
+    format: (code) => roleLabel(code),
+    // Thứ tự cố định, không theo bảng chữ cái: xếp theo mã thì "admin" lên đầu và
+    // nhóm đông nhất (học sinh) tụt xuống cuối.
+    values: [ROLES.STUDENT, ROLES.TEACHER, ROLES.ADMIN]
+  },
+  {
+    id: "school",
+    label: "Trường",
+    all: "Tất cả trường",
+    empty: "— Chưa khai trường —",
+    of: (u) => u.profile?.school
+  },
+  {
+    id: "className",
+    label: "Lớp",
+    all: "Tất cả lớp",
+    empty: "— Chưa khai lớp —",
+    of: (u) => u.profile?.className
+  },
+  {
+    id: "grade",
+    label: "Khối",
+    all: "Tất cả khối",
+    empty: "— Chưa khai khối —",
+    of: (u) => u.profile?.grade
+  }
 ];
+
+const NO_USER_FILTERS = noFilters(USER_FACETS);
+
+// --- Sắp xếp bảng tài khoản ---------------------------------------------------
+//
+// Ba cột số của bảng, bấm thẳng vào TIÊU ĐỀ CỘT (xem SortHeader.jsx — ba trạng
+// thái ↕ ↓ ↑, dùng chung với bảng trường của bảng điều khiển).
+//
+// Trước đây ba con số này gộp chung vào một cột "Phiên" nên phải có một hàng nút
+// sắp xếp riêng: bấm vào tiêu đề của một cột gộp thì không nói được là đang xếp
+// theo con số nào trong đó. Tách ra ba cột thì tiêu đề cột tự nói đủ nghĩa, và
+// hàng nút kia thành thừa.
+//
+// Chỉ MỘT cột bật được cùng lúc: cả ba đều xếp lại đúng một bảng, nên "vừa theo
+// số hội thoại vừa theo số phiên gắn cờ" là câu không có nghĩa.
+const SORTS = [
+  {
+    id: "sessionCount",
+    label: "Hội thoại",
+    // Bằng số hội thoại thì em nào nhiều dấu hiệu hơn lên trước: hai dòng cùng 12
+    // phiên mà một em có 5 phiên bị gắn cờ thì đó mới là dòng cần nhìn.
+    tiebreak: (a, b) => (b.flaggedCount || 0) - (a.flaggedCount || 0)
+  },
+  {
+    id: "flaggedCount",
+    label: "Bị gắn cờ",
+    // Bằng số phiên gắn cờ thì so tiếp số phiên KHẨN CẤP — đúng cách stats.js xếp
+    // "lớp cần chú ý" lên đầu, để hai bảng trên cùng một trang không nói ngược nhau.
+    tiebreak: (a, b) => (b.highRiskCount || 0) - (a.highRiskCount || 0)
+  },
+  {
+    id: "highRiskCount",
+    label: "Khẩn cấp",
+    // Bằng số phiên khẩn cấp thì lùi về số phiên gắn cờ — cùng 1 phiên khẩn cấp
+    // mà một em có thêm 6 phiên đáng lo thì em đó cần nhìn trước.
+    tiebreak: (a, b) => (b.flaggedCount || 0) - (a.flaggedCount || 0)
+  }
+];
+
+// Mũi tên ↑/↓ chỉ đổi chiều của CON SỐ trên nút. Phần so bù (bằng nhau thì xếp
+// theo mức đáng chú ý, rồi tới tên) luôn giữ nguyên chiều — lật cả nó thì bấm
+// "tăng dần" xong dòng đáng lo nhất tụt vào giữa bảng, chỗ không ai nhìn.
+function compareBySort(sort) {
+  const field = SORTS.find((item) => item.id === sort.id);
+  const sign = sort.dir === "asc" ? 1 : -1;
+
+  return (a, b) =>
+    sign * ((a[sort.id] || 0) - (b[sort.id] || 0)) ||
+    field.tiebreak(a, b) ||
+    String(a.username).localeCompare(String(b.username), "vi", { numeric: true });
+}
+
+// Số cột của bảng tài khoản — dòng chi tiết mở ra bên dưới phải trải hết bề ngang
+// bằng colSpan. Tính từ SORTS thay vì gõ sẵn một con số: thêm một cột số nữa mà
+// quên sửa colSpan thì bảng vẹo mất một góc, và không có gì báo lỗi cả.
+//
+//   7 cột chữ (tài khoản · điện thoại · email · vai trò · trường · lớp · khối)
+//   + 3 cột số + 1 cột hành động
+const USERS_COLUMN_COUNT = 7 + SORTS.length + 1;
 
 // Số dòng mỗi trang của bảng tài khoản. Mười dòng vừa một màn hình mà không phải
 // cuộn — quan trọng vì bấm vào một dòng giờ mở ra bảng chi tiết ngay bên dưới nó,
@@ -92,8 +195,13 @@ export default function AdminPage() {
 
   // --- Bảng tài khoản: tìm kiếm + phân trang ---------------------------------
   const [query, setQuery] = useState("");
-  // "" = mọi vai trò
-  const [roleFilter, setRoleFilter] = useState("");
+  // Bốn ô chọn: vai trò · trường · lớp · khối. "" ở một chiều = không lọc chiều đó.
+  const [filters, setFilters] = useState(NO_USER_FILTERS);
+
+  // Cách xếp bảng: null = thứ tự mặc định (theo lúc đăng ký), hoặc
+  // { id: "sessionCount" | "flaggedCount", dir: "desc" | "asc" }.
+  const [sort, setSort] = useState(null);
+
   const [page, setPage] = useState(0);
 
   // Dòng đang mở bảng chi tiết bên dưới: { id, mode: "sessions" | "edit" | "delete" }.
@@ -332,48 +440,67 @@ export default function AdminPage() {
 
   // --- Lọc và cắt trang -------------------------------------------------------
   //
+  // Ô gõ chữ lọc TRƯỚC, bốn ô chọn lọc sau. Tách hai bước vì các ô chọn phải liệt
+  // kê mục dựa trên KẾT QUẢ TÌM KIẾM — gõ "diem" xong thì ô Trường chỉ còn mấy
+  // trường khớp, chứ không phải cả danh sách toàn huyện.
+  //
   // Dò trên đủ mọi thứ có trong bảng: tên tài khoản, họ tên, trường, lớp, khối,
   // email, số điện thoại. Gõ không dấu vẫn ra — "doan thi diem" tìm thấy "Đoàn
   // Thị Điểm" (xem utils/search.js).
-  const filteredUsers = useMemo(
+  const searchedUsers = useMemo(
     () =>
-      users
-        .filter((u) => !roleFilter || u.role === roleFilter)
-        .filter((u) =>
-          matchesQuery(query, [
-            u.username,
-            u.profile?.fullName,
-            u.profile?.school,
-            u.profile?.className,
-            u.profile?.grade,
-            u.email,
-            u.phone
-          ])
-        ),
-    [users, query, roleFilter]
+      users.filter((u) =>
+        matchesQuery(query, [
+          u.username,
+          u.profile?.fullName,
+          u.profile?.school,
+          u.profile?.className,
+          u.profile?.grade,
+          u.email,
+          u.phone
+        ])
+      ),
+    [users, query]
   );
 
-  // Số tài khoản của từng vai trò, để in ngay trên nút lọc. Đếm trên TOÀN BỘ
-  // danh sách chứ không phải phần đang lọc: con số này trả lời "bấm vào đây thì
-  // được bao nhiêu dòng", nên nó không được đổi theo chính nút đang bật.
-  const roleCounts = useMemo(() => {
-    const counts = { "": users.length };
-    for (const u of users) counts[u.role] = (counts[u.role] || 0) + 1;
-    return counts;
-  }, [users]);
+  const filteredUsers = useMemo(
+    () => filterByFacets(searchedUsers, USER_FACETS, filters),
+    [searchedUsers, filters]
+  );
 
-  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const userFacets = useMemo(
+    () => buildFacets(searchedUsers, USER_FACETS, filters),
+    [searchedUsers, filters]
+  );
+
+  const filtersOn = Boolean(query.trim()) || hasFilters(USER_FACETS, filters);
+
+  const resetFilters = () => {
+    setQuery("");
+    setFilters(NO_USER_FILTERS);
+  };
+
+  // Sắp xếp SAU khi lọc, và luôn trên một bản sao — filteredUsers là kết quả của
+  // một useMemo khác, sort() tại chỗ sẽ xáo chính cái mảng đó và làm lần render
+  // sau đọc phải thứ tự đã bị đổi mà không ai gọi sắp xếp.
+  const sortedUsers = useMemo(
+    () => (sort ? [...filteredUsers].sort(compareBySort(sort)) : filteredUsers),
+    [filteredUsers, sort]
+  );
+
+  const pageCount = Math.max(1, Math.ceil(sortedUsers.length / PAGE_SIZE));
   // Kẹp lại thay vì tin vào `page`: gõ thêm một chữ vào ô tìm kiếm có thể làm danh
   // sách ngắn đi đột ngột, và lúc đó trang thứ 5 không còn tồn tại nữa — không kẹp
   // thì bảng hiện ra trống trơn trong khi vẫn còn kết quả.
   const safePage = Math.min(page, pageCount - 1);
-  const pageUsers = filteredUsers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+  const pageUsers = sortedUsers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
-  // Đổi từ khoá hay đổi vai trò thì quay về trang đầu — kết quả mới không liên
-  // quan gì tới việc mình đang đứng ở trang mấy của kết quả cũ.
+  // Đổi từ khoá, đổi vai trò hay đổi cách xếp thì quay về trang đầu — bảng vừa
+  // xếp lại thì trang 3 của thứ tự cũ chẳng còn nghĩa gì, mà đó lại đúng là lúc
+  // người ta muốn nhìn mấy dòng đầu nhất.
   useEffect(() => {
     setPage(0);
-  }, [query, roleFilter]);
+  }, [query, filters, sort]);
 
   // Dòng đang mở bảng chi tiết mà trôi khỏi trang đang xem (do lọc hay chuyển
   // trang) thì đóng lại: để mở thì nó sẽ bật ra ở một dòng khác của trang mới.
@@ -381,7 +508,7 @@ export default function AdminPage() {
     if (expanded && !pageUsers.some((u) => u.id === expanded.id)) setExpanded(null);
     // pageUsers dựng lại mỗi lần render nên chỉ nghe theo hai thứ thật sự đổi
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, roleFilter, safePage, users]);
+  }, [query, filters, sort, safePage, users]);
 
   // Tài khoản của bảng chi tiết đang mở — AlertEmailModal cần tên em đó
   const openUser = users.find((u) => u.id === expanded?.id) || null;
@@ -599,7 +726,7 @@ export default function AdminPage() {
           <ExportExcelButton
             name={USERS_TABLE}
             columns={USERS_COLUMNS}
-            rows={filteredUsers}
+            rows={sortedUsers}
             className="admin-btn admin-btn--sm admin-btn--ghost admin-export-btn"
           />
         </h2>
@@ -636,29 +763,33 @@ export default function AdminPage() {
             )}
           </label>
 
-          {/* Lọc theo vai trò. Dạng nút bấm chứ không phải ô chọn xổ xuống: cả
-              bốn lựa chọn luôn nhìn thấy kèm số lượng, nên biết ngay trường có
-              bao nhiêu giáo viên mà không phải mở ra xem. */}
-          <div className="admin-rolefilter" role="group" aria-label="Lọc theo vai trò">
-            {ROLE_FILTERS.map((item) => (
-              <button
-                key={item.value || "all"}
-                type="button"
-                className={`admin-chip${roleFilter === item.value ? " admin-chip--on" : ""}`}
-                aria-pressed={roleFilter === item.value}
-                onClick={() => setRoleFilter(item.value)}
-              >
-                {item.label}
-                <span className="admin-chip__count">{roleCounts[item.value] || 0}</span>
-              </button>
-            ))}
-          </div>
+          {/* Bốn ô chọn, đúng bốn cột đầu của bảng. Mỗi mục in sẵn số lượng
+              ("Học sinh (25)") nên chưa bấm đã biết bấm vào được mấy dòng, và các
+              ô ăn theo nhau nên không tổ hợp nào bấm ra bảng trống. */}
+          {userFacets.map((facet) => (
+            <FacetSelect
+              key={facet.id}
+              facet={facet}
+              value={filters[facet.id]}
+              onChange={(id, value) => setFilters((prev) => ({ ...prev, [id]: value }))}
+            />
+          ))}
 
           <span className="admin-toolbar__count">
-            {query.trim() || roleFilter
+            {filtersOn
               ? `${filteredUsers.length} / ${users.length} tài khoản khớp`
               : `${users.length} tài khoản`}
           </span>
+
+          {filtersOn && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm admin-btn--ghost"
+              onClick={resetFilters}
+            >
+              Xoá bộ lọc
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -667,23 +798,16 @@ export default function AdminPage() {
           <p className="admin-empty">Chưa có tài khoản nào.</p>
         ) : filteredUsers.length === 0 ? (
           <p className="admin-empty">
-            {query.trim() && roleFilter
-              ? `Không có tài khoản ${roleLabel(roleFilter).toLowerCase()} nào khớp với “${query}”.`
-              : roleFilter
-                ? `Chưa có tài khoản ${roleLabel(roleFilter).toLowerCase()} nào.`
-                : `Không có tài khoản nào khớp với “${query}”. Thử bớt từ khoá đi xem sao.`}
-            {(query.trim() || roleFilter) && (
-              <button
-                type="button"
-                className="admin-btn admin-btn--sm admin-btn--ghost admin-empty__reset"
-                onClick={() => {
-                  setQuery("");
-                  setRoleFilter("");
-                }}
-              >
-                Xoá bộ lọc
-              </button>
-            )}
+            {query.trim()
+              ? `Không có tài khoản nào khớp với “${query}”. Thử bớt từ khoá hoặc bớt một ô lọc đi xem sao.`
+              : "Không có tài khoản nào khớp bộ lọc đang đặt."}
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm admin-btn--ghost admin-empty__reset"
+              onClick={resetFilters}
+            >
+              Xoá bộ lọc
+            </button>
           </p>
         ) : (
           <>
@@ -700,7 +824,18 @@ export default function AdminPage() {
                   <th>Trường</th>
                   <th>Lớp</th>
                   <th>Khối</th>
-                  <th>Phiên</th>
+                  {/* Ba cột số, mỗi cột một con số và bấm được để xếp — giống hệt
+                      bảng lớp và bảng trường của bảng điều khiển, để ba bảng cùng
+                      nói về hội thoại trên một trang đọc ra cùng một kiểu. */}
+                  {SORTS.map((item) => (
+                    <SortHeader
+                      key={item.id}
+                      id={item.id}
+                      label={item.label}
+                      sort={sort}
+                      onSort={(id) => setSort((prev) => cycleSort(prev, id))}
+                    />
+                  ))}
                   <th>Hành động</th>
                 </tr>
               </thead>
@@ -733,22 +868,33 @@ export default function AdminPage() {
                       <td className="admin-muted">{row.profile?.school || "—"}</td>
                       <td className="admin-muted">{row.profile?.className || "—"}</td>
                       <td className="admin-muted">{row.profile?.grade || "—"}</td>
+                      {/* Số 0 in thành gạch ngang: cả bảng phần lớn là số 0 (giáo
+                          viên và quản trị viên không trò chuyện), để nguyên thì mắt
+                          phải lọc lấy mấy ô có số thật giữa một rừng số 0 giống hệt
+                          nhau. */}
+                      <td>{row.sessionCount || <span className="admin-muted">—</span>}</td>
                       <td>
-                        {row.sessionCount}
-                        {row.flaggedCount > 0 && (
+                        {row.flaggedCount > 0 ? (
                           <span
-                            className={`admin-flag${
-                              row.highRiskCount > 0 ? " admin-flag--high" : ""
-                            }`}
-                            title={
-                              row.highRiskCount > 0
-                                ? `${row.flaggedCount} phiên có dấu hiệu tiêu cực, trong đó ${row.highRiskCount} phiên khẩn cấp`
-                                : `${row.flaggedCount} phiên có dấu hiệu tiêu cực cần xem lại`
-                            }
+                            className="admin-flag"
+                            title={`${row.flaggedCount} phiên có dấu hiệu tiêu cực cần xem lại`}
                           >
                             🚩 {row.flaggedCount}
-                            {row.highRiskCount > 0 && " ❗"}
                           </span>
+                        ) : (
+                          <span className="admin-muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {row.highRiskCount > 0 ? (
+                          <span
+                            className="admin-flag admin-flag--high"
+                            title={`${row.highRiskCount} phiên khẩn cấp — cần xem ngay`}
+                          >
+                            ❗ {row.highRiskCount}
+                          </span>
+                        ) : (
+                          <span className="admin-muted">—</span>
                         )}
                       </td>
                       <td>
@@ -822,7 +968,7 @@ export default function AdminPage() {
                         thấy mình vừa bấm vào ai. */}
                     {expanded?.id === row.id && (
                       <tr className="admin-row-panel">
-                        <td colSpan={9}>
+                        <td colSpan={USERS_COLUMN_COUNT}>
                           <div className={`admin-drawer admin-drawer--${expanded.mode}`}>
                             {expanded.mode === "sessions" && (
                               <>
@@ -989,41 +1135,19 @@ export default function AdminPage() {
             </table>
           </div>
 
-          {/* Phân trang. Chỉ hiện khi có nhiều hơn một trang — một mũi tên xám
-              không bấm được ở dưới bảng 3 dòng chỉ làm người ta phân vân. */}
-          {pageCount > 1 && (
-            <div className="admin-pager">
-              <button
-                type="button"
-                className="admin-btn admin-btn--sm admin-btn--ghost"
-                disabled={safePage === 0}
-                onClick={() => setPage(safePage - 1)}
-                aria-label="Trước — 10 tài khoản trước đó"
-              >
-                ← Trước
-              </button>
-
-              <span className="admin-pager__info">
-                Trang <strong>{safePage + 1}</strong> / {pageCount}
-                <span className="admin-muted">
-                  {" "}
-                  · đang xem {safePage * PAGE_SIZE + 1}–
-                  {Math.min((safePage + 1) * PAGE_SIZE, filteredUsers.length)} trong{" "}
-                  {filteredUsers.length}
-                </span>
-              </span>
-
-              <button
-                type="button"
-                className="admin-btn admin-btn--sm admin-btn--ghost"
-                disabled={safePage >= pageCount - 1}
-                onClick={() => setPage(safePage + 1)}
-                aria-label="Sau — 10 tài khoản tiếp theo"
-              >
-                Sau →
-              </button>
-            </div>
-          )}
+          {/* Phân trang dùng chung với bảng trường của bảng điều khiển (xem
+              TablePager.jsx): ngoài Trước/Sau còn có nhảy thẳng về đầu, tới cuối
+              và ±5 trang. Vài chục trang mà chỉ có hai mũi tên thì đi tới cuối
+              bảng là hai mươi cú bấm — mà đang xếp giảm dần thì cuối bảng chính
+              là chỗ đáng nhìn. */}
+          <TablePager
+            page={safePage}
+            pages={pageCount}
+            onPage={setPage}
+            pageSize={PAGE_SIZE}
+            total={filteredUsers.length}
+            unit="tài khoản"
+          />
           </>
         )}
       </section>

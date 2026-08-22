@@ -217,3 +217,133 @@ test("mục đang chọn vẫn còn trong ô để bỏ chọn, dù đã về 0 
   fireEvent.change(truong, { target: { value: "" } });
   expect(shownClasses()).toEqual(["7B1"]);
 });
+
+// --- Bảng "Các trường đã tạo tài khoản" --------------------------------------
+//
+// Hai tính chất đáng kiểm, và cả hai đều là chỗ dễ sai lặng lẽ:
+//
+//   1. Bấm tiêu đề cột đi qua BA trạng thái và trạng thái thứ ba phải trả bảng về
+//      đúng thứ tự máy chủ gửi xuống — không có đường về thì "trường cần chú ý
+//      lên đầu" mất luôn cho tới khi tải lại cả trang.
+//   2. Xếp lại thì phải về trang đầu. Không thì bấm xếp lúc đang ở trang 2 sẽ
+//      hiện ra mấy dòng giữa bảng, trông y hệt một cách xếp sai.
+
+const SCHOOLS_TABLE = "Các trường đã tạo tài khoản";
+
+// Bốn trường, mỗi cột một bộ giá trị khác nhau, và thứ tự trong mảng KHÔNG trùng
+// với thứ tự của bất kỳ cột nào — đó chính là thứ tự mặc định phải quay về được.
+// Bến Tre và Đông Hà cùng 0 email cảnh báo, để kiểm phần so bù theo tên trường.
+const SORT_SCHOOLS = [
+  { key: "a", school: "An Dương", classes: 5, students: 300, teachers: 2, sessions: 10, flagged: 3, high: 1, alerts: 4 },
+  { key: "b", school: "Bến Tre", classes: 12, students: 90, teachers: 7, sessions: 40, flagged: 1, high: 0, alerts: 0 },
+  { key: "c", school: "Cửa Lò", classes: 3, students: 500, teachers: 1, sessions: 25, flagged: 9, high: 5, alerts: 2 },
+  { key: "d", school: "Đông Hà", classes: 8, students: 200, teachers: 4, sessions: 5, flagged: 0, high: 0, alerts: 0 }
+];
+
+// Mười hai trường: vừa đủ hai trang để kiểm phần cắt trang.
+const PAGE_SCHOOLS = Array.from({ length: 12 }, (_, i) => ({
+  key: `p${i}`,
+  school: `Trường ${String(i + 1).padStart(2, "0")}`,
+  classes: 1, students: 1, teachers: 1, sessions: 1, flagged: 0, high: 0, alerts: 0
+}));
+
+async function setupSchools(rows) {
+  axios.get.mockResolvedValue({ data: { ...STATS, bySchool: rows } });
+  render(<AdminDashboard />);
+  await screen.findByRole("table", { name: SCHOOLS_TABLE });
+}
+
+const schoolTable = () => within(screen.getByRole("table", { name: SCHOOLS_TABLE }));
+
+// Cột đầu là tên trường — đọc ra để biết bảng đang xếp thế nào
+function shownSchools() {
+  return schoolTable()
+    .getAllByRole("row")
+    .slice(1)
+    .map((tr) => within(tr).getAllByRole("cell")[0].textContent);
+}
+
+// Chữ "đang xem" cũng có trong lời dẫn của thẻ bảng lớp ("…tính trong khoảng
+// đang xem"), nên phải hỏi bên trong đúng hàng phân trang của bảng trường.
+const schoolPager = () =>
+  within(screen.getByRole("group", { name: "Phân trang bảng trường" }));
+
+const sortBy = (label) =>
+  fireEvent.click(schoolTable().getByRole("button", { name: new RegExp(`^(Sắp xếp theo|Đang xếp) ${label}`) }));
+
+test("bảng trường: bấm tiêu đề cột xếp giảm dần, rồi tăng dần, rồi về mặc định", async () => {
+  await setupSchools(SORT_SCHOOLS);
+  expect(shownSchools()).toEqual(["An Dương", "Bến Tre", "Cửa Lò", "Đông Hà"]);
+
+  sortBy("Học sinh");
+  expect(shownSchools()).toEqual(["Cửa Lò", "An Dương", "Đông Hà", "Bến Tre"]);
+
+  sortBy("Học sinh");
+  expect(shownSchools()).toEqual(["Bến Tre", "Đông Hà", "An Dương", "Cửa Lò"]);
+
+  sortBy("Học sinh");
+  expect(shownSchools()).toEqual(["An Dương", "Bến Tre", "Cửa Lò", "Đông Hà"]);
+});
+
+test("bảng trường: xếp được theo cả bảy cột số", async () => {
+  await setupSchools(SORT_SCHOOLS);
+
+  sortBy("Lớp");
+  expect(shownSchools()).toEqual(["Bến Tre", "Đông Hà", "An Dương", "Cửa Lò"]);
+
+  // Bấm cột khác thì cột cũ tự tắt — hai cách xếp không chồng lên nhau được
+  sortBy("Hội thoại");
+  expect(shownSchools()).toEqual(["Bến Tre", "Cửa Lò", "An Dương", "Đông Hà"]);
+
+  sortBy("Khẩn cấp");
+  expect(shownSchools()).toEqual(["Cửa Lò", "An Dương", "Bến Tre", "Đông Hà"]);
+});
+
+// Phần so bù luôn tăng dần theo tên, dù mũi tên đang chỉ chiều nào: lật cả nó thì
+// mấy dòng bằng nhau đảo chỗ lẫn nhau và trông như bảng vừa đổi thêm thứ gì đó.
+test("bảng trường: bằng nhau thì xếp theo tên trường, chiều nào cũng vậy", async () => {
+  await setupSchools(SORT_SCHOOLS);
+
+  sortBy("Cảnh báo đã gửi");
+  expect(shownSchools()).toEqual(["An Dương", "Cửa Lò", "Bến Tre", "Đông Hà"]);
+
+  sortBy("Cảnh báo đã gửi");
+  expect(shownSchools()).toEqual(["Bến Tre", "Đông Hà", "Cửa Lò", "An Dương"]);
+});
+
+test("bảng trường: ô tiêu đề khai chiều đang xếp cho trình đọc màn hình", async () => {
+  await setupSchools(SORT_SCHOOLS);
+  const header = () => schoolTable().getByRole("columnheader", { name: /Học sinh/ });
+
+  expect(header()).toHaveAttribute("aria-sort", "none");
+  sortBy("Học sinh");
+  expect(header()).toHaveAttribute("aria-sort", "descending");
+  sortBy("Học sinh");
+  expect(header()).toHaveAttribute("aria-sort", "ascending");
+});
+
+test("bảng trường: mười dòng một trang, đi tới cuối rồi về đầu", async () => {
+  await setupSchools(PAGE_SCHOOLS);
+
+  expect(shownSchools()).toHaveLength(10);
+  expect(shownSchools()[0]).toBe("Trường 01");
+  expect(schoolPager().getByText(/đang xem/)).toHaveTextContent("đang xem 1–10 trong 12");
+
+  fireEvent.click(screen.getByRole("button", { name: "Tới trang cuối" }));
+  expect(shownSchools()).toEqual(["Trường 11", "Trường 12"]);
+  expect(schoolPager().getByText(/đang xem/)).toHaveTextContent("đang xem 11–12 trong 12");
+
+  fireEvent.click(screen.getByRole("button", { name: "Về trang đầu" }));
+  expect(shownSchools()[0]).toBe("Trường 01");
+});
+
+test("bảng trường: xếp lại thì quay về trang đầu", async () => {
+  await setupSchools(PAGE_SCHOOLS);
+
+  fireEvent.click(screen.getByRole("button", { name: /^Sau/ }));
+  expect(shownSchools()).toEqual(["Trường 11", "Trường 12"]);
+
+  sortBy("Học sinh");
+  expect(shownSchools()).toHaveLength(10);
+  expect(schoolPager().getByText(/đang xem/)).toHaveTextContent("đang xem 1–10 trong 12");
+});

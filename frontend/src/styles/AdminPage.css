@@ -274,9 +274,9 @@
     color:#B8860B;
 }
 
+/* Đứng một mình trong ô riêng của nó (cột "Bị gắn cờ" / "Khẩn cấp"), nên không
+   có margin nối vào con số nào cả. */
 .admin-flag{
-
-    margin-left:8px;
 
     font-size:14px;
 
@@ -795,6 +795,17 @@
     margin:0 0 16px;
 }
 
+/* Ô tìm kiếm nhường chỗ cho bốn ô chọn: một mình nó rộng 520px thì ô "Khối" bị
+   đẩy xuống dòng thứ hai ngay cả trên màn hình rộng, và bốn chiều lọc của cùng
+   một bảng nên nằm cùng một hàng để liếc một cái là thấy bảng đang lọc theo gì.
+   Hẹp hơn nữa thì thôi — hàng này tự xuống dòng, không cắt chữ. */
+.admin-toolbar .admin-search{
+
+    flex:1 1 260px;
+
+    max-width:400px;
+}
+
 .admin-search{
 
     display:flex;
@@ -886,6 +897,9 @@
 
 /* --- Phân trang ------------------------------------------------------------- */
 
+/* Bảy nút trên một hàng (đầu · «5 · trước · sau · 5» · cuối, kèm dòng chữ ở
+   giữa) nên khe hẹp hơn trước — 14px làm hàng nút tràn xuống dòng thứ hai ngay
+   ở khổ máy tính bảng. Dòng chữ tự lấy thêm khoảng thở bằng margin của nó. */
 .admin-pager{
 
     display:flex;
@@ -896,16 +910,78 @@
 
     justify-content:center;
 
-    gap:14px;
+    gap:8px;
 
     margin-top:16px;
 }
 
 .admin-pager__info{
 
+    margin:0 6px;
+
     font-size:13.5px;
 
     color:#5A6A85;
+}
+
+/* Ô "tới trang" — <form> nên Enter tự chạy, không cần bắt phím bằng tay */
+.admin-pager__jump{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+}
+
+.admin-pager__jump label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    font-size:13.5px;
+
+    color:#5A6A85;
+}
+
+/* Vừa đủ ba chữ số. Rộng hơn thì hàng nút tràn xuống dòng sớm, mà bảng nào tới
+   nghìn trang thì phân trang cũng không còn là cách tìm nữa. */
+.admin-pager__jump input{
+
+    width:62px;
+
+    padding:6px 10px;
+
+    border:2px solid #E4E8F0;
+
+    border-radius:10px;
+
+    background:#F8FAFF;
+
+    font-family:inherit;
+
+    font-size:14px;
+
+    /* Chữ số đều bề ngang: gõ 3 rồi gõ 30 thì ô không nhảy giật một cái */
+    font-variant-numeric:tabular-nums;
+
+    text-align:center;
+
+    color:#2D3553;
+
+    transition:border-color .15s ease, background .15s ease;
+}
+
+.admin-pager__jump input:focus{
+
+    border-color:#61C7FF;
+
+    background:#FFFFFF;
+
+    outline:none;
 }
 
 /* --- Bảng chi tiết mở ra ngay dưới một dòng --------------------------------- */
@@ -1004,85 +1080,10 @@
     gap:8px;
 }
 
-/* --- Lọc theo vai trò ------------------------------------------------------- */
-
-.admin-rolefilter{
-
-    display:flex;
-
-    flex-wrap:wrap;
-
-    gap:6px;
-}
-
-.admin-chip{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    gap:7px;
-
-    padding:7px 14px;
-
-    border:2px solid #E4E8F0;
-
-    border-radius:var(--radius-pill, 999px);
-
-    background:#FFFFFF;
-
-    color:#69758D;
-
-    font-family:inherit;
-
-    font-size:13.5px;
-
-    font-weight:700;
-
-    cursor:pointer;
-
-    transition:border-color .15s ease, color .15s ease, background .15s ease;
-}
-
-.admin-chip:hover{
-
-    border-color:#C9D6F0;
-
-    color:#2D3553;
-}
-
-.admin-chip--on{
-
-    border-color:#61C7FF;
-
-    background:linear-gradient(135deg,#EAF8FF 0%,#F5EEFF 100%);
-
-    color:#2D3553;
-}
-
-/* Số lượng của từng vai trò. Đếm trên toàn bộ danh sách nên nó KHÔNG đổi khi
-   bấm qua lại — nó trả lời "bấm vào đây được bao nhiêu dòng". */
-.admin-chip__count{
-
-    padding:1px 8px;
-
-    border-radius:var(--radius-pill, 999px);
-
-    background:#F0F3FA;
-
-    color:#7A859C;
-
-    font-size:12px;
-
-    font-weight:700;
-}
-
-.admin-chip--on .admin-chip__count{
-
-    background:rgba(255,255,255,.75);
-
-    color:#2F9BD6;
-}
+/* Hàng nút lọc vai trò (.admin-rolefilter/.admin-chip) và hàng nút sắp xếp
+   (.admin-sortbar) đã bỏ: vai trò giờ là một ô chọn như Trường/Lớp/Khối
+   (.admin-facet, FacetSelect.jsx), còn sắp xếp nằm thẳng trên tiêu đề ba cột số
+   (.admin-sort, SortHeader.jsx). */
 
 /* Nút gỡ bộ lọc trong câu "không tìm thấy" — lối thoát khi lọc quá tay */
 .admin-empty__reset{
@@ -1090,4 +1091,140 @@
     margin-left:10px;
 
     vertical-align:middle;
+}
+
+/* --- Ô chọn lọc dùng chung (FacetSelect.jsx) -------------------------------- */
+/* Bảng lớp của bảng điều khiển và bảng tài khoản lọc theo cùng mấy chiều
+   (Trường · Lớp · Khối), nên chúng phải mở ra trông giống hệt nhau. */
+
+.admin-facet{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:7px;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#6B7690;
+}
+
+.admin-facet__label{
+
+    white-space:nowrap;
+}
+
+.admin-facet__select{
+
+    max-width:220px;
+
+    padding:8px 10px;
+
+    border:2px solid #E7EEF9;
+
+    border-radius:10px;
+
+    background:#FFFFFF;
+
+    font-family:inherit;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#2D3553;
+
+    outline:none;
+
+    cursor:pointer;
+}
+
+.admin-facet__select:focus{
+
+    border-color:#56C6FF;
+}
+
+/* Ô đang lọc phải nhìn ra được giữa mấy ô giống hệt nhau — nếu không, bảng thiếu
+   dòng mà không ai nhớ mình đã đặt lọc ở đâu. */
+.admin-facet__select--on{
+
+    border-color:#56C6FF;
+
+    background:#F0FAFF;
+}
+
+/* --- Tiêu đề cột bấm được (SortHeader.jsx) --------------------------------- */
+
+/* Nút mặc lại đúng bộ chữ của <th> rồi kéo lùi bằng margin âm, để tiêu đề cột
+   nằm nguyên chỗ cũ — bấm được hay không thì bảng vẫn phải thẳng hàng như trước.
+   Vùng chạm rộng hơn chữ nhờ padding, chứ không phải chỉ mấy pixel của chữ. */
+.admin-sort{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    padding:5px 8px;
+
+    margin:-5px -8px;
+
+    border:0;
+
+    border-radius:8px;
+
+    background:transparent;
+
+    color:inherit;
+
+    font:inherit;
+
+    font-weight:700;
+
+    white-space:nowrap;
+
+    cursor:pointer;
+}
+
+.admin-sort:hover{
+
+    background:#F1F5FD;
+
+    color:#2D3553;
+}
+
+.admin-sort:focus-visible{
+
+    outline:2px solid #2a78d6;
+
+    outline-offset:1px;
+}
+
+/* Cột ĐANG xếp: chữ đậm màu hơn và cả ô tiêu đề tô nhẹ. Mũi tên một mình thì quá
+   nhỏ để thấy được khi mắt đang ở giữa bảng. */
+.admin-sort--on{
+
+    color:#2D3553;
+}
+
+.admin-table th[aria-sort="ascending"],
+.admin-table th[aria-sort="descending"]{
+
+    background:#F4F8FF;
+}
+
+.admin-sort__arrow{
+
+    font-size:12px;
+
+    color:#8A94AB;
+}
+
+.admin-sort--on .admin-sort__arrow{
+
+    color:#2a78d6;
 }

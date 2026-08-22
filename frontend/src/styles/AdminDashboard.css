@@ -53,6 +53,34 @@
     --dash-medium:#ec835a;
 
     --dash-low:#fab219;
+
+    /* Thang MỘT MÀU nhạt→đậm, bốn bậc, dùng cho hai bộ số liệu CÓ THỨ TỰ THẬT:
+       khối 6→9 và mức độ dùng 1 lần→trên 10 lần. Thang một màu là cách đúng cho
+       dữ liệu có thứ tự — bậc càng đậm là càng "nhiều", nên bản thân cột chồng
+       đã đọc được mà chưa cần dò chú giải.
+
+       Vì sao KHÔNG lấy bốn màu khác nhau: đỏ, cam và vàng ở trang này đã có
+       nghĩa cố định là "khẩn cấp / có dấu hiệu / mức thấp". Gán cam cho "lớp 8"
+       là để một màu mang hai nghĩa trên cùng một màn hình.
+
+       Bốn bậc lấy từ thang xanh chuẩn của bộ màu (bậc 250/400/500/600) và đã
+       chạy qua công cụ kiểm tra: đơn sắc, độ sáng giảm đều, bậc nhạt nhất vẫn
+       nổi trên nền trắng (2,11:1 — trên ngưỡng 2:1 của thang thứ tự). ĐỔI LẺ MỘT
+       BẬC LÀ PHÁ THANG — đổi thì phải kiểm lại cả bốn.
+
+       Bậc "other" cố ý là XÁM TRUNG TÍNH, không phải bậc thứ năm của thang: nó
+       không nằm trong thứ tự 6→9, nó là chỗ chứa phần còn lại. Xám cách bậc đậm
+       nhất một khoảng rất rộng (ΔE 24,6 kể cả khi mô phỏng mù màu) nên không ai
+       nhầm nó với một bậc của thang. */
+    --dash-step-1:#86b6ef;
+
+    --dash-step-2:#3987e5;
+
+    --dash-step-3:#256abf;
+
+    --dash-step-4:#104281;
+
+    --dash-step-other:#898781;
 }
 
 /* --- Hàng lọc: MỘT hàng, nằm trên mọi thứ nó chi phối --------------------- */
@@ -915,64 +943,9 @@
     min-width:0;
 }
 
-.dash-facet{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:7px;
-
-    font-size:13px;
-
-    font-weight:700;
-
-    color:var(--dash-ink-2);
-}
-
-.dash-facet__label{
-
-    white-space:nowrap;
-}
-
-.dash-facet__select{
-
-    max-width:220px;
-
-    padding:8px 10px;
-
-    border:2px solid #E7EEF9;
-
-    border-radius:10px;
-
-    background:#fff;
-
-    font-family:inherit;
-
-    font-size:14px;
-
-    font-weight:600;
-
-    color:var(--dash-ink);
-
-    outline:none;
-
-    cursor:pointer;
-}
-
-.dash-facet__select:focus{
-
-    border-color:#56C6FF;
-}
-
-/* Ô đang lọc phải nhìn ra được giữa bốn ô giống hệt nhau — nếu không, bảng thiếu
-   dòng mà không ai nhớ mình đã đặt lọc ở đâu. */
-.dash-facet__select--on{
-
-    border-color:#56C6FF;
-
-    background:#F0FAFF;
-}
+/* Ô chọn lọc (.admin-facet) sống ở AdminPage.css — bảng lớp ở đây và bảng tài
+   khoản ở trang kia dùng CHUNG một component (FacetSelect.jsx), nên chúng cũng
+   phải dùng chung một bộ style, không phải hai bộ trông hao hao nhau. */
 
 .dash-classfilter__count{
 
@@ -1167,4 +1140,64 @@
 .usage-tiles{
 
     margin-bottom:20px;
+}
+
+/* --- Thẻ chia nhóm: khối lớp và mức độ dùng -------------------------------- */
+/* Đi kèm components/ui/AdminBreakdowns.jsx */
+
+/* Hàng nút đổi cách nhìn (tất cả / theo trường / theo ngày). Dùng lại .dash-chip
+   của hàng lọc ngày — cùng một loại nút "chọn một trong mấy cái" thì phải trông
+   giống nhau — chỉ nhỏ hơn một bậc, vì nó chi phối MỘT thẻ chứ không phải cả
+   trang như hàng lọc ngày ở trên cùng. */
+.dash-scope{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:8px;
+}
+
+.dash-scope .dash-chip{
+
+    padding:6px 12px;
+
+    font-size:13px;
+}
+
+/* Ô số dẫn vào một thẻ. Nền hơi xám để nổi trên nền trắng của thẻ — bên ngoài
+   thẻ chúng đứng trên nền trang nên trắng là đủ, ở đây thì trắng trên trắng chỉ
+   còn cái viền. */
+.dash-tiles--lead{
+
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+
+    margin:14px 0 4px;
+}
+
+.dash-tiles--lead .dash-tile{
+
+    background:var(--dash-plane);
+}
+
+/* Chú giải và nút "xem bảng số liệu" đứng chung một hàng, hai đầu. Nút phải ở
+   ngay cạnh biểu đồ nó đổi, không phải trên đầu thẻ cùng với nút tải Excel —
+   bốn năm đoạn chồng nhau cùng một màu thì bảng số là đường đọc chính, và nó
+   phải nằm trong tầm mắt của người vừa nhìn biểu đồ. */
+.dash-dayview__bar{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:10px;
+}
+
+.dash-dayview__bar .dash-legend{
+
+    margin-bottom:0;
 }

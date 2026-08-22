@@ -3,6 +3,7 @@ import axios from "axios";
 import { ADMIN_STATS_URL } from "../../config/api";
 import { riskCategoryLabel, riskLevelLabel } from "../../constants/riskCategories";
 import { matchesQuery } from "../../utils/search";
+import { buildFacets, filterByFacets, hasFilters, noFilters } from "../../utils/facets";
 import {
   formatDay,
   formatNumber,
@@ -11,8 +12,13 @@ import {
   todayKey
 } from "../../utils/days";
 import { dateTimeCell } from "../../utils/xlsx";
+import AdminBreakdowns from "./AdminBreakdowns";
+import { BarRow, Legend, StatTile, percentOf } from "./DashParts";
 import DayColumnChart from "./DayColumnChart";
 import ExportExcelButton from "./ExportExcelButton";
+import FacetSelect from "./FacetSelect";
+import SortHeader, { cycleSort } from "./SortHeader";
+import TablePager from "./TablePager";
 import "../../styles/AdminDashboard.css";
 
 // Bảng điều khiển của quản trị viên.
@@ -31,12 +37,9 @@ import "../../styles/AdminDashboard.css";
 // Các cặp màu đứng cạnh nhau trong cùng một biểu đồ đã được kiểm tra khoảng cách
 // màu (kể cả với người mù màu) trước khi chọn — đừng đổi lẻ một mã màu.
 
-// Tỉ lệ phần trăm, chỉ dùng để đọc — không có mẫu số thì trả về chuỗi rỗng chứ
-// không phải "0%", vì 0% và "chưa có gì để tính" là hai chuyện khác nhau.
-function percentOf(part, total) {
-  if (!total) return "";
-  return `${Math.round((part / total) * 100)}%`;
-}
+// Ô số liệu, chú giải, thanh ngang và phép tính phần trăm nằm ở DashParts.jsx —
+// mấy thẻ chia theo khối và theo mức độ dùng (AdminBreakdowns.jsx) vẽ đúng những
+// thứ đó, nên chúng phải là MỘT bản dùng chung chứ không phải hai bản giống nhau.
 
 // --- Hàng lọc khoảng ngày -----------------------------------------------------
 
@@ -113,53 +116,6 @@ function DateRangeBar({ range, onChange, busy }) {
   );
 }
 
-// --- Ô số liệu ----------------------------------------------------------------
-
-function StatTile({ label, value, hint, tone = "" }) {
-  return (
-    <div className={`dash-tile${tone ? ` dash-tile--${tone}` : ""}`}>
-      <span className="dash-tile__label">{label}</span>
-      <strong className="dash-tile__value">{formatNumber(value)}</strong>
-      {hint && <span className="dash-tile__hint">{hint}</span>}
-    </div>
-  );
-}
-
-
-// Chú giải — luôn có mặt khi biểu đồ từ hai chuỗi trở lên, để danh tính không
-// bao giờ chỉ nằm ở màu sắc.
-function Legend({ series }) {
-  return (
-    <div className="dash-legend">
-      {series.map((s) => (
-        <span key={s.key} className="dash-legend__item">
-          <i style={{ background: `var(${s.color})` }} />
-          {s.icon ? `${s.icon} ` : ""}
-          {s.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-// Một dòng thanh ngang: nhãn – thanh – số. Số luôn hiện thành chữ bên cạnh, nên
-// thanh chỉ để so sánh nhanh chứ không phải đường duy nhất để đọc giá trị.
-function BarRow({ label, icon, value, max, color, note }) {
-  return (
-    <div className="dash-barrow">
-      <span className="dash-barrow__label">
-        {icon && <span aria-hidden="true">{icon} </span>}
-        {label}
-      </span>
-      <span className="dash-barrow__track">
-        <i style={{ width: `${max ? (value / max) * 100 : 0}%`, background: `var(${color})` }} />
-      </span>
-      <span className="dash-barrow__value">{formatNumber(value)}</span>
-      {note !== undefined && <span className="dash-barrow__note">{note}</span>}
-    </div>
-  );
-}
-
 // Thanh ngang chồng hai đoạn, dùng cho "hội thoại theo lớp": tổng chiều dài là
 // số hội thoại, phần đỏ là số bị gắn cờ.
 function StackedBarRow({ title, subtitle, safe, flagged, max }) {
@@ -224,17 +180,7 @@ const CLASS_FILTERS = [
   { id: "teacherName", label: "GVCN", all: "Tất cả GVCN", empty: "— Chưa có GVCN —", of: (r) => r.teacherName }
 ];
 
-const NO_CLASS_FILTERS = { school: "", className: "", grade: "", teacherName: "" };
-
-// Ô trống cũng phải chọn được — "lớp nào CHƯA CÓ giáo viên chủ nhiệm" là câu hỏi
-// hay gặp nhất ở bảng này, mà chuỗi rỗng thì đã là giá trị của mục "Tất cả" rồi.
-// Lấy ký hiệu tập rỗng làm mã riêng vì không tên trường/lớp/người nào chứa nó.
-const NONE = "\u2205";
-
-function facetValue(raw) {
-  const text = String(raw ?? "").trim();
-  return text || NONE;
-}
+const NO_CLASS_FILTERS = noFilters(CLASS_FILTERS);
 
 function ClassFilterBar({ query, onQuery, filters, onFilter, facets, shown, total, active, onReset }) {
   return (
@@ -261,28 +207,12 @@ function ClassFilterBar({ query, onQuery, filters, onFilter, facets, shown, tota
       </label>
 
       {facets.map((facet) => (
-        <label key={facet.id} className="dash-facet">
-          <span className="dash-facet__label">{facet.label}</span>
-          {/* Tên gọi cho trình đọc màn hình phải khai thẳng ở đây. Thẻ <label>
-              bọc cả ô chọn, mà chữ của một <label> gồm luôn chữ của MỌI mục bên
-              trong — không có dòng này thì ô Trường được đọc thành "Trường Tất
-              cả trường Đoàn Thị Điểm Lê Quý Đôn…" */}
-          <select
-            aria-label={`Lọc theo ${facet.label}`}
-            className={`dash-facet__select${filters[facet.id] ? " dash-facet__select--on" : ""}`}
-            value={filters[facet.id]}
-            onChange={(e) => onFilter(facet.id, e.target.value)}
-          >
-            <option value="">
-              {facet.all} ({facet.total})
-            </option>
-            {facet.options.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} ({opt.count})
-              </option>
-            ))}
-          </select>
-        </label>
+        <FacetSelect
+          key={facet.id}
+          facet={facet}
+          value={filters[facet.id]}
+          onChange={onFilter}
+        />
       ))}
 
       <span className="dash-classfilter__count">
@@ -355,6 +285,39 @@ const SCHOOLS_COLUMNS = [
   { header: "Cảnh báo đã gửi", value: (r) => r.alerts || 0, width: 15 }
 ];
 
+// --- Sắp xếp và phân trang bảng trường ---------------------------------------
+//
+// Mười dòng một trang. Một huyện có vài chục trường, và bảng trường là thẻ CUỐI
+// của bảng điều khiển — đổ hết ra thì nó tự đẩy mình xuống ngoài tầm nhìn.
+const SCHOOL_PAGE_SIZE = 10;
+
+// Bấm vào TIÊU ĐỀ CỘT — ba trạng thái ↕ ↓ ↑, xem SortHeader.jsx (bảng tài khoản
+// dùng chung đúng cơ chế đó).
+//
+// Cột "Trường" cố ý KHÔNG sắp xếp được: bảy cột kia là số, cột đó là tên, và một
+// mũi tên ↕ ở đó sẽ hứa một thứ khác hẳn — thứ tự bảng chữ cái tiếng Việt — trong
+// khi thứ người ta cần ở bảng này là "trường nào nhiều nhất / ít nhất".
+const SCHOOL_SORTS = [
+  { id: "classes", label: "Lớp" },
+  { id: "students", label: "Học sinh" },
+  { id: "teachers", label: "GVCN" },
+  { id: "sessions", label: "Hội thoại" },
+  { id: "flagged", label: "Bị gắn cờ" },
+  { id: "high", label: "Khẩn cấp" },
+  { id: "alerts", label: "Cảnh báo đã gửi" }
+];
+
+// Bằng nhau thì xếp theo TÊN TRƯỜNG, và phần này luôn tăng dần dù đang xếp chiều
+// nào. Lật cả nó theo mũi tên thì bấm "ít nhất lên đầu" xong mấy trường cùng số 0
+// lại đảo thứ tự lẫn nhau, và người đọc tưởng bảng vừa đổi cái gì đó nữa.
+function compareSchools(sort) {
+  const sign = sort.dir === "asc" ? 1 : -1;
+
+  return (a, b) =>
+    sign * ((a[sort.id] || 0) - (b[sort.id] || 0)) ||
+    String(a.school).localeCompare(String(b.school), "vi", { numeric: true });
+}
+
 export default function AdminDashboard({ onError, refreshKey = 0 }) {
   const [range, setRange] = useState(() => {
     const today = todayKey();
@@ -376,12 +339,20 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
   const [classQuery, setClassQuery] = useState("");
   const [classFilters, setClassFilters] = useState(NO_CLASS_FILTERS);
 
+  // Bảng trường: cách xếp (null = thứ tự mặc định của máy chủ, trường cần chú ý
+  // lên đầu) và trang đang xem.
+  const [schoolSort, setSchoolSort] = useState(null);
+  const [schoolPage, setSchoolPage] = useState(0);
+
   const load = useCallback(async () => {
     setBusy(true);
     try {
       const res = await axios.get(ADMIN_STATS_URL, { params: range });
       setStats(res.data);
       setAllClasses(false);
+      // Đổi khoảng ngày là đổi hẳn bộ số liệu — trang 4 của bảng cũ không còn nói
+      // về cùng những trường đó nữa.
+      setSchoolPage(0);
     } catch (err) {
       onError?.(err.response?.data?.error || "Không tải được số liệu thống kê.");
     } finally {
@@ -425,68 +396,12 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
   );
 
   const filteredClasses = useMemo(
-    () =>
-      searchedClasses.filter((row) =>
-        CLASS_FILTERS.every(
-          (f) => !classFilters[f.id] || facetValue(f.of(row)) === classFilters[f.id]
-        )
-      ),
+    () => filterByFacets(searchedClasses, CLASS_FILTERS, classFilters),
     [searchedClasses, classFilters]
   );
 
-  // Mỗi ô chọn liệt kê những gì CÒN LẠI sau các ô KIA — chọn trường xong thì ô
-  // Lớp chỉ còn lớp của trường đó, ô GVCN chỉ còn thầy cô của trường đó. Nhờ vậy
-  // không có tổ hợp nào bấm vào lại ra bảng trống, và con số in cạnh mỗi mục
-  // luôn trả lời đúng câu "chọn cái này thì được mấy dòng".
-  //
-  // Phải trừ CHÍNH nó ra khỏi phép lọc, nếu không mở ô Trường ra chỉ còn thấy
-  // mỗi cái trường đang chọn — và không đổi sang trường khác được nữa.
   const classFacets = useMemo(
-    () =>
-      CLASS_FILTERS.map((field) => {
-        const counts = new Map();
-
-        for (const row of searchedClasses) {
-          const passesOthers = CLASS_FILTERS.every(
-            (other) =>
-              other.id === field.id ||
-              !classFilters[other.id] ||
-              facetValue(other.of(row)) === classFilters[other.id]
-          );
-          if (!passesOthers) continue;
-
-          const value = facetValue(field.of(row));
-          counts.set(value, (counts.get(value) || 0) + 1);
-        }
-
-        // Mục đang chọn phải luôn còn trong danh sách, kể cả khi ô tìm kiếm vừa
-        // lọc nó về 0: biến mất khỏi ô chọn thì không còn cách nào bỏ chọn nó.
-        const selected = classFilters[field.id];
-        if (selected && !counts.has(selected)) counts.set(selected, 0);
-
-        const options = [...counts.entries()]
-          // "Chưa khai" xuống cuối — nó là chỗ trống của dữ liệu, không phải một
-          // cái tên, nên xếp lẫn theo bảng chữ cái chỉ làm rối. numeric để 6A10
-          // đứng sau 6A9 chứ không phải sau 6A1.
-          .sort((a, b) => {
-            if (a[0] === NONE) return 1;
-            if (b[0] === NONE) return -1;
-            return a[0].localeCompare(b[0], "vi", { numeric: true });
-          })
-          .map(([value, count]) => ({
-            value,
-            count,
-            label: value === NONE ? field.empty : value
-          }));
-
-        return {
-          id: field.id,
-          label: field.label,
-          all: field.all,
-          options,
-          total: options.reduce((sum, opt) => sum + opt.count, 0)
-        };
-      }),
+    () => buildFacets(searchedClasses, CLASS_FILTERS, classFilters),
     [searchedClasses, classFilters]
   );
 
@@ -501,12 +416,35 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
     setAllClasses(false);
   }, [classQuery, classFilters]);
 
+  // Sắp xếp trên một BẢN SAO: stats.bySchool là mảng máy chủ gửi xuống, sort()
+  // tại chỗ sẽ xáo luôn nó và lần render sau đọc phải thứ tự đã bị đổi mà không
+  // ai gọi sắp xếp — kể cả khi vừa bấm bỏ sắp xếp để về mặc định.
+  const sortedSchools = useMemo(() => {
+    const rows = stats?.bySchool || [];
+    return schoolSort ? [...rows].sort(compareSchools(schoolSort)) : rows;
+  }, [stats, schoolSort]);
+
+  const schoolPages = Math.max(1, Math.ceil(sortedSchools.length / SCHOOL_PAGE_SIZE));
+  // Kẹp lại thay vì tin vào `schoolPage`: bảng có thể ngắn đi (đổi khoảng ngày)
+  // trong khi người xem đang đứng ở trang cuối.
+  const safeSchoolPage = Math.min(schoolPage, schoolPages - 1);
+  const visibleSchools = sortedSchools.slice(
+    safeSchoolPage * SCHOOL_PAGE_SIZE,
+    (safeSchoolPage + 1) * SCHOOL_PAGE_SIZE
+  );
+
+  // Xếp lại bảng thì về trang đầu: trang 4 của thứ tự cũ chẳng còn nghĩa gì, mà
+  // vừa xếp xong lại đúng là lúc người ta muốn nhìn mấy dòng đầu nhất.
+  useEffect(() => {
+    setSchoolPage(0);
+  }, [schoolSort]);
+
   const maxClassSessions = Math.max(1, ...topClasses.map((r) => r.sessions));
   const maxCategory = Math.max(1, ...(stats?.byCategory || []).map((c) => c.count));
   const maxRisk = Math.max(1, ...RISK_ROWS.map((r) => stats?.conversations?.[r.key] || 0));
 
   const classFiltersOn =
-    Boolean(classQuery.trim()) || CLASS_FILTERS.some((f) => classFilters[f.id]);
+    Boolean(classQuery.trim()) || hasFilters(CLASS_FILTERS, classFilters);
 
   const resetClassFilters = () => {
     setClassQuery("");
@@ -586,6 +524,13 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
             }
           />
         </div>
+
+        {/* Hai thẻ chia nhóm đứng NGAY SAU hàng ô số: chúng bóc tách đúng hai con
+            số vừa hiện ở trên ("Tài khoản học sinh" và "Hội thoại"), nên đọc liền
+            mạch từ tổng xuống chi tiết. Đẩy chúng xuống cuối trang thì quản trị
+            viên phải cuộn qua bốn biểu đồ mới thấy phần trả lời cho con số mình
+            vừa nhìn. */}
+        <AdminBreakdowns stats={stats} />
 
         {/* --- Hội thoại theo ngày --- */}
         <div className="dash-card">
@@ -889,35 +834,42 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
           <div className="dash-card__head">
             <h3 className="dash-card__title">{SCHOOLS_TABLE}</h3>
 
+            {/* Tải cả bảng THEO THỨ TỰ ĐANG XẾP, không cắt theo trang đang xem:
+                phân trang là để trang web khỏi dài, không phải để bớt dữ liệu. */}
             <ExportExcelButton
               name={SCHOOLS_TABLE}
               columns={SCHOOLS_COLUMNS}
-              rows={stats.bySchool}
+              rows={sortedSchools}
             />
           </div>
           <p className="dash-card__sub">
             Gộp mọi lớp của cùng một trường. Tài khoản chưa khai trường không nằm trong bảng này.
+            Bấm vào tiêu đề cột để xếp theo cột đó — bấm lần nữa để đảo chiều, lần thứ ba để về
+            thứ tự mặc định (trường cần chú ý lên đầu).
           </p>
 
           {stats.bySchool.length === 0 ? (
             <p className="dash-empty">Chưa có trường nào.</p>
           ) : (
+            <>
             <div className="admin-table-wrap">
-              <table className="admin-table dash-table">
+              <table className="admin-table dash-table" aria-label={SCHOOLS_TABLE}>
                 <thead>
                   <tr>
                     <th>Trường</th>
-                    <th>Lớp</th>
-                    <th>Học sinh</th>
-                    <th>GVCN</th>
-                    <th>Hội thoại</th>
-                    <th>Bị gắn cờ</th>
-                    <th>Khẩn cấp</th>
-                    <th>Cảnh báo đã gửi</th>
+                    {SCHOOL_SORTS.map((item) => (
+                      <SortHeader
+                        key={item.id}
+                        id={item.id}
+                        label={item.label}
+                        sort={schoolSort}
+                        onSort={(id) => setSchoolSort((prev) => cycleSort(prev, id))}
+                      />
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.bySchool.map((row) => (
+                  {visibleSchools.map((row) => (
                     <tr key={row.key}>
                       <td><strong>{row.school}</strong></td>
                       <td>{formatNumber(row.classes)}</td>
@@ -940,6 +892,19 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Ngoài .admin-table-wrap, không phải trong: khung đó CUỘN NGANG
+                được, và hàng nút nằm bên trong thì ở màn hình hẹp phải kéo ngang
+                mới bấm được trang sau. */}
+            <TablePager
+              page={safeSchoolPage}
+              pages={schoolPages}
+              onPage={setSchoolPage}
+              pageSize={SCHOOL_PAGE_SIZE}
+              total={sortedSchools.length}
+              unit="trường"
+            />
+            </>
           )}
         </div>
       </div>

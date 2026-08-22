@@ -494,12 +494,12 @@ Trang `/admin` ([AdminPage.jsx](frontend/src/components/ui/AdminPage.jsx)) có *
 
 | Tab | Trả lời câu hỏi |
 |---|---|
-| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển (kèm bảng lớp lọc được theo trường · lớp · khối · GVCN), khối chờ duyệt, hai công tắc hệ thống (chế độ khách · giọng đọc), bảng tài khoản |
+| 📊 **Tổng quan** | "Cả trường đang thế nào" — bảng điều khiển (kèm hai thẻ chia nhóm theo khối lớp · mức độ dùng, và bảng lớp lọc được theo trường · lớp · khối · GVCN), khối chờ duyệt, hai công tắc hệ thống (chế độ khách · giọng đọc), bảng tài khoản |
 | 📈 **Tần suất sử dụng** | "Em này vào đều không" — biểu đồ lượt trò chuyện theo ngày của MỘT học sinh |
 
 Ở tab Tổng quan, quản trị viên có thể:
 
-- **Xem** danh sách tài khoản kèm 3 cột Trường · Lớp · Khối, số phiên hội thoại và số phiên bị gắn cờ 🚩. Bảng hiện **10 dòng mỗi trang**, có ô tìm kiếm và nút ← Trước / Sau → (xem *Bảng tài khoản* bên dưới).
+- **Xem** danh sách tài khoản kèm 3 cột Trường · Lớp · Khối và 3 cột số Hội thoại · Bị gắn cờ 🚩 · Khẩn cấp ❗. Bảng hiện **10 dòng mỗi trang**, có ô tìm kiếm, bốn ô lọc (Vai trò · Trường · Lớp · Khối) và hàng phân trang đầy đủ (xem *Bảng tài khoản* bên dưới).
 - **Sửa** tên tài khoản, email, hồ sơ trường lớp, và đặt lại mật khẩu — kể cả tài khoản của chính mình. Đây cũng là **cách duy nhất** để cấp lại mật khẩu cho người quên (xem *Quên mật khẩu* ở mục 8).
 - **Xoá** tài khoản (kèm toàn bộ lịch sử hội thoại của tài khoản đó).
 - **Bấm "Hội thoại"** để xem các phiên trò chuyện: thời gian bắt đầu/kết thúc, số tin nhắn, bản tóm tắt, mức độ 🚩 và nhóm dấu hiệu phát hiện được.
@@ -522,6 +522,7 @@ API tương ứng, tất cả đều cần `authenticateToken + requireAdmin`:
 
 | Method | Endpoint | Mô tả |
 |---|---|---|
+| `GET` | `/api/admin/stats` | Số liệu bảng điều khiển cho khoảng `?from=&to=` — gồm cả `byGrade` (theo khối) và `usage` (theo mức độ dùng) |
 | `GET` | `/api/admin/users` | Danh sách tài khoản + thống kê phiên |
 | `PATCH` | `/api/admin/users/:id` | Sửa tài khoản (`username`, `email`, `role`, `profile`, `password`) |
 | `DELETE` | `/api/admin/users/:id` | Xoá tài khoản và toàn bộ phiên của họ |
@@ -562,9 +563,51 @@ Trang quản trị phân biệt **"tôi tắt"** với **"máy chủ chưa cấu
 
 Kiểm nhanh: `npm run test:settings` trong `backend/` ([settings.test.js](backend/settings.test.js)) — 7 bài, gồm cả "công tắc sống sót qua lần khởi động lại" và "file `settings.json` cũ chỉ có `guestMode` vẫn đọc được".
 
+### Hai thẻ chia nhóm: khối lớp và mức độ dùng
+
+Ngay dưới hàng ô số của bảng điều khiển là hai thẻ trả lời hai câu hỏi mà không ô đếm nào khác trả lời được ([AdminBreakdowns.jsx](frontend/src/components/ui/AdminBreakdowns.jsx)):
+
+| Thẻ | Trả lời |
+|---|---|
+| **Tài khoản học sinh theo khối** | Các em đang học lớp mấy — **6 · 7 · 8 · 9**, cộng một ô *Khối khác* |
+| **Mức độ sử dụng Larry AI** | Mỗi em vào bao nhiêu lượt — **1 lần · 2–5 lần · 6–10 lần · trên 10 lần** |
+
+Cả hai đều xem được theo **ba cách**, đổi bằng hàng nút ngay trên thẻ:
+
+| Cách xem | Hiện ra |
+|---|---|
+| **Tất cả các trường** | Gộp mọi trường lại: mỗi nhóm một thanh ngang, kèm phần trăm và số mới trong khoảng |
+| **Theo từng trường** | Mỗi trường một dòng, đủ bốn nhóm thành bốn cột |
+| **Theo từng ngày** | Cột chồng theo ngày, bấm được sang bảng số liệu |
+
+**Ba cách nhìn nằm trong CÙNG một thẻ** chứ không phải ba thẻ dựng sẵn: đây vẫn là một con số, chỉ khác cách cắt. Trải cả ba ra màn hình thì trang dài gấp ba, và người đọc phải tự nhớ ba bảng đó có cùng bộ lọc ngày hay không.
+
+**Khối đọc từ chuỗi các em tự gõ.** Ô "Học sinh lớp mấy" là ô chữ tự do nên có đủ kiểu — `6`, `Lớp 6`, `khối 6`. [stats.js](backend/stats.js) lấy **cụm số đầu tiên**, và khi ô đó bỏ trống thì **lùi về tên lớp** (`8T1.1` là khối 8). Ngoài 6–9 — lớp 10 của trường có cả cấp 3 chẳng hạn — đều vào ô *Khối khác*, và ô đó **tự khai nó gồm những gì** (`Lớp 10 (18) · (chưa khai) (5)`): con số 23 một mình không nói được đó là 23 em lớp 10 hay 23 em bỏ trống ô khối — hai chuyện, hai cách xử lý.
+
+**Đơn vị đếm của thẻ mức độ là HỌC SINH, không phải lượt.** Câu hỏi là "bao nhiêu em dùng nhiều tới mức nào", nên mỗi em được xếp vào **đúng một** nhóm theo số lượt của chính em. Bốn nhóm phủ kín từ 1 tới vô hạn và không chồng lên nhau, nên cộng lại đúng bằng số em có dùng. Em **chưa vào lần nào** không thuộc nhóm nào — "0 lần" là chưa dùng, không phải một mức độ dùng — nên nó có ô riêng *Chưa dùng lần nào*, và cột riêng ở bảng theo trường.
+
+**Theo từng ngày thì mỗi ngày xếp khung lại từ đầu:** một em vào 3 lượt hôm nay và 1 lượt hôm qua nằm ở nhóm *2–5 lần* của hôm nay và nhóm *1 lần* của hôm qua. Cộng dồn cả khoảng rồi rải ra từng ngày thì con số của mỗi ngày không còn nghĩa gì.
+
+Vài quy ước đáng nhớ khi đọc hai thẻ này:
+
+| | |
+|---|---|
+| Tổng số tài khoản là **cộng dồn**, cột "mới trong khoảng" mới theo bộ lọc ngày | Khoảng ngày ở đầu trang không xoá đi những em đã đăng ký từ trước |
+| **Trường chưa em nào vào vẫn có dòng riêng** ở thẻ mức độ | Đó mới là dòng đáng đi hỏi — mà trường đó thì không có phiên nào để tự lòi ra |
+| Em **chưa khai trường** không có mặt ở bảng theo trường, và được đếm riêng bên dưới | Tổng của bảng nhỏ hơn tổng ở trên thì phải giải thích được, không được để người đọc tự đoán |
+| Lượt cắt theo `startedAt`, ngày cắt theo **giờ Việt Nam** | Giống hệt biểu đồ hội thoại theo ngày ở trên — hai thẻ cạnh nhau phải cắt ngày như nhau |
+
+**Không thêm API nào mới**: hai khối `byGrade` và `usage` đi kèm luôn trong `/api/admin/stats`, nên khoảng ngày ở đầu trang chi phối cả hai thẻ, và nút **⬇️ Tải Excel** của mỗi thẻ xuất đúng cách nhìn đang mở (tên file mang theo cách nhìn để tải cả ba lần vẫn phân biệt được).
+
+**Màu là thang một màu nhạt→đậm**, không phải bốn màu khác nhau: cả hai bộ đều có thứ tự thật (lớp 6 < 7 < 8 < 9; 1 lần < 2–5 < 6–10 < trên 10), nên bậc càng đậm là càng "nhiều" và cột chồng đọc được mà chưa cần dò chú giải. Quan trọng hơn: đỏ/cam/vàng ở trang này đã có nghĩa cố định là *khẩn cấp · có dấu hiệu · mức thấp*, gán cam cho "lớp 8" là để một màu mang hai nghĩa trên cùng một màn hình. Ô *Khối khác* cố ý là **xám trung tính** — nó không nằm trong thứ tự 6→9, nó là chỗ chứa phần còn lại.
+
+Kiểm nhanh: `npm run test:stats` trong `backend/` ([stats.test.js](backend/stats.test.js)) — 11 bài, gồm cả "bỏ trống ô khối thì suy ra từ tên lớp" và "theo từng ngày: mỗi ngày xếp khung lại từ đầu"; `npx react-scripts test AdminBreakdowns` trong `frontend/` ([AdminBreakdowns.test.js](frontend/src/components/ui/AdminBreakdowns.test.js)) — 7 bài kiểm ba nút cách xem đổi đúng nội dung.
+
 ### Bảng lớp: bốn ô lọc ăn theo nhau
 
 Bảng **Các lớp đã tạo tài khoản** có một thanh lọc riêng: ô tìm nhanh 🔍 cộng bốn ô chọn — **Trường · Lớp · Khối · GVCN**.
+
+(Cùng cơ chế với bốn ô lọc của bảng tài khoản — [utils/facets.js](frontend/src/utils/facets.js) — hai bảng lọc theo cùng mấy chiều thì phải cư xử giống nhau, nếu không cùng một thao tác ở hai chỗ lại ra hai kết quả khác nhau và không ai biết chỗ nào đúng.)
 
 Bốn chiều đó là ô **chọn** chứ không phải ô gõ chữ, vì mỗi chiều ở đây là một tập **đóng** lấy thẳng từ dữ liệu: trường nào đã có tài khoản, lớp nào đã tồn tại, ai đang chủ nhiệm. Mở ra là thấy hết những gì có thật — không phải gõ thử rồi kết luận nhầm là "trường đó chưa có trong hệ thống". Mỗi mục in sẵn số lượng (`Đoàn Thị Điểm (12)`), nên chưa bấm đã biết bấm vào được mấy dòng.
 
@@ -583,13 +626,71 @@ Hai chi tiết nhỏ nhưng là ranh giới giữa "bộ lọc" và "cái bẫy"
 
 Lọc xong thì nút **⬇️ Tải Excel** xuất **đúng những dòng đang lọc ra** — nhưng không cắt theo phần đang hiện: lọc một trường rồi bấm tải là được cả trường đó, kể cả những lớp còn nằm sau nút "Xem tất cả". Bảng cắt còn 15 dòng là để trang khỏi dài, không phải để bớt dữ liệu.
 
-Kiểm nhanh: `npx react-scripts test AdminDashboard` trong `frontend/` ([AdminDashboard.test.js](frontend/src/components/ui/AdminDashboard.test.js)) — 12 bài, gồm cả "chọn trường xong thì ô Lớp chỉ còn lớp của trường đó" và "mục đang chọn vẫn còn trong ô để bỏ chọn, dù đã về 0 dòng".
+Kiểm nhanh: `npx react-scripts test AdminDashboard` trong `frontend/` ([AdminDashboard.test.js](frontend/src/components/ui/AdminDashboard.test.js)) — 12 bài cho bộ lọc này (18 bài cả file, phần còn lại là bảng trường), gồm cả "chọn trường xong thì ô Lớp chỉ còn lớp của trường đó" và "mục đang chọn vẫn còn trong ô để bỏ chọn, dù đã về 0 dòng".
 
-### Bảng tài khoản: tìm kiếm, phân trang, và bảng chi tiết mở tại chỗ
+### Bảng trường: bấm tiêu đề cột để xếp, mười dòng một trang
 
-**Mười dòng một trang.** Một trường cấp 2 có hàng trăm tài khoản; đổ hết ra một bảng thì mọi thứ bên dưới nó — kể cả nút tải Excel — trôi khỏi tầm nhìn. Nút ← Trước / Sau → ở cuối bảng, kèm dòng "Trang 2 / 5 · đang xem 11–20 trong 47" để biết mình đang ở đâu.
+Bảng **Các trường đã tạo tài khoản** xếp được theo **bảy cột số**: Lớp · Học sinh · GVCN · Hội thoại · Bị gắn cờ · Khẩn cấp · Cảnh báo đã gửi.
 
-**Lọc theo vai trò** bằng bốn nút ngay cạnh ô tìm kiếm — *Tất cả · Học sinh · Giáo viên chủ nhiệm · Quản trị viên* — mỗi nút in sẵn số lượng (`Học sinh 25`). Dạng nút bấm chứ không phải ô chọn xổ xuống: cả bốn lựa chọn luôn nhìn thấy kèm số lượng, nên liếc một cái là biết trường có bao nhiêu giáo viên mà không phải mở ra xem. Con số đếm trên **toàn bộ** danh sách, không đổi theo chính nút đang bật — nó trả lời "bấm vào đây thì được bao nhiêu dòng".
+Bấm thẳng vào **tiêu đề cột**, không phải một hàng nút riêng như bảng tài khoản — ở đây mỗi cột là đúng một con số, nên tiêu đề cột đã nói đủ nghĩa "đang xếp theo cái này". (Bảng tài khoản phải làm khác vì cột *Phiên* của nó gộp hai con số vào một ô, bấm vào tiêu đề thì không rõ đang xếp theo con số nào.)
+
+Mỗi cột đi qua **ba trạng thái**, đúng như hai nút sắp xếp của bảng tài khoản:
+
+| Bấm lần | Mũi tên | Thứ tự |
+|---|---|---|
+| — | `↕` | Mặc định của máy chủ: **trường cần chú ý lên đầu** (nhiều phiên khẩn cấp → nhiều phiên gắn cờ → bận rộn nhất) |
+| 1 | `↓` | Nhiều nhất lên đầu |
+| 2 | `↑` | Ít nhất lên đầu |
+| 3 | `↕` | Về lại mặc định |
+
+**Bấm lần đầu là giảm dần**, không phải tăng dần: mở bảng này ra là để tìm trường đông nhất hay trường nhiều chuyện nhất, chứ không phải để đếm ngược từ 0. **Có đường về mặc định** vì thứ tự "trường cần chú ý lên đầu" cũng là một thứ tự thật, không phải chỗ tạm trú — không có nó thì phải tải lại cả trang mới thấy lại bảng như cũ.
+
+Hai chi tiết nhỏ:
+
+| | Vì sao |
+|---|---|
+| Bằng nhau thì xếp theo **tên trường**, và phần này luôn tăng dần dù mũi tên chỉ chiều nào | Lật cả nó thì mấy trường cùng số 0 lại đảo chỗ lẫn nhau, và người đọc tưởng bảng vừa đổi thêm thứ gì đó |
+| Cột **Trường** cố ý không sắp xếp được | Bảy cột kia là số, cột đó là tên — một mũi tên ↕ ở đó hứa một thứ khác hẳn (thứ tự bảng chữ cái), trong khi thứ cần ở bảng này là "trường nào nhiều nhất / ít nhất" |
+
+Ô tiêu đề đang xếp được **tô nhẹ và in đậm** chứ không chỉ đổi mũi tên — mũi tên một mình quá nhỏ để thấy khi mắt đang ở giữa bảng — và mang `aria-sort` để trình đọc màn hình nói được "cột này đang xếp giảm dần".
+
+**Mười dòng một trang**, dùng chung hàng phân trang với bảng tài khoản (xem mục dưới) — kể cả ô "Tới trang", tuy nó chỉ hiện ra khi có hơn 5 trang, tức từ hơn 50 trường trở lên. Xếp lại thì **quay về trang đầu**: trang 4 của thứ tự cũ chẳng còn nghĩa gì, mà vừa xếp xong lại đúng là lúc muốn nhìn mấy dòng đầu nhất. Nút **⬇️ Tải Excel** xuất **cả bảng theo thứ tự đang xếp**, không cắt theo trang đang xem — phân trang là để trang web khỏi dài, không phải để bớt dữ liệu.
+
+Kiểm nhanh: `npx react-scripts test AdminDashboard` trong `frontend/` — 6 bài cho bảng này, gồm cả "bấm tiêu đề cột xếp giảm dần, rồi tăng dần, rồi về mặc định" và "xếp lại thì quay về trang đầu".
+
+### Bảng tài khoản: tìm kiếm, sắp xếp, phân trang, và bảng chi tiết mở tại chỗ
+
+**Mười dòng một trang.** Một trường cấp 2 có hàng trăm tài khoản; đổ hết ra một bảng thì mọi thứ bên dưới nó — kể cả nút tải Excel — trôi khỏi tầm nhìn. Hàng phân trang ở cuối bảng ([TablePager.jsx](frontend/src/components/ui/TablePager.jsx), dùng chung với bảng trường của bảng điều khiển) có **bảy nút** kèm dòng "Trang 5 / 9 · đang xem 41–50 trong 87" để biết mình đang ở đâu:
+
+```
+⏮ Đầu   «5   ← Trước   Trang 5 / 9 · đang xem 41–50 trong 87   Sau →   5»   Cuối ⏭   Tới trang [ 1–9 ] Tới →
+```
+
+Vì sao không chỉ hai mũi tên Trước/Sau: vài chục trang thì đi từ trang 1 tới cuối bảng là hai mươi cú bấm — mà bảng đang xếp giảm dần thì **cuối bảng chính là chỗ đáng nhìn** (tài khoản chưa dùng bao giờ, lớp im ắng nhất). Nhảy quá đầu/cuối thì **kẹp lại** chứ không phải nút chết — đứng ở trang 2 bấm «5 là về trang đầu.
+
+**Ô "Tới trang"** ở cuối hàng: gõ số trang rồi bấm **Enter** là sang thẳng trang đó (nút `Tới →` bên cạnh đi cùng một đường — Enter thì chạy rồi, nhưng không có gì trên màn hình nói ra điều đó). Vài chi tiết:
+
+| | Vì sao |
+|---|---|
+| Là `<form>`, không phải bắt phím `Enter` bằng tay | Trình duyệt tự lo phần Enter, bàn phím điện thoại hiện luôn phím "Go", và nút bên cạnh chỉ cần `type="submit"` |
+| Số ngoài khoảng thì **kẹp**, không báo lỗi | Gõ 999 ở bảng 9 trang nghĩa là "cho tôi tới cuối", không phải gõ nhầm cần chặn lại |
+| Ô trống + Enter thì **không làm gì** | Không kiểm thì đó là một lần nhảy sang trang `NaN`, tức một cái bảng trống |
+| Nhảy xong thì **xoá ô** | Giữ lại con số vừa gõ thì lát nữa bấm "Sau →" vài lần, ô vẫn trưng một số không còn liên quan tới trang đang xem |
+| Gợi ý trong ô là **khoảng hợp lệ** (`1–9`), không phải trang đang xem | Một số mờ mờ trùng đúng trang hiện tại trông y như ô đã có sẵn giá trị, và người dùng tưởng mình chẳng cần gõ gì |
+
+**Ô "Tới trang" và hai nút ±5 chỉ hiện khi bảng có hơn 5 trang.** Ít hơn thế thì "lùi 5 trang" luôn rơi đúng về trang đầu — thành hai cái nút làm cùng một việc đứng cạnh nhau — và gõ một con số rồi bấm Enter còn chậm hơn bấm thẳng vào trang mình cần.
+
+Kiểm nhanh: `npx react-scripts test TablePager` trong `frontend/` ([TablePager.test.js](frontend/src/components/ui/TablePager.test.js)) — 14 bài, gồm cả "trang cuối in đúng số dòng còn lại, không phải một trang đầy", "nhảy quá đầu bảng thì kẹp về trang đầu" và "ô trống thì Enter không làm gì cả".
+
+**Bốn ô chọn lọc** ngay cạnh ô tìm kiếm — **Vai trò · Trường · Lớp · Khối** — đúng bốn cột đầu của bảng. Mỗi mục in sẵn số lượng (`Học sinh (25)`) nên chưa bấm đã biết bấm vào được mấy dòng.
+
+Bốn chiều này là ô **chọn** chứ không phải ô gõ chữ, vì mỗi chiều là một tập **đóng** lấy thẳng từ dữ liệu: vai trò nào đang có, trường nào đã có tài khoản, lớp nào đã tồn tại. Mở ra là thấy hết những gì có thật — không phải gõ thử rồi kết luận nhầm là "trường đó chưa có trong hệ thống".
+
+**Bốn ô ăn theo nhau** (dùng chung cơ chế với bảng lớp của bảng điều khiển — [utils/facets.js](frontend/src/utils/facets.js) và [FacetSelect.jsx](frontend/src/components/ui/FacetSelect.jsx)): chọn trường Đoàn Thị Điểm xong thì ô *Lớp* chỉ còn lớp của trường đó, ô *Vai trò* chỉ còn những vai trò thật sự có ở đó. Hệ quả là **không bấm ra được tổ hợp rỗng**. Ô đang lọc không tự thu hẹp theo chính nó (nếu không thì không đổi sang trường khác được nữa), và mục đang chọn ở lại trong danh sách kể cả khi về 0 dòng (biến mất thì không còn cách nào bỏ chọn).
+
+**Chọn được cả ô trống**: mục `— Chưa khai trường —` lọc ra đúng những tài khoản khai thiếu — danh sách phải đi nhắc.
+
+Vai trò cũng là một ô chọn như ba chiều kia, không phải hàng nút riêng như trước: bốn ô đứng cạnh nhau thì liếc một cái là thấy bảng đang bị lọc theo những gì. Trong dữ liệu vai trò là `user`/`teacher`/`admin`, trên màn hình đọc ra tiếng Việt, và thứ tự các mục **cố định** (Học sinh → Giáo viên chủ nhiệm → Quản trị viên) chứ không theo bảng chữ cái — xếp theo mã thì `admin` lên đầu và nhóm đông nhất tụt xuống cuối.
 
 **Ô tìm kiếm dò trên MỌI cột cùng lúc**: tên tài khoản, họ tên, trường, lớp, khối, email, số điện thoại.
 
@@ -600,11 +701,33 @@ Hai điều làm ô này dùng được thật ([utils/search.js](frontend/src/u
 | `doan thi diem` | Đoàn Thị Điểm | **Gõ không dấu vẫn ra.** Bắt gõ đúng dấu thì người dùng sẽ kết luận là trường đó chưa có trong hệ thống — một kết luận sai mà không có gì trên màn hình gợi ý là mình vừa sai |
 | `6a1 diem` | em lớp 6A1 trường Đoàn Thị Điểm | Mỗi **từ** khớp ở đâu cũng được, không cần đúng thứ tự và không cần cùng một cột — đúng cách người ta gõ khi đang nhớ mang máng vài mẩu |
 
-Hai bộ lọc **cộng dồn**: chọn *Giáo viên chủ nhiệm* rồi gõ `doan thi diem` là ra đúng các thầy cô chủ nhiệm của trường đó. Đổi bộ lọc thì bảng quay về trang 1 — kết quả mới không liên quan gì tới việc mình đang đứng ở trang mấy của kết quả cũ.
+**Mọi bộ lọc cộng dồn**: chọn *Giáo viên chủ nhiệm*, chọn *Khối 6*, rồi gõ `doan thi diem` là ra đúng các thầy cô chủ nhiệm lớp 6 của trường đó. **Ô tìm kiếm lọc TRƯỚC**, bốn ô chọn lọc tiếp trên phần còn lại — nên gõ `doan thi diem` thì cả bốn ô chọn cũng thu hẹp theo. Đổi bộ lọc thì bảng quay về trang 1 — kết quả mới không liên quan gì tới việc mình đang đứng ở trang mấy của kết quả cũ.
 
-Lọc xong thì nút **⬇️ Tải Excel** xuất đúng những dòng đang lọc ra: tìm "6A1" rồi bấm tải là được danh sách lớp 6A1, không phải cả trường.
+**Ba cột số xếp được: Hội thoại · Bị gắn cờ · Khẩn cấp.** Trước đây ba con số này gộp chung trong một cột *Phiên* (số phiên, kèm phù hiệu 🚩 và ❗), và vì thế phải có một hàng nút sắp xếp riêng ở thanh công cụ — bấm vào tiêu đề của một cột gộp thì không nói được là đang xếp theo con số nào trong đó. Tách ra ba cột thì mỗi cột là đúng một con số, **bấm thẳng vào tiêu đề cột** là xếp (dùng chung [SortHeader.jsx](frontend/src/components/ui/SortHeader.jsx) với bảng trường của bảng điều khiển), và hàng nút kia thành thừa. Mỗi cột đi qua ba trạng thái:
 
-Khi không còn dòng nào, câu báo nói rõ **thủ phạm là bộ lọc nào** ("Không có tài khoản giáo viên chủ nhiệm nào khớp với *khong-ton-tai*") và kèm nút **Xoá bộ lọc**. Câu báo chung chung sẽ khiến người dùng ngồi sửa từ khoá trong khi thứ đang chặn là cái nút vai trò họ bấm từ lúc nãy.
+```
+↕ tắt  →  ↓ giảm dần  →  ↑ tăng dần  →  ↕ tắt
+```
+
+Ba lựa chọn đằng sau nó:
+
+| | Vì sao |
+|---|---|
+| Bấm lần đầu ra **giảm dần**, không phải tăng dần | Người ta mở bảng này để tìm em dùng nhiều nhất hoặc em nhiều dấu hiệu nhất, chứ không phải để đếm ngược từ 0 |
+| Có trạng thái **tắt** ở vòng thứ ba | Thứ tự mặc định (theo lúc đăng ký) cũng là một thứ tự thật. Không có đường về thì sắp xếp là một chiều, muốn xem lại danh sách như cũ phải tải lại cả trang |
+| Bấm cột này thì cột kia **tự tắt** | Cả ba xếp lại đúng một bảng, nên "vừa theo số hội thoại vừa theo số phiên bị gắn cờ" là câu không có nghĩa. Một tiêu đề trông như đang bật trong khi không còn tác dụng gì là kiểu lỗi người dùng không bao giờ báo, chỉ thôi tin cái bảng |
+
+Hai dòng bằng nhau thì xếp tiếp theo **mức đáng chú ý**: bằng số hội thoại thì em nhiều dấu hiệu hơn lên trước; bằng số phiên gắn cờ thì em có phiên **khẩn cấp** lên trước; bằng số phiên khẩn cấp thì lùi về số phiên gắn cờ (cùng thứ tự ưu tiên mà [stats.js](backend/stats.js) dùng để đẩy "lớp cần chú ý" lên đầu, để ba bảng trên cùng một trang không nói ngược nhau). Mũi tên ↑/↓ chỉ đổi chiều của **con số ở cột đó** — phần so bù giữ nguyên chiều, vì lật cả nó thì bấm "tăng dần" xong dòng đáng lo nhất tụt vào giữa bảng.
+
+Ô tiêu đề đang xếp được **tô nhẹ và in đậm**, và mang `aria-sort` để trình đọc màn hình biết bảng vừa đổi thứ tự. Số 0 in thành gạch ngang ở cả ba cột: giáo viên và quản trị viên không trò chuyện nên phần lớn bảng là số 0, để nguyên thì mắt phải lọc lấy mấy ô có số thật giữa một rừng số 0 giống hệt nhau.
+
+**Lọc trước, xếp sau, rồi mới cắt trang.** Đổi cách xếp thì bảng quay về trang 1 — bảng vừa xếp lại thì trang 3 của thứ tự cũ chẳng còn nghĩa gì, mà đó lại đúng là lúc người ta muốn nhìn mấy dòng đầu nhất.
+
+Lọc xong thì nút **⬇️ Tải Excel** xuất đúng những dòng đang lọc ra **theo đúng thứ tự đang nhìn thấy**: tìm "6A1" rồi bấm tải là được danh sách lớp 6A1, không phải cả trường.
+
+Kiểm nhanh: `npx react-scripts test AdminPage` trong `frontend/` ([AdminPage.test.js](frontend/src/components/ui/AdminPage.test.js)) — 16 bài: 10 cho ba cột xếp được ("bấm cột này thì cột kia tắt", "đổi cách xếp thì quay về trang đầu") và 6 cho bốn ô lọc ("chọn trường xong thì ô Lớp và ô Vai trò chỉ còn thứ của trường đó", "chọn được cả ô trống: tài khoản chưa khai trường").
+
+Khi không còn dòng nào, câu báo kèm nút **Xoá bộ lọc** — gỡ một lần cả từ khoá lẫn bốn ô chọn. Không có lối thoát ấy thì người dùng ngồi sửa từ khoá trong khi thứ đang chặn là cái ô lọc họ đặt từ lúc nãy. Bốn ô chọn ăn theo nhau nên **bảng trống chỉ tới được từ ô gõ chữ**: ô đó lọc trước và không đụng gì tới lựa chọn đang đặt ở bốn ô kia.
 
 **Bấm "Hội thoại" / "Sửa" / "Xoá" thì bảng chi tiết mở ra NGAY DƯỚI dòng đó.** Trước đây phần hội thoại nằm ở cuối trang: bấm xong phải cuộn qua cả bảng mới thấy, mà tới nơi thì không còn nhìn thấy mình vừa bấm vào ai. Ba điểm khác so với bản cũ:
 

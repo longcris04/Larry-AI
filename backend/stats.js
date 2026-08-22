@@ -109,6 +109,279 @@ function isFlagged(session) {
   return session?.flagged ?? session?.bullyingDetected === true;
 }
 
+// --- Khối lớp và mức độ dùng --------------------------------------------------
+//
+// Hai nhóm số liệu dưới đây trả lời hai câu hỏi mà mọi ô đếm khác trên trang
+// không trả lời được: "các em đang học lớp mấy" và "mỗi em vào bao nhiêu lượt".
+// Cả hai đều được cắt theo BA cách cùng lúc — gộp tất cả, tách theo trường, tách
+// theo ngày — nên chúng nằm trong hai hàm riêng thay vì nhét thêm field vào
+// buildStats: mỗi hàm tự đi hết danh sách một lần, đọc thẳng từ trên xuống là
+// hiểu, và kiểm chứng lại được từng cái một.
+
+const GRADES = ["6", "7", "8", "9"];
+const OTHER_GRADE = "other";
+const GRADE_KEYS = [...GRADES, OTHER_GRADE];
+
+/**
+ * Khối của một học sinh: "6" | "7" | "8" | "9" | "other".
+ *
+ * Ô "khối" do các em tự gõ nên có đủ kiểu: "6", "Lớp 6", "khối 6". Lấy CỤM SỐ
+ * ĐẦU TIÊN thay vì so nguyên chuỗi — không thì "Lớp 6" rơi vào ô "khác" trong
+ * khi ai nhìn cũng biết em học lớp 6.
+ *
+ * Bỏ trống ô khối thì LÙI VỀ TÊN LỚP: "8T1.1" là lớp 8, và suy ra như thế đúng
+ * hơn hẳn việc xếp em vào "khác". Không đoán xa hơn thế — tên lớp không có chữ
+ * số nào thì để ở "khác" chứ không bịa ra một khối.
+ *
+ * Ngoài 6–9 (lớp 10 của trường có cả cấp 3 chẳng hạn) đều vào "other": bảng này
+ * là bảng THCS, bốn ô 6/7/8/9 phải luôn đúng nghĩa của nó. Kèm theo còn có
+ * otherLabels để quản trị viên biết trong ô "khác" thật ra có những gì.
+ */
+function gradeOf(user) {
+  const raw =
+    normalizeLabel(user?.profile?.grade) || normalizeLabel(user?.profile?.className);
+  const found = raw.match(/\d{1,2}/);
+  const grade = found ? String(Number(found[0])) : "";
+  return GRADES.includes(grade) ? grade : OTHER_GRADE;
+}
+
+/** Chuỗi các em tự gõ, để giải thích ô "khác" gồm những gì. */
+function gradeLabelOf(user) {
+  return (
+    normalizeLabel(user?.profile?.grade) ||
+    normalizeLabel(user?.profile?.className) ||
+    ""
+  );
+}
+
+// Bốn khung mức độ dùng. min/max tính theo SỐ LƯỢT của MỘT học sinh trong khoảng
+// đang xem (hoặc trong một ngày, ở cách nhìn theo ngày).
+//
+// Bốn khung phủ kín từ 1 tới vô hạn và KHÔNG chồng lên nhau — mỗi em rơi vào
+// đúng một khung, nên bốn con số cộng lại đúng bằng số em có dùng. Em không có
+// lượt nào không thuộc khung nào (đếm riêng ở `none`): "0 lần" không phải một
+// mức độ dùng, nó là chưa dùng.
+const USAGE_BUCKETS = [
+  { id: "once", min: 1, max: 1 },
+  { id: "light", min: 2, max: 5 },
+  { id: "regular", min: 6, max: 10 },
+  { id: "heavy", min: 11, max: Infinity }
+];
+
+const USAGE_KEYS = USAGE_BUCKETS.map((bucket) => bucket.id);
+
+function usageBucket(count) {
+  const bucket = USAGE_BUCKETS.find((b) => count >= b.min && count <= b.max);
+  return bucket ? bucket.id : "";
+}
+
+function emptyGradeRow() {
+  const row = {};
+  for (const key of GRADE_KEYS) row[key] = 0;
+  row.all = 0;
+  return row;
+}
+
+function emptyUsageRow() {
+  const row = {};
+  for (const key of USAGE_KEYS) row[key] = 0;
+  row.users = 0;    // số học sinh có ít nhất một lượt
+  row.sessions = 0; // tổng số lượt của những em đó
+  return row;
+}
+
+function isStudentAccount(user) {
+  // Giống hệt cách buildStats đếm học sinh: KHÔNG phải quản trị viên, KHÔNG phải
+  // giáo viên. Viết theo lối loại trừ chứ không phải `role === ROLES.USER` để
+  // tổng ở đây luôn khớp với accounts.students — hai con số cùng nói về học sinh
+  // mà lệch nhau thì không ai biết tin cái nào.
+  return user.role !== ROLES.ADMIN && user.role !== ROLES.TEACHER;
+}
+
+/**
+ * Tài khoản học sinh theo khối 6/7/8/9.
+ *
+ * `total` là con số CỘNG DỒN từ trước tới nay, `created` chỉ tính những em đăng
+ * ký trong khoảng đang xem, và `daily` là số tài khoản tạo trong từng ngày. Ba
+ * con số này khác nhau và không thay được cho nhau: khoảng ngày trên bảng điều
+ * khiển không xoá đi những em đã có sẵn từ trước.
+ */
+function buildGradeStats(users, { from, to, days }) {
+  const inRange = (key) => Boolean(key) && key >= from && key <= to;
+
+  const total = emptyGradeRow();
+  const created = emptyGradeRow();
+  const daily = new Map(days.map((date) => [date, { date, ...emptyGradeRow() }]));
+  const bySchool = new Map();
+  const otherLabels = new Map();
+
+  // Em chưa khai trường không có mặt ở bảng theo trường. Đếm riêng để tổng của
+  // bảng và tổng ở trên chênh nhau còn giải thích được.
+  let withoutSchool = 0;
+
+  for (const user of users) {
+    if (!isStudentAccount(user)) continue;
+
+    const grade = gradeOf(user);
+    const day = dayKey(user.createdAt);
+    const sKey = schoolKey(user.profile?.school);
+
+    total[grade] += 1;
+    total.all += 1;
+
+    if (inRange(day)) {
+      created[grade] += 1;
+      created.all += 1;
+      const row = daily.get(day);
+      row[grade] += 1;
+      row.all += 1;
+    }
+
+    if (sKey) {
+      let row = bySchool.get(sKey);
+      if (!row) {
+        row = {
+          key: sKey,
+          school: normalizeLabel(user.profile?.school),
+          ...emptyGradeRow(),
+          created: 0
+        };
+        bySchool.set(sKey, row);
+      }
+      row[grade] += 1;
+      row.all += 1;
+      if (inRange(day)) row.created += 1;
+    } else {
+      withoutSchool += 1;
+    }
+
+    if (grade === OTHER_GRADE) {
+      const label = gradeLabelOf(user) || "(chưa khai)";
+      otherLabels.set(label, (otherLabels.get(label) || 0) + 1);
+    }
+  }
+
+  return {
+    grades: GRADE_KEYS,
+    total,
+    created,
+    withoutSchool,
+    // Trường đông học sinh lên đầu — đó là thứ tự người ta dò bảng này.
+    bySchool: [...bySchool.values()].sort(
+      (a, b) => b.all - a.all || a.school.localeCompare(b.school, "vi")
+    ),
+    daily: [...daily.values()],
+    // Chỉ vài dòng đầu: đây là chú thích cho ô "khác", không phải một bảng nữa.
+    otherLabels: [...otherLabels.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "vi"))
+      .slice(0, 8)
+  };
+}
+
+/**
+ * Học sinh chia theo SỐ LƯỢT đã dùng Larry: 1 lần, 2–5, 6–10, trên 10.
+ *
+ * Đơn vị đếm là HỌC SINH, không phải lượt — câu hỏi ở đây là "bao nhiêu em dùng
+ * nhiều tới mức nào", nên mỗi em được xếp vào đúng một khung theo số lượt của
+ * chính em. Tổng số lượt vẫn có (`sessions`) nhưng chỉ để đọc kèm.
+ *
+ * Cách nhìn theo NGÀY tính lại từ đầu cho từng ngày: một em vào 3 lượt hôm nay
+ * và 1 lượt hôm qua nằm ở khung 2–5 của hôm nay và khung 1 lần của hôm qua. Cộng
+ * dồn cả khoảng rồi rải ra từng ngày thì con số của mỗi ngày không còn nghĩa gì.
+ */
+function buildUsageStats(users, sessions, { from, to, days }) {
+  const inRange = (key) => Boolean(key) && key >= from && key <= to;
+  const usersById = new Map(users.map((u) => [u.id, u]));
+
+  // Số lượt của từng em: một bản cho cả khoảng, một bản cho từng ngày.
+  const byStudent = new Map();
+  const byDay = new Map(days.map((date) => [date, new Map()]));
+
+  for (const session of sessions) {
+    // Cắt theo NGÀY BẮT ĐẦU, đúng như biểu đồ hội thoại theo ngày ở trên: một
+    // phiên mở lúc 23h50 là lượt của tối hôm đó, không phải của ngày hôm sau.
+    const day = dayKey(session.startedAt);
+    if (!inRange(day)) continue;
+
+    byStudent.set(session.userId, (byStudent.get(session.userId) || 0) + 1);
+    const perDay = byDay.get(day);
+    perDay.set(session.userId, (perDay.get(session.userId) || 0) + 1);
+  }
+
+  const total = { ...emptyUsageRow(), students: 0, none: 0 };
+  const bySchool = new Map();
+
+  // Dựng dòng cho MỌI trường có học sinh trước, kể cả trường chưa em nào vào:
+  // "trường nào chưa ai dùng" mới là dòng đáng đi hỏi, mà trường đó thì không
+  // có phiên nào để lòi ra ở vòng dưới.
+  for (const user of users) {
+    if (!isStudentAccount(user)) continue;
+    total.students += 1;
+
+    const sKey = schoolKey(user.profile?.school);
+    if (!sKey) continue;
+
+    let row = bySchool.get(sKey);
+    if (!row) {
+      row = {
+        key: sKey,
+        school: normalizeLabel(user.profile?.school),
+        ...emptyUsageRow(),
+        students: 0,
+        none: 0
+      };
+      bySchool.set(sKey, row);
+    }
+    row.students += 1;
+  }
+
+  for (const [userId, count] of byStudent) {
+    const bucket = usageBucket(count);
+
+    total[bucket] += 1;
+    total.users += 1;
+    total.sessions += count;
+
+    const owner = usersById.get(userId);
+    const row = owner ? bySchool.get(schoolKey(owner.profile?.school)) : null;
+    if (!row) continue; // Em chưa khai trường, hoặc tài khoản đã bị xoá
+
+    row[bucket] += 1;
+    row.users += 1;
+    row.sessions += count;
+  }
+
+  // Chặn dưới ở 0: khoảng ngày có thể nằm hẳn trong quá khứ, lúc đó số em ĐANG
+  // có (cộng dồn tới hôm nay) lớn hơn số em từng vào trong khoảng đó là chuyện
+  // bình thường — nhưng một con số âm thì không.
+  total.none = Math.max(0, total.students - total.users);
+  for (const row of bySchool.values()) row.none = Math.max(0, row.students - row.users);
+
+  const daily = days.map((date) => {
+    const row = { date, ...emptyUsageRow() };
+    for (const count of byDay.get(date).values()) {
+      row[usageBucket(count)] += 1;
+      row.users += 1;
+      row.sessions += count;
+    }
+    return row;
+  });
+
+  return {
+    buckets: USAGE_KEYS,
+    total,
+    bySchool: [...bySchool.values()].sort(
+      (a, b) =>
+        b.sessions - a.sessions ||
+        b.users - a.users ||
+        b.students - a.students ||
+        a.school.localeCompare(b.school, "vi")
+    ),
+    daily
+  };
+}
+
 function emptyCounters() {
   return {
     sessions: 0,
@@ -398,8 +671,24 @@ function buildStats(users, sessions, range) {
     daily: [...daily.values()],
     byClass,
     bySchool,
-    byCategory
+    byCategory,
+    byGrade: buildGradeStats(users, range),
+    usage: buildUsageStats(users, sessions, range)
   };
 }
 
-module.exports = { dayKey, resolveRange, buildStats, MAX_RANGE_DAYS, TZ_OFFSET_MINUTES };
+module.exports = {
+  dayKey,
+  resolveRange,
+  buildStats,
+  buildGradeStats,
+  buildUsageStats,
+  gradeOf,
+  usageBucket,
+  GRADES,
+  GRADE_KEYS,
+  USAGE_BUCKETS,
+  USAGE_KEYS,
+  MAX_RANGE_DAYS,
+  TZ_OFFSET_MINUTES
+};
