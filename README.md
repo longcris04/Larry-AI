@@ -49,7 +49,7 @@ Larry-AI/
 │   ├── accounts.js       # Đọc/ghi tài khoản xuống account.json
 │   ├── account.json      # Danh sách tài khoản (KHÔNG commit)
 │   ├── sessions.js       # Vùng nhớ phiên hội thoại cho quản trị viên
-│   ├── sessions.json     # Tóm tắt các phiên (KHÔNG commit)
+│   ├── sessions.json     # Transcript + tóm tắt các phiên (KHÔNG commit)
 │   ├── summarizer.js     # Model riêng tóm tắt + gắn cờ dấu hiệu tiêu cực
 │   ├── risk.js           # Thang mức độ + chấm phiếu cảm xúc bằng luật
 │   ├── alertEmail.js     # AI soạn email cảnh báo GVCN + gửi qua SMTP
@@ -165,9 +165,11 @@ JWT_SECRET=doi-thanh-chuoi-ngau-nhien-cua-ban
 | `JWT_SECRET` | – | chuỗi dev mặc định | Khoá ký JWT. **Bắt buộc đổi khi deploy thật.** |
 | `OPENROUTER_BASE_URL` | – | `https://openrouter.ai/api/v1` | Chỉ đổi khi dùng proxy tương thích OpenRouter. |
 | `OPENROUTER_SITE_URL` / `OPENROUTER_SITE_NAME` | – | `http://localhost:3000` / `Larry AI` | Gửi kèm request để OpenRouter thống kê app. |
+| `DATA_DIR` | – | local: `backend/`; Render: `/var/data` | Thư mục chung cho `account.json`, `sessions.json`, `settings.json`. |
 | `ACCOUNTS_FILE` | – | `backend/account.json` | Nơi lưu danh sách tài khoản. |
 | `SUMMARY_EVERY_N_MESSAGES` | – | `4` | Tóm tắt lại sau mỗi bao nhiêu tin nhắn mới. |
 | `SESSIONS_FILE` | – | `backend/sessions.json` | Nơi lưu vùng nhớ phiên hội thoại. |
+| `SETTINGS_FILE` | – | cùng `account.json` | Nơi lưu cài đặt quản trị. |
 | `EMAIL_USER` / `EMAIL_APP_PASSWORD` | – | – | Tài khoản Gmail gửi email cảnh báo (xem mục 8). |
 | `ALERT_EMAIL_TO` | – | – | Địa chỉ điền sẵn ở ô "Gửi tới" của email cảnh báo. Email còn gửi kèm giáo viên chủ nhiệm nếu ghép được (xem mục 8). |
 | `STUDENT_FEEDBACK_FORM` | – | – | Link biểu mẫu góp ý cho học sinh, hiện ở cột trái màn hình chat. |
@@ -257,7 +259,7 @@ Khách vẫn được cấp JWT thật nên endpoint `/chat` giữ nguyên cơ c
 | Method | Endpoint | Auth | Mô tả |
 |---|---|---|---|
 | `GET` | `/api/health` | – | Kiểm tra server và trạng thái API key |
-| `POST` | `/api/register` | – | `{ phone, password, profile, email?, role? }` → `{ user, message }`. **`phone` là bắt buộc và duy nhất**, `email` không bắt buộc. **Không cấp token/cookie** — đăng ký xong phải đăng nhập |
+| `POST` | `/api/register` | – | `{ phone, password, profile, email?, role? }` → `{ user, message }`. `phone` bắt buộc và duy nhất; riêng `counselor` bắt buộc cả họ tên, email, số điện thoại, trường. **Không cấp token/cookie** — đăng ký xong phải đăng nhập |
 | `POST` | `/api/login` | – | `{ identifier, password, role }` → `{ user, token }`. `identifier` là **số điện thoại hoặc email** |
 | `POST` | `/api/guest` | – | Không cần body → `{ user, token }` cho chế độ khách (token hạn 1 ngày) |
 | `POST` | `/api/logout` | – | Xoá cookie token |
@@ -270,12 +272,16 @@ Khách vẫn được cấp JWT thật nên endpoint `/chat` giữ nguyên cơ c
 | `GET` | `/api/feedback-links` | – | `{ student, teacher }` — hai link biểu mẫu khai trong `backend/.env` |
 | `GET` | `/api/settings` | – | `{ guestMode, ttsEnabled, voice: { stt, tts } }` — công tắc quản trị viên + micro/loa có dùng được không. **Công khai** vì trang đăng nhập phải đọc trước khi có ai đăng nhập; chỉ toàn giá trị đúng/sai, không lộ tên model hay khoá API |
 | `GET` | `/api/knowledge/graph` | – | Kho tri thức dạng `{ nodes, edges, ... }` cho trang giới thiệu vẽ đồ thị |
-| `POST` | `/api/admin/users/:id/approval` | 👑 | `{ status: "approved" \| "rejected" }` — duyệt tài khoản giáo viên chủ nhiệm |
+| `POST` | `/api/admin/users/:id/approval` | 👑 | `{ status: "approved" \| "rejected" }` — duyệt giáo viên hoặc phòng tâm lý học đường |
 | `GET` | `/api/teacher/students` | 🍎 | Học sinh lớp mình, kèm số phiên / số phiên đáng lo / số email đã gửi |
 | `GET` | `/api/teacher/students/:id/sessions` | 🍎 | Tóm tắt từng phiên của một em trong lớp mình (403 nếu khác lớp) |
 | `GET` | `/api/teacher/flagged` | 🍎 | Mọi phiên đáng lo của cả lớp, nguy hiểm nhất lên trước |
+| `GET` | `/api/counselor/users` | 🧠 | Tài khoản thuộc đúng trường, kèm thống kê nhanh; chỉ đọc |
+| `GET` | `/api/counselor/stats` | 🧠 | Bảng điều khiển của đúng trường theo khoảng ngày |
+| `GET` | `/api/counselor/sessions` | 🧠 | Metadata phiên của học sinh trong đúng trường |
+| `GET` | `/api/counselor/sessions/:sessionId` | 🧠 | Transcript một phiên trong đúng trường; ngoài scope trả 404 |
 
-👑 = chỉ quản trị viên · 🍎 = chỉ giáo viên chủ nhiệm **đã được duyệt**
+👑 = chỉ quản trị viên · 🍎 = giáo viên chủ nhiệm đã duyệt · 🧠 = phòng tâm lý học đường đã duyệt
 | `GET` | `/api/voice/config` | ✅ | `{ stt, tts, voice, language }` — có bật được micro/loa không, để giao diện quyết định vẽ nút |
 | `POST` | `/api/voice/stt` | ✅ | Byte âm thanh thô (`Content-Type: audio/wav`) → `{ text, seconds }` |
 | `POST` | `/api/voice/tts` | ✅ | `{ text }` → byte âm thanh (`audio/wav`) |
@@ -371,7 +377,8 @@ Tài khoản tạo từ phiên bản cũ (chưa có `role`/`profile`) sẽ đư�
 
 Muốn xoá hết tài khoản thì dừng backend, sửa file thành `[]` (hoặc xoá file) rồi chạy lại — admin mặc định sẽ được tạo lại.
 
-Muốn đổi chỗ lưu thì đặt `ACCOUNTS_FILE` trong `backend/.env`.
+Muốn đổi chỗ lưu cả ba file thì đặt `DATA_DIR`; muốn đổi riêng tài khoản thì đặt
+`ACCOUNTS_FILE` trong `backend/.env`.
 
 > File này chứa số điện thoại, email và hash mật khẩu nên đã được `.gitignore` — không commit lên git.
 
@@ -379,17 +386,18 @@ Muốn đổi chỗ lưu thì đặt `ACCOUNTS_FILE` trong `backend/.env`.
 
 ## 8. Phân quyền
 
-Hệ thống có 3 vai trò, lưu ở field `role` trong `account.json` và nhúng vào JWT:
+Hệ thống có 4 vai trò, lưu ở field `role` trong `account.json` và nhúng vào JWT:
 
 | Vai trò | Cách có được | Cần duyệt | Vào được | Trò chuyện với Larry |
 |---|---|---|---|---|
 | `user` | Đăng ký, hoặc bấm nút khách | Không | Trang chat `/`, trang game `/game` | Có |
 | `teacher` | Đăng ký, chọn "Giáo viên chủ nhiệm" | **Có** — quản trị viên duyệt | Chỉ `/teacher` | **Không** |
+| `counselor` | Đăng ký, chọn "Phòng tâm lý học đường" | **Có** — quản trị viên duyệt | Chỉ `/counselor`, dữ liệu đúng trường | **Không** |
 | `admin` | Tài khoản tạo sẵn trong `account.json` | Không | Chỉ khu vực quản trị `/admin` | **Không** |
 
 Quản trị viên và giáo viên chủ nhiệm là tài khoản quản lý/theo dõi, **không tham gia trò chuyện**. Chặn ở hai tầng: [ProtectedRoute.jsx](frontend/src/components/ui/ProtectedRoute.jsx) đẩy họ từ `/` và `/game` về khu vực của mình, còn middleware `blockAdmin` ở [auth.js](backend/auth.js) trả 403 cho `/chat` và `/api/session/end` kể cả khi gọi thẳng API. Vì vậy hai vai trò này không bao giờ sinh ra phiên hội thoại nào trong `sessions.json`.
 
-Ở trang đăng nhập có dropdown **"Bạn là"** với ba lựa chọn *Người dùng* / *Giáo viên chủ nhiệm* / *Quản trị viên*. Vai trò được chọn gửi kèm request đăng nhập và server tra tài khoản theo cả định danh lẫn vai trò.
+Ở trang đăng nhập có dropdown **"Bạn là"** gồm *Người dùng* / *Giáo viên chủ nhiệm* / *Phòng tâm lý học đường* / *Quản trị viên*. Vai trò được chọn gửi kèm request đăng nhập và server tra tài khoản theo cả định danh lẫn vai trò.
 
 > **Số điện thoại là duy nhất trên toàn hệ thống.** Một số chỉ dùng được cho **một** tài khoản, dù là học sinh, giáo viên hay quản trị viên — so sánh sau khi chuẩn hoá, nên `0912 345 678` và `+84912345678` là một.
 >
@@ -427,7 +435,11 @@ So sánh cố ý **dễ tính vừa phải**: `"6a1"`, `"6A1"` và `" 6A1 "` là
 
 **Giao diện `/teacher` — chỉ đọc.** Thầy cô thấy danh sách học sinh lớp mình (em cần chú ý nhất lên đầu), mở ra là tóm tắt từng phiên kèm mức độ, dấu hiệu ghi nhận được, và **tình trạng email cảnh báo đã gửi hay chưa**. Khu vực này **không có route sửa hay xoá nào** ở backend — thiếu hẳn route là cách bảo đảm chắc chắn hơn mọi kiểm tra quyền viết trong thân hàm. Đổi id trên URL để xem lớp khác trả về 403.
 
-> Thứ hiện ra là **bản tóm tắt do model viết**. `sessions.json` không lưu nguyên văn lời học sinh, nên không có đường nào để giáo viên đọc lại hội thoại gốc — điều này nên nói rõ với cả thầy cô lẫn các em.
+> Giao diện giáo viên có hai tab. **Tổng quan** thống kê theo khoảng ngày và có bảng tài khoản chỉ đọc gồm chính giáo viên cùng học sinh lớp mình. **Tần suất sử dụng** chỉ nhận metadata/transcript của học sinh có `school + className` khớp tài khoản giáo viên. Backend kiểm scope lại cho cả endpoint danh sách lẫn endpoint chi tiết; đổi `studentId`/`sessionId` trên URL không mở được lớp khác.
+
+### Vai trò phòng tâm lý học đường
+
+Đăng ký bắt buộc họ tên, email, số điện thoại và trường; đăng nhập bằng số điện thoại và phải chờ quản trị viên duyệt. Giao diện `/counselor` dùng các màn tổng quan, tần suất và nội dung hội thoại như quản trị viên nhưng chỉ đọc. Backend cắt danh sách tài khoản, thống kê và transcript theo `profile.school`; không có endpoint sửa, xoá, duyệt hay đổi cài đặt trong scope này.
 
 ### Tạo tài khoản quản trị viên
 
@@ -793,6 +805,10 @@ Mỗi lần học sinh **đã đăng nhập** vào màn hình chat, frontend sin
   "userId": 2, "username": "nam",
   "startedAt": "...", "endedAt": "...",
   "messageCount": 8,
+  "messages": [
+    { "role": "user", "content": "Em đang sợ phải đi học..." },
+    { "role": "assistant", "content": "Larry đang nghe đây..." }
+  ],
   "checkinNote": "Rất khó chịu (cảm xúc ngay lúc này) · cảm xúc: Sợ hãi · tác động bởi: Bạn bè · có kể thêm bằng lời",
   "cameraEmotion": "fearful",
   "summary": "Học sinh bày tỏ sự sợ hãi khi đi học do bị các bạn lớp trên chặn đường đòi tiền...",
@@ -819,7 +835,9 @@ Kết quả của model được siết lại ở phía backend, luôn nghiêng 
 
 > **Khách không đăng nhập thì không lưu gì cả.** `touchSession()` trả về `null` ngay khi gặp token khách, nên không có bản ghi nào được tạo và quản trị viên cũng không thấy gì.
 
-**Hệ thống chỉ lưu bản tóm tắt, không lưu nguyên văn hội thoại.** Đây là lựa chọn có chủ đích để giảm lượng dữ liệu nhạy cảm của trẻ bị lưu lại. Phiếu cảm xúc cũng vậy: `checkinNote` chỉ ghi lại các ô chọn sẵn, phần học sinh tự kể được gửi cho model phân tích nhưng **không** ghi xuống `sessions.json` (vì thế frontend phải gửi lại phiếu ở `/api/session/end`). Nếu bạn cần đọc nguyên văn để xác minh, nói mình biết — nhưng nên cân nhắc kỹ vì đó là nhật ký tâm sự của học sinh.
+**Tài khoản đã đăng nhập lưu cả transcript và bản tóm tắt.** `messages[]` giữ đầy đủ các cặp `{role, content}` của học sinh và Larry, không cắt số tin hay độ dài. Danh sách phiên chỉ trả metadata; transcript chỉ được tải khi quản trị viên hoặc giáo viên chủ nhiệm đúng lớp bấm mở đúng phiên ở tab **Tần suất sử dụng**. Bản ghi cũ thiếu `messages` tự được bù `[]`, giữ nguyên summary và mọi cờ cũ. Không thể khôi phục nguyên văn của các phiên xảy ra trước khi tính năng này được triển khai.
+
+Phiếu cảm xúc vẫn khác transcript: `checkinNote` chỉ ghi lại các ô chọn sẵn, phần học sinh tự kể được gửi cho model phân tích nhưng không lưu thành field riêng trong `sessions.json` (vì thế frontend gửi lại phiếu ở `/api/session/end`). Khách không đăng nhập vẫn không lưu phiên.
 
 ### Cảnh báo cho giáo viên chủ nhiệm qua email
 
@@ -894,7 +912,7 @@ Khi đã `✅`, vào `/admin` → **Hội thoại** của một học sinh → *
 
 Trường dùng mail server riêng thì đặt thêm `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE` để bỏ qua Gmail.
 
-> Email chỉ chứa **tóm tắt và dấu hiệu**, không kèm nguyên văn lời học sinh — cùng nguyên tắc với `sessions.json`. Địa chỉ nhận hiện là địa chỉ mock cấu hình cứng trong `.env`; muốn mỗi lớp một GVCN khác nhau thì thêm field `teacherEmail` vào `profile` của học sinh rồi trả về trong bước soạn nháp.
+> Email chỉ chứa **tóm tắt và dấu hiệu**, không kèm nguyên văn lời học sinh. Transcript vẫn nằm trong `sessions.json` và chỉ được tải qua endpoint đã kiểm tra vai trò cùng phạm vi lớp.
 
 ---
 
@@ -1295,7 +1313,7 @@ npm run build      # kết quả trong frontend/build/
 - **Frontend**: repo đã có sẵn [netlify.toml](netlify.toml) (base `frontend`, publish `build`). Nhớ khai báo `REACT_APP_API_URL` trong phần environment variables của Netlify, trỏ về backend đã deploy.
 - **Backend**: deploy `backend/` lên Render/Railway/VPS với lệnh `npm start`, và khai báo `OPENROUTER_API_KEY`, `JWT_SECRET`, `CHAT_MODEL` (bắt buộc — không có giá trị mặc định trong code), các biến model của từng agent nếu muốn tách, `SUMMARY_MODEL`, `ALERT_MODEL`, cùng `EMAIL_USER` / `EMAIL_APP_PASSWORD` / `ALERT_EMAIL_TO` trong environment variables của nền tảng đó. Muốn có giọng nói thì thêm `STT_MODEL` và `TTS_MODEL` — bỏ trống thì app vẫn chạy, chỉ không có micro và loa.
 
-> ⚠️ Render/Railway gói free dùng ổ đĩa tạm — `account.json` sẽ bị xoá mỗi lần deploy lại hoặc khi dịch vụ ngủ dậy. Muốn giữ tài khoản trên server thật thì gắn persistent disk rồi trỏ `ACCOUNTS_FILE` vào đó, hoặc chuyển hẳn sang database.
+> Backend tự dùng `/var/data/account.json`, `/var/data/sessions.json`, `/var/data/settings.json` khi Render cấp `RENDER=true`. Cần gắn persistent disk đúng mount path `/var/data`; chỉ dữ liệu nằm dưới mount path này mới sống qua deploy. Biến đường dẫn riêng (`ACCOUNTS_FILE`, `SESSIONS_FILE`, `SETTINGS_FILE`) vẫn được ưu tiên nếu đã khai.
 
 ### Deploy lên Render — mấy chỗ dễ vấp
 
@@ -1360,7 +1378,7 @@ Bấm vào link sẽ mở hộp thoại ([LegalModal.jsx](frontend/src/component
 
 **Thêm văn bản mới**: thêm file vào `backend/documents/`, khai thêm một dòng vào hằng `DOCUMENTS` trong [server.js](backend/server.js). Danh sách này là danh sách trắng cố định — tên file **không** ghép từ URL, nên không thể lợi dụng đường dẫn để đọc file khác trên máy chủ (`/api/documents/../.env` trả về 404).
 
-> Nội dung hiện tại mô tả đúng cách hệ thống đang xử lý dữ liệu (không lưu nguyên văn hội thoại, camera xử lý tại máy, có gắn cờ và gửi cảnh báo cho GVCN). Đây là văn bản cho dự án học đường — trước khi triển khai thật, nhà trường nên rà soát lại và bổ sung tên đơn vị chịu trách nhiệm.
+> Nội dung hiện tại mô tả đúng cách hệ thống đang xử lý dữ liệu (lưu transcript của tài khoản đã đăng nhập, camera xử lý tại máy, có gắn cờ và gửi cảnh báo cho GVCN). Đây là văn bản cho dự án học đường — trước khi triển khai thật, nhà trường nên rà soát lại và bổ sung tên đơn vị chịu trách nhiệm.
 
 ---
 

@@ -2,12 +2,7 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-/**
- * Chỉ cho tài khoản có role === "admin" đi qua.
- * Chưa đăng nhập  -> về /login
- * Đăng nhập nhưng không phải admin -> về trang chat
- */
-const AdminRoute = ({ children }) => {
+export default function CounselorRoute({ children }) {
   const { isAuthenticated, isAdmin, isTeacher, isCounselor, loading } = useAuth();
   const location = useLocation();
 
@@ -23,14 +18,9 @@ const AdminRoute = ({ children }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  if (!isAdmin) {
-    if (isTeacher) return <Navigate to="/teacher" replace />;
-    if (isCounselor) return <Navigate to="/counselor" replace />;
-    return <Navigate to="/" replace />;
-  }
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (isTeacher) return <Navigate to="/teacher" replace />;
+  if (!isCounselor) return <Navigate to="/" replace />;
 
   return children;
-};
-
-export default AdminRoute;
+}

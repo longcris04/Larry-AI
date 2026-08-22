@@ -60,6 +60,27 @@ const requireTeacher = (getUserById) => (req, res, next) => {
   next();
 };
 
+// Phòng tâm lý học đường đã duyệt. Kiểm tra lại account.json ở mỗi request để
+// việc quản trị viên thu hồi quyền có hiệu lực ngay, không chờ JWT hết hạn.
+const requireCounselor = (getUserById) => (req, res, next) => {
+  if (req.user?.role !== ROLES.COUNSELOR) {
+    return res.status(403).json({ error: "Chỉ phòng tâm lý học đường mới truy cập được." });
+  }
+
+  const account = typeof getUserById === "function" ? getUserById(req.user.id) : null;
+  if (!account || account.role !== ROLES.COUNSELOR) {
+    return res.status(403).json({ error: "Không tìm thấy tài khoản phòng tâm lý học đường." });
+  }
+  if (account.status !== "approved") {
+    return res.status(403).json({
+      error: "Tài khoản của bạn chưa được quản trị viên duyệt."
+    });
+  }
+
+  req.counselor = account;
+  next();
+};
+
 // Ngược lại: quản trị viên là tài khoản quản lý, không tham gia trò chuyện với
 // Larry. Giáo viên chủ nhiệm cũng vậy — họ vào đây để xem tình hình lớp, không
 // phải để tâm sự với Larry. Chặn ở đây để dù có gọi thẳng API cũng không tạo
@@ -75,6 +96,11 @@ const blockAdmin = (req, res, next) => {
       error: "Tài khoản giáo viên chủ nhiệm không sử dụng tính năng trò chuyện."
     });
   }
+  if (req.user?.role === ROLES.COUNSELOR) {
+    return res.status(403).json({
+      error: "Tài khoản phòng tâm lý học đường không sử dụng tính năng trò chuyện."
+    });
+  }
   next();
 };
 
@@ -85,5 +111,6 @@ module.exports = {
   authenticateToken,
   requireAdmin,
   requireTeacher,
+  requireCounselor,
   blockAdmin
 };

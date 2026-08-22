@@ -1,5 +1,5 @@
 ĐIỀU KHOẢN SỬ DỤNG LARRY AI
-Cập nhật lần cuối: 26/07/2026
+Cập nhật lần cuối: 23/08/2026
 
 Larry là người bạn đồng hành trò chuyện, hỗ trợ tâm lý cho học sinh tiểu học và
 trung học cơ sở. Trước khi tạo tài khoản, em hãy đọc kỹ những điều dưới đây.
@@ -36,14 +36,18 @@ xâm hại, bị bạo hành, sợ hãi, buồn bã kéo dài, mệt mỏi, cô 
 chuyện sẽ được ĐÁNH DẤU để thầy cô phụ trách xem lại.
 
 Thầy cô phụ trách (quản trị viên) có thể:
-- Đọc bản tóm tắt và các dấu hiệu hệ thống ghi nhận về em.
+- Đọc bản tóm tắt, các dấu hiệu và nội dung hỏi đáp của từng phiên khi cần xác
+  minh và hỗ trợ em.
 - Gửi email cảnh báo cho giáo viên chủ nhiệm của em để thầy cô gặp và hỏi thăm.
 
 Điều này KHÔNG phải để bắt lỗi em, mà để người lớn kịp giúp em khi có chuyện.
 Nếu em chỉ vui vẻ, bình thường thì phiên trò chuyện không bị đánh dấu.
 
-Thầy cô KHÔNG đọc được nguyên văn từng câu em đã nhắn - hệ thống chỉ lưu bản
-tóm tắt, không lưu lại nội dung trò chuyện. Chi tiết xem Chính sách bảo mật.
+Hệ thống lưu đầy đủ từng câu em hỏi và Larry trả lời khi em dùng tài khoản đã
+đăng nhập. Quản trị viên, giáo viên chủ nhiệm của đúng trường/lớp và phòng tâm
+lý học đường của đúng trường có thể mở nội dung này khi cần hỗ trợ em. Người ở
+trường hoặc lớp khác không xem được; email cảnh báo không chứa nguyên văn cuộc
+trò chuyện. Chi tiết xem Chính sách bảo mật.
 
 Nếu em chưa muốn ai biết gì cả, em có thể dùng chế độ "Trò chuyện với Larry
 ngay!" mà không đăng nhập - khi đó hệ thống không lưu và không báo gì cả.
@@ -98,8 +102,8 @@ Vì vậy:
 7. XOÁ TÀI KHOẢN VÀ DỮ LIỆU
 
 Em (hoặc bố mẹ em) có thể đề nghị thầy cô phụ trách xoá tài khoản. Khi tài khoản
-bị xoá, toàn bộ bản tóm tắt các phiên trò chuyện của em cũng bị xoá cùng lúc và
-không khôi phục lại được.
+bị xoá, toàn bộ nội dung hỏi đáp và bản tóm tắt các phiên trò chuyện của em cũng
+bị xoá cùng lúc và không khôi phục lại được.
 
 
 8. GIỚI HẠN TRÁCH NHIỆM

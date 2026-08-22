@@ -665,6 +665,8 @@
 
     display:flex;
 
+    flex-wrap:wrap;
+
     gap:10px;
 
     width:100%;
@@ -674,7 +676,7 @@
 
 .role-switch__btn{
 
-    flex:1;
+    flex:1 1 120px;
 
     display:flex;
 

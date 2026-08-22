@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
   //   giáo viên chủ nhiệm — school và className BẮT BUỘC (backend chặn nếu thiếu),
   //                         vì đó chính là thứ dùng để ghép với học sinh
   //
-  // role: "user" (mặc định) | "teacher" — do nút chọn ở đầu form quyết định.
+  // role: "user" | "teacher" | "counselor" — do nút chọn ở đầu form quyết định.
   //
   // Đăng ký xong KHÔNG tự đăng nhập: backend không cấp token. Riêng giáo viên còn
   // phải chờ quản trị viên duyệt, nên trả về cả `pendingApproval` để màn hình
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   // thoại, nhưng tài khoản tạo trước khi đổi (và quản trị viên dựng từ biến môi
   // trường) chỉ có email — backend tra cả hai đường.
   //
-  // role: "user" | "teacher" | "admin" — lấy từ dropdown "Bạn là" ở trang đăng nhập
+  // role lấy từ dropdown "Bạn là" ở trang đăng nhập.
   const login = async (identifier, password, role = "user") => {
     setError(null);
     try {
@@ -145,7 +145,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isGuest: !!user?.guest,
     isAdmin: user?.role === ROLES.ADMIN,
-    isTeacher: user?.role === ROLES.TEACHER
+    isTeacher: user?.role === ROLES.TEACHER,
+    isCounselor: user?.role === ROLES.COUNSELOR
   };
 
   return (

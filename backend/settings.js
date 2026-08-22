@@ -11,6 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { resolveDataFile, ensureDataDirectory } = require("./dataFiles");
 
 // Nơi lưu. Thứ tự ưu tiên:
 //
@@ -23,7 +24,8 @@ const path = require("path");
 //      Không có bước này thì lỗi xảy ra hoàn toàn im lặng: quản trị viên tắt chế
 //      độ khách, deploy một bản vá bất kỳ, và chế độ khách tự BẬT lại mà không ai
 //      bấm gì. Đúng loại lỗi chỉ lộ ra trên máy chủ thật.
-//   3. Cạnh mã nguồn — chỉ đúng khi chạy ở máy cá nhân.
+//   3. DATA_DIR, hoặc /var/data khi chạy trên Render.
+//   4. Cạnh mã nguồn — chỉ đúng khi chạy ở máy cá nhân.
 function resolveSettingsFile() {
   if (process.env.SETTINGS_FILE) return path.resolve(process.env.SETTINGS_FILE);
 
@@ -31,7 +33,7 @@ function resolveSettingsFile() {
     return path.join(path.dirname(path.resolve(process.env.ACCOUNTS_FILE)), "settings.json");
   }
 
-  return path.join(__dirname, "settings.json");
+  return resolveDataFile("SETTINGS_FILE", "settings.json");
 }
 
 const SETTINGS_FILE = resolveSettingsFile();
@@ -91,6 +93,7 @@ function readFromDisk() {
 }
 
 function writeToDisk(next) {
+  ensureDataDirectory(SETTINGS_FILE);
   const tempFile = `${SETTINGS_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(next, null, 2), "utf8");
   fs.renameSync(tempFile, SETTINGS_FILE);

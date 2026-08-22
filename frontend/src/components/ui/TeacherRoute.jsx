@@ -11,7 +11,7 @@ import { useAuth } from "../../context/AuthContext";
  * thấy đúng trang của mình thay vì một trang trống báo lỗi.
  */
 const TeacherRoute = ({ children }) => {
-  const { isAuthenticated, isTeacher, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isTeacher, isAdmin, isCounselor, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -28,6 +28,7 @@ const TeacherRoute = ({ children }) => {
   }
 
   if (isAdmin) return <Navigate to="/admin" replace />;
+  if (isCounselor) return <Navigate to="/counselor" replace />;
   if (!isTeacher) return <Navigate to="/" replace />;
 
   return children;

@@ -191,11 +191,7 @@ function emptyUsageRow() {
 }
 
 function isStudentAccount(user) {
-  // Giống hệt cách buildStats đếm học sinh: KHÔNG phải quản trị viên, KHÔNG phải
-  // giáo viên. Viết theo lối loại trừ chứ không phải `role === ROLES.USER` để
-  // tổng ở đây luôn khớp với accounts.students — hai con số cùng nói về học sinh
-  // mà lệch nhau thì không ai biết tin cái nào.
-  return user.role !== ROLES.ADMIN && user.role !== ROLES.TEACHER;
+  return user.role === ROLES.USER;
 }
 
 /**
@@ -430,7 +426,7 @@ function buildStats(users, sessions, range) {
   const daily = new Map(
     days.map((date) => [
       date,
-      { date, newStudents: 0, newTeachers: 0, ...emptyCounters() }
+      { date, newStudents: 0, newTeachers: 0, newCounselors: 0, ...emptyCounters() }
     ])
   );
 
@@ -489,11 +485,17 @@ function buildStats(users, sessions, range) {
     teachers: 0,
     teachersApproved: 0,
     teachersPending: 0,
+    counselors: 0,
+    counselorsApproved: 0,
+    counselorsPending: 0,
     admins: 0,
     newStudents: 0,
     newTeachers: 0,
     newTeachersApproved: 0,
     newTeachersPending: 0,
+    newCounselors: 0,
+    newCounselorsApproved: 0,
+    newCounselorsPending: 0,
     // Tài khoản chưa khai đủ trường + lớp: không ghép được với giáo viên nào,
     // và mọi hội thoại của em không thuộc lớp nào trên bảng dưới. Đây là con số
     // quản trị viên cần thấy để đi nhắc, không phải thứ nên giấu đi.
@@ -543,7 +545,22 @@ function buildStats(users, sessions, range) {
       continue;
     }
 
-    // Còn lại là học sinh
+    if (user.role === ROLES.COUNSELOR) {
+      accounts.counselors += 1;
+      if (user.status === STATUS.APPROVED) accounts.counselorsApproved += 1;
+      if (user.status === STATUS.PENDING) accounts.counselorsPending += 1;
+
+      if (createdInRange) {
+        accounts.newCounselors += 1;
+        if (user.status === STATUS.APPROVED) accounts.newCounselorsApproved += 1;
+        if (user.status === STATUS.PENDING) accounts.newCounselorsPending += 1;
+        daily.get(created).newCounselors += 1;
+        if (sKey) schoolKeysInRange.add(sKey);
+      }
+      continue;
+    }
+
+    // Vai trò còn lại hợp lệ là học sinh
     accounts.students += 1;
     if (createdInRange) {
       accounts.newStudents += 1;

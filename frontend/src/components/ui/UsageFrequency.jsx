@@ -43,6 +43,12 @@ const SERIES = [
   { key: "high", label: "Khẩn cấp", color: "--dash-high" }
 ];
 
+const SORT_OPTIONS = [
+  { key: "sessions", label: "Số cuộc hội thoại" },
+  { key: "flagged", label: "Số cuộc bị gắn cờ" },
+  { key: "high", label: "Số cuộc khẩn cấp" }
+];
+
 function displayName(user) {
   return user.profile?.fullName || user.username;
 }
@@ -71,12 +77,25 @@ function chartRows(sessions, dates) {
   return [...rows.values()];
 }
 
-export default function UsageFrequency({ users = [], onError }) {
+function usageTotals(sessions) {
+  return sessions.reduce(
+    (totals, session) => ({
+      sessions: totals.sessions + 1,
+      flagged: totals.flagged + Number(Boolean(session.flagged || session.bullyingDetected)),
+      high: totals.high + Number(session.riskLevel === "high")
+    }),
+    { sessions: 0, flagged: 0, high: 0 }
+  );
+}
+
+export default function UsageFrequency({ users = [], onError, apiScope = "admin" }) {
   const today = todayKey();
   const [range, setRange] = useState(() => ({ from: shiftDay(today, -6), to: today }));
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(NO_FILTERS);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [sortBy, setSortBy] = useState("sessions");
+  const [sortDirection, setSortDirection] = useState("desc");
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -132,7 +151,7 @@ export default function UsageFrequency({ users = [], onError }) {
     setDetails({});
 
     axios
-      .get(`${API_BASE_URL}/api/admin/sessions`, { params: range })
+      .get(`${API_BASE_URL}/api/${apiScope}/sessions`, { params: range })
       .then((response) => {
         if (active) setSessions(response.data.sessions || []);
       })
@@ -148,7 +167,7 @@ export default function UsageFrequency({ users = [], onError }) {
     return () => {
       active = false;
     };
-  }, [range, onError]);
+  }, [range, onError, apiScope]);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedUsers = useMemo(
@@ -169,6 +188,20 @@ export default function UsageFrequency({ users = [], onError }) {
   }, [sessions]);
 
   const dates = useMemo(() => datesOf(range), [range]);
+
+  const selectedRows = useMemo(() => {
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return selectedUsers
+      .map((user) => {
+        const userSessions = sessionsByUser.get(String(user.id)) || [];
+        return { user, sessions: userSessions, totals: usageTotals(userSessions) };
+      })
+      .sort((a, b) => {
+        const difference = a.totals[sortBy] - b.totals[sortBy];
+        if (difference !== 0) return difference * direction;
+        return displayName(a.user).localeCompare(displayName(b.user), "vi");
+      });
+  }, [selectedUsers, sessionsByUser, sortBy, sortDirection]);
 
   const toggleUser = (id) => {
     const key = String(id);
@@ -208,7 +241,7 @@ export default function UsageFrequency({ users = [], onError }) {
       setDetailLoading(session.id);
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/api/admin/sessions/${encodeURIComponent(session.id)}`
+          `${API_BASE_URL}/api/${apiScope}/sessions/${encodeURIComponent(session.id)}`
         );
         setDetails((current) => ({ ...current, [session.id]: response.data }));
       } catch (error) {
@@ -218,7 +251,7 @@ export default function UsageFrequency({ users = [], onError }) {
         setDetailLoading("");
       }
     },
-    [details, onError, openSessionId]
+    [apiScope, details, onError, openSessionId]
   );
 
   return (
@@ -309,6 +342,32 @@ export default function UsageFrequency({ users = [], onError }) {
           Trục X là ngày; trục Y là số cuộc hội thoại. Mỗi hàng là một tài khoản đã chọn.
         </p>
 
+        {selectedUsers.length > 0 && (
+          <div className="usage-sortbar">
+            <label className="usage-field">
+              <span>Sắp xếp theo</span>
+              <select
+                className="usage-input"
+                aria-label="Sắp xếp tài khoản theo"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm admin-btn--ghost"
+              aria-label={`Đang sắp xếp ${sortDirection === "desc" ? "giảm dần" : "tăng dần"}; bấm để đổi chiều`}
+              onClick={() => setSortDirection((current) => (current === "desc" ? "asc" : "desc"))}
+            >
+              {sortDirection === "desc" ? "Giảm dần ↓" : "Tăng dần ↑"}
+            </button>
+          </div>
+        )}
+
         {selectedUsers.length === 0 ? (
           <p className="admin-empty">Chưa chọn tài khoản nào ở mục 1.</p>
         ) : loading ? (
@@ -317,8 +376,7 @@ export default function UsageFrequency({ users = [], onError }) {
           <>
             <Legend series={SERIES} />
             <div className="usage-chart-list">
-              {selectedUsers.map((user) => {
-                const userSessions = sessionsByUser.get(String(user.id)) || [];
+              {selectedRows.map(({ user, sessions: userSessions }) => {
                 return (
                   <article
                     key={user.id}
@@ -357,9 +415,8 @@ export default function UsageFrequency({ users = [], onError }) {
           <p className="admin-empty">Chưa chọn tài khoản nào ở mục 1.</p>
         ) : (
           <div className="usage-conversations">
-            {selectedUsers.map((user) => {
+            {selectedRows.map(({ user, sessions: userSessions }) => {
               const key = String(user.id);
-              const userSessions = sessionsByUser.get(key) || [];
               const accountOpen = openUserId === key;
 
               return (
@@ -373,6 +430,12 @@ export default function UsageFrequency({ users = [], onError }) {
                     <span>
                       <strong>{displayName(user)}</strong>
                       <small>{user.username}</small>
+                      <small className="usage-student-meta">
+                        <span>SĐT: {user.phone || "Chưa có"}</span>
+                        <span>Email: {user.email || "Chưa có"}</span>
+                        <span>Lớp: {user.profile?.className || "Chưa có"}</span>
+                        <span>Trường: {user.profile?.school || "Chưa có"}</span>
+                      </small>
                     </span>
                     <span>{formatNumber(userSessions.length)} cuộc {accountOpen ? "▴" : "▾"}</span>
                   </button>
@@ -403,6 +466,24 @@ export default function UsageFrequency({ users = [], onError }) {
 
                               {sessionOpen && (
                                 <div className="usage-transcript">
+                                  <div className="usage-session-context">
+                                    {session.checkinNote && (
+                                      <p>📝 Phiếu cảm xúc: {session.checkinNote}</p>
+                                    )}
+                                    {session.summary && (
+                                      <p><strong>Tóm tắt:</strong> {session.summary}</p>
+                                    )}
+                                    {session.concerns?.length > 0 && (
+                                      <ul>
+                                        {session.concerns.map((concern, index) => (
+                                          <li key={index}>⚠️ {concern}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    {session.alerts?.length > 0 && (
+                                      <p>✅ Đã gửi {formatNumber(session.alerts.length)} email cảnh báo.</p>
+                                    )}
+                                  </div>
                                   {detailLoading === session.id ? (
                                     <p className="admin-empty">Đang tải nội dung…</p>
                                   ) : detail?.messages?.length > 0 ? (

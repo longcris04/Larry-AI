@@ -1,22 +1,16 @@
 const fs = require("fs");
 const path = require("path");
+const { resolveDataFile, ensureDataDirectory } = require("./dataFiles");
 
 // Mỗi phiên hội thoại của học sinh ĐÃ ĐĂNG NHẬP được lưu thành một bản ghi.
 // Khách (guest) không có userId nên không bao giờ được ghi vào đây.
-const SESSIONS_FILE = process.env.SESSIONS_FILE
-  ? path.resolve(process.env.SESSIONS_FILE)
-  : path.join(__dirname, "sessions.json");
-
-const MAX_STORED_MESSAGES = 200;
-const MAX_STORED_MESSAGE_LENGTH = 4000;
+const SESSIONS_FILE = resolveDataFile("SESSIONS_FILE", "sessions.json");
 
 // Chỉ lưu transcript cần để quản trị viên đọc lại. Bỏ mọi role lạ và field nội bộ
 // của graph; nội dung luôn là text thuần nên không có đường chèn HTML vào giao diện.
 function normalizeMessages(history) {
   if (!Array.isArray(history)) return [];
 
-  // ponytail: 200 tin gần nhất đủ cho file JSON hiện tại; cần lưu dài hơn thì chuyển
-  // sessions sang DB và phân trang message thay vì nâng trần trong bộ nhớ.
   return history
     .filter(
       (message) =>
@@ -25,10 +19,10 @@ function normalizeMessages(history) {
         typeof message.content === "string" &&
         message.content.trim()
     )
-    .slice(-MAX_STORED_MESSAGES)
     .map((message) => ({
       role: message.role,
-      content: message.content.trim().slice(0, MAX_STORED_MESSAGE_LENGTH)
+      // Không cắt nội dung: transcript phải giữ nguyên câu hỏi và câu trả lời.
+      content: message.content
     }));
 }
 
@@ -51,6 +45,7 @@ function toSessionMetadata(session) {
 }
 
 function saveSessions(sessions) {
+  ensureDataDirectory(SESSIONS_FILE);
   const tempFile = `${SESSIONS_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(sessions, null, 2), "utf8");
   fs.renameSync(tempFile, SESSIONS_FILE);
@@ -152,7 +147,5 @@ module.exports = {
   normalizeSession,
   normalizeMessages,
   countMessages,
-  toSessionMetadata,
-  MAX_STORED_MESSAGES,
-  MAX_STORED_MESSAGE_LENGTH
+  toSessionMetadata
 };

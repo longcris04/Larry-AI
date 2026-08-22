@@ -1,13 +1,14 @@
-// Ba vai trò của hệ thống. Chuỗi phải khớp TỪNG KÝ TỰ với ROLES trong
+// Bốn vai trò của hệ thống. Chuỗi phải khớp TỪNG KÝ TỰ với ROLES trong
 // backend/accounts.js — chúng đi thẳng vào body của /api/register và /api/login.
 export const ROLES = {
   STUDENT: "user",
   TEACHER: "teacher",
+  COUNSELOR: "counselor",
   ADMIN: "admin"
 };
 
 // Trạng thái duyệt, khớp với STATUS trong backend/accounts.js.
-// Chỉ tài khoản giáo viên chủ nhiệm mới đi qua vòng duyệt.
+// Giáo viên chủ nhiệm và phòng tâm lý học đường đi qua vòng duyệt.
 export const STATUS = {
   PENDING: "pending",
   APPROVED: "approved",
@@ -17,6 +18,7 @@ export const STATUS = {
 export const ROLE_LABELS = {
   [ROLES.STUDENT]: "Học sinh",
   [ROLES.TEACHER]: "Giáo viên chủ nhiệm",
+  [ROLES.COUNSELOR]: "Phòng tâm lý học đường",
   [ROLES.ADMIN]: "Quản trị viên"
 };
 

@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin, isTeacher, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isTeacher, isCounselor, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -28,6 +28,10 @@ const ProtectedRoute = ({ children }) => {
   // trò chuyện với Larry (backend cũng chặn ở blockAdmin trong auth.js)
   if (isTeacher) {
     return <Navigate to="/teacher" replace />;
+  }
+
+  if (isCounselor) {
+    return <Navigate to="/counselor" replace />;
   }
 
   return children;

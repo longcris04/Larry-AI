@@ -1,17 +1,21 @@
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
+const { resolveDataFile, ensureDataDirectory } = require("./dataFiles");
 
-// Nơi lưu tài khoản. Dùng __dirname để chạy được dù gọi node từ thư mục nào.
-const ACCOUNTS_FILE = process.env.ACCOUNTS_FILE
-  ? path.resolve(process.env.ACCOUNTS_FILE)
-  : path.join(__dirname, "account.json");
+const ACCOUNTS_FILE = resolveDataFile("ACCOUNTS_FILE", "account.json");
 
-const ROLES = { USER: "user", ADMIN: "admin", TEACHER: "teacher" };
+const ROLES = {
+  USER: "user",
+  ADMIN: "admin",
+  TEACHER: "teacher",
+  COUNSELOR: "counselor"
+};
 
-// Hồ sơ dùng chung cho cả ba vai trò — mỗi bên chỉ điền phần của mình:
+// Hồ sơ dùng chung cho cả bốn vai trò — mỗi bên chỉ điền phần của mình:
 //   học sinh          fullName, grade, school, className (lớp đang học)
 //   giáo viên chủ nhiệm fullName, dateOfBirth, school, className (lớp chủ nhiệm)
+//   phòng tâm lý      fullName, school
 //
 // Cùng một shape vì đây chính là thứ dùng để GHÉP hai bên với nhau: giáo viên
 // thấy được học sinh nào là dựa trên school + className khớp nhau (xem
@@ -25,8 +29,8 @@ const EMPTY_PROFILE = {
   dateOfBirth: ""  // Ngày sinh, dạng yyyy-mm-dd (chủ yếu cho giáo viên)
 };
 
-// Trạng thái duyệt. CHỈ tài khoản giáo viên chủ nhiệm mới đi qua vòng duyệt —
-// học sinh đăng ký xong dùng được ngay, quản trị viên do developer tạo.
+// Trạng thái duyệt. Giáo viên chủ nhiệm và phòng tâm lý học đường đi qua vòng
+// duyệt; học sinh dùng được ngay, quản trị viên do developer tạo.
 const STATUS = { PENDING: "pending", APPROVED: "approved", REJECTED: "rejected" };
 
 // So email không phân biệt hoa/thường và khoảng trắng thừa. "An@a.com" với
@@ -109,6 +113,7 @@ function findUserByAnyRolePhone(users, phone, exceptId = null) {
 // Ghi ra file tạm rồi đổi tên — nếu server tắt giữa chừng thì account.json cũ
 // vẫn nguyên vẹn thay vì bị cắt cụt.
 function saveUsers(users) {
+  ensureDataDirectory(ACCOUNTS_FILE);
   const tempFile = `${ACCOUNTS_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(users, null, 2), "utf8");
   fs.renameSync(tempFile, ACCOUNTS_FILE);

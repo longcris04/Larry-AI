@@ -1177,6 +1177,29 @@
     font-size:13px;
 }
 
+.usage-sortbar{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:flex-end;
+
+    gap:10px;
+
+    margin:16px 0 4px;
+}
+
+.usage-sortbar .usage-field{
+
+    max-width:260px;
+}
+
+.usage-sortbar .admin-btn{
+
+    min-height:42px;
+}
+
 .usage-check{
 
     display:flex;
@@ -1270,6 +1293,47 @@
     text-overflow:ellipsis;
 
     white-space:nowrap;
+}
+
+.usage-disclosure .usage-student-meta{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:3px 14px;
+
+    margin-top:3px;
+
+    white-space:normal;
+}
+
+.usage-session-context{
+
+    margin-bottom:12px;
+
+    padding:12px 14px;
+
+    border-radius:10px;
+
+    background:var(--dash-surface);
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
+
+    line-height:1.55;
+}
+
+.usage-session-context p,
+.usage-session-context ul{
+
+    margin:0;
+}
+
+.usage-session-context > * + *{
+
+    margin-top:6px;
 }
 
 .usage-chart-list,

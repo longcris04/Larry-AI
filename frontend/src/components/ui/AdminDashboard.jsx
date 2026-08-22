@@ -83,7 +83,8 @@ const CONVERSATION_SERIES = [
 
 const ACCOUNT_SERIES = [
   { key: "newStudents", label: "Học sinh", color: "--dash-student" },
-  { key: "newTeachers", label: "Giáo viên chủ nhiệm", color: "--dash-teacher" }
+  { key: "newTeachers", label: "Giáo viên chủ nhiệm", color: "--dash-teacher" },
+  { key: "newCounselors", label: "Phòng tâm lý học đường", color: "--dash-high" }
 ];
 
 const CLASS_PAGE_SIZE = 10;
@@ -174,10 +175,11 @@ const DAILY_COLUMNS = [
   { header: "Có dấu hiệu", value: (d) => d.flagged || 0, width: 12 },
   { header: "Khẩn cấp", value: (d) => d.high || 0, width: 11 },
   { header: "Tin nhắn", value: (d) => d.messages || 0, width: 11 },
-  // Trên màn hình hai con số này gộp vào một ô ("3 HS · 1 GV") cho đỡ chật. Trong
-  // file thì tách đôi — gộp lại là một ô chữ, cộng hay lọc đều không được.
+  // Trên màn hình các con số gộp vào một ô cho đỡ chật. Trong file tách riêng để
+  // cộng và lọc được.
   { header: "Học sinh mới", value: (d) => d.newStudents || 0, width: 13 },
   { header: "Giáo viên mới", value: (d) => d.newTeachers || 0, width: 13 },
+  { header: "Phòng tâm lý mới", value: (d) => d.newCounselors || 0, width: 17 },
   { header: "Cảnh báo đã gửi", value: (d) => d.alerts || 0, width: 15 }
 ];
 
@@ -243,7 +245,12 @@ function compareSchools(sort) {
     String(a.school).localeCompare(String(b.school), "vi", { numeric: true });
 }
 
-export default function AdminDashboard({ onError, refreshKey = 0 }) {
+export default function AdminDashboard({
+  onError,
+  refreshKey = 0,
+  statsUrl = ADMIN_STATS_URL,
+  title = "📊 Bảng điều khiển"
+}) {
   const [range, setRange] = useState(() => {
     const today = todayKey();
     return { from: shiftDay(today, -29), to: today };
@@ -268,7 +275,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
   const load = useCallback(async () => {
     setBusy(true);
     try {
-      const res = await axios.get(ADMIN_STATS_URL, { params: range });
+      const res = await axios.get(statsUrl, { params: range });
       setStats(res.data);
       setClassPage(0);
       // Đổi khoảng ngày là đổi hẳn bộ số liệu — trang 4 của bảng cũ không còn nói
@@ -282,7 +289,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
     // refreshKey không được dùng trong thân hàm — nó có mặt ở đây chỉ để nút
     // "Tải lại" của trang cha buộc lần gọi này chạy lại.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, onError, refreshKey]);
+  }, [range, onError, refreshKey, statsUrl]);
 
   useEffect(() => {
     load();
@@ -386,7 +393,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
 
   return (
     <section className="admin-panel admin-dash">
-      <h2 className="admin-panel__title">📊 Bảng điều khiển</h2>
+      <h2 className="admin-panel__title">{title}</h2>
 
       <DateRangeBar range={range} onChange={setRange} busy={busy} />
 
@@ -412,6 +419,15 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
               accounts.newTeachersPending > 0
                 ? `${formatNumber(accounts.newTeachersApproved)} đã duyệt · ${formatNumber(accounts.newTeachersPending)} chờ duyệt`
                 : `${formatNumber(accounts.newTeachersApproved)} đã duyệt`
+            }
+          />
+          <StatTile
+            label="Phòng tâm lý học đường"
+            value={accounts.newCounselors || 0}
+            hint={
+              accounts.newCounselorsPending > 0
+                ? `${formatNumber(accounts.newCounselorsApproved)} đã duyệt · ${formatNumber(accounts.newCounselorsPending)} chờ duyệt`
+                : `${formatNumber(accounts.newCounselorsApproved)} đã duyệt`
             }
           />
           <StatTile
@@ -493,7 +509,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
                 </thead>
                 <tbody>
                   {dailyChart
-                    .filter((d) => d.sessions || d.newStudents || d.newTeachers)
+                    .filter((d) => d.sessions || d.newStudents || d.newTeachers || d.newCounselors)
                     .map((day) => (
                       <tr key={day.date}>
                         <td>{formatDay(day.date, true)}</td>
@@ -502,15 +518,15 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
                         <td>{day.high ? formatNumber(day.high) : "—"}</td>
                         <td>{formatNumber(day.messages)}</td>
                         <td>
-                          {day.newStudents + day.newTeachers === 0
+                          {day.newStudents + day.newTeachers + (day.newCounselors || 0) === 0
                             ? "—"
-                            : `${formatNumber(day.newStudents)} HS · ${formatNumber(day.newTeachers)} GV`}
+                            : `${formatNumber(day.newStudents)} HS · ${formatNumber(day.newTeachers)} GV · ${formatNumber(day.newCounselors)} TL`}
                         </td>
                       </tr>
                     ))}
                 </tbody>
               </table>
-              {dailyChart.every((d) => !d.sessions && !d.newStudents && !d.newTeachers) && (
+              {dailyChart.every((d) => !d.sessions && !d.newStudents && !d.newTeachers && !d.newCounselors) && (
                 <p className="dash-empty">Không có hoạt động nào trong khoảng này.</p>
               )}
             </div>
@@ -529,7 +545,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
             <h3 className="dash-card__title">Tài khoản mới theo ngày</h3>
             <p className="dash-card__sub">
               {formatNumber(accounts.newStudents)} học sinh và{" "}
-              {formatNumber(accounts.newTeachers)} giáo viên đăng ký trong khoảng này.
+              {formatNumber(accounts.newTeachers)} giáo viên, {formatNumber(accounts.newCounselors)} phòng tâm lý đăng ký trong khoảng này.
             </p>
             <Legend series={ACCOUNT_SERIES} />
             <DayColumnChart

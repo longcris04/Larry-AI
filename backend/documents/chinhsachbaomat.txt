@@ -1,29 +1,32 @@
 CHÍNH SÁCH BẢO MẬT LARRY AI
-Cập nhật lần cuối: 26/07/2026
+Cập nhật lần cuối: 23/08/2026
 
 Larry trò chuyện với học sinh về những chuyện rất riêng tư, nên chúng tôi cố
 gắng thu thập càng ít dữ liệu càng tốt. Văn bản này nói rõ: lấy gì, để làm gì,
 ai xem được, lưu bao lâu và em có quyền gì.
 
 
-1. NGUYÊN TẮC LỚN NHẤT: KHÔNG LƯU NGUYÊN VĂN CUỘC TRÒ CHUYỆN
+1. NỘI DUNG CUỘC TRÒ CHUYỆN ĐƯỢC LƯU
 
-Hệ thống KHÔNG lưu lại từng câu em đã nhắn với Larry.
+Với tài khoản học sinh đã đăng nhập, hệ thống lưu đầy đủ từng câu em hỏi và
+từng câu Larry trả lời. Sau mỗi phiên, một mô hình AI còn viết một BẢN TÓM TẮT
+2-4 câu và chấm các dấu hiệu cần chú ý.
 
-Sau mỗi phiên, một mô hình AI đọc lại cuộc trò chuyện và viết một BẢN TÓM TẮT
-2-4 câu. Chỉ bản tóm tắt đó được lưu, còn nội dung gốc thì không được ghi vào
-đâu cả. Thầy cô mở trang quản trị cũng chỉ thấy bản tóm tắt, không thấy nguyên
-văn lời em nói.
+Quản trị viên do nhà trường chỉ định, giáo viên chủ nhiệm và phòng tâm lý học
+đường đã được duyệt có thể mở nội dung từng phiên khi cần xác minh và hỗ trợ.
+Giáo viên chỉ xem lớp mình; phòng tâm lý chỉ xem đúng trường đã đăng ký. Nội dung
+không tự hiện toàn bộ: người xem phải chọn đúng tài khoản và bấm mở đúng phiên.
+Email cảnh báo không chứa transcript.
 
-Đây là lựa chọn có chủ đích, để nhật ký tâm sự của em không bị lưu lại trên máy
-chủ của nhà trường.
+Chế độ khách không lưu phiên hay nội dung cuộc trò chuyện.
 
 
 2. NHỮNG GÌ ĐƯỢC THU THẬP
 
-a) Khi em đăng ký tài khoản
-   - Họ tên, email, mật khẩu.
-   - Không bắt buộc: tên gọi, khối, lớp, trường.
+a) Khi đăng ký tài khoản
+   - Số điện thoại và mật khẩu. Học sinh có thể khai thêm tên, email, khối, lớp,
+     trường.
+   - Phòng tâm lý học đường bắt buộc khai họ tên, email, số điện thoại và trường.
    Mật khẩu KHÔNG được lưu nguyên dạng. Hệ thống chỉ lưu bản băm (bcrypt), nghĩa
    là kể cả người quản trị cũng không đọc lại được mật khẩu của em.
 
@@ -44,7 +47,7 @@ c) Phiếu cảm xúc đầu phiên chat
 d) Nội dung trò chuyện
    - Được gửi tới nhà cung cấp mô hình AI để sinh câu trả lời (xem mục 4).
    - Được AI đọc để viết bản tóm tắt và chấm mức độ nguy cơ.
-   - Không được lưu nguyên văn, như đã nói ở mục 1.
+   - Được lưu đầy đủ cho tài khoản học sinh đã đăng nhập, như đã nói ở mục 1.
 
 e) Kết quả đánh giá của mỗi phiên
    - Thời gian bắt đầu / kết thúc, số tin nhắn.
@@ -87,11 +90,16 @@ c) Scratch (scratch.mit.edu)
 d) Đơn vị cung cấp máy chủ nơi ứng dụng được cài đặt.
 
 
-5. AI XEM ĐƯỢC DỮ LIỆU CỦA EM
+5. NHỮNG NGƯỜI CÓ THỂ XEM DỮ LIỆU CỦA EM
 
 - Quản trị viên (thầy cô phụ trách do nhà trường chỉ định) xem được: danh sách
-  tài khoản, thông tin trường/lớp/khối, và với từng phiên trò chuyện là bản tóm
-  tắt, mức độ, nhóm dấu hiệu, dòng mô tả phiếu cảm xúc.
+  tài khoản, thông tin trường/lớp/khối, và với từng phiên trò chuyện là nội dung
+  hỏi đáp, bản tóm tắt, mức độ, nhóm dấu hiệu, dòng mô tả phiếu cảm xúc.
+- Giáo viên chủ nhiệm xem bản tóm tắt, dấu hiệu và nội dung hỏi đáp đầy đủ của
+  học sinh có trường và lớp khớp với lớp mình; không xem được lớp khác.
+- Phòng tâm lý học đường đã được quản trị viên duyệt xem dữ liệu và nội dung hỏi
+  đáp của học sinh thuộc đúng trường đã đăng ký. Giao diện chỉ đọc, không có
+  quyền sửa hoặc xoá.
 - Giáo viên chủ nhiệm nhận được email cảnh báo, khi quản trị viên bấm gửi.
   Email do AI soạn, quản trị viên đọc lại và sửa được trước khi gửi. Không có
   email nào tự động gửi đi.
@@ -117,7 +125,8 @@ trường sẽ thông báo cho học sinh và phụ huynh liên quan sớm nhấ
 
 7. LƯU BAO LÂU
 
-- Tài khoản và bản tóm tắt các phiên: lưu cho tới khi tài khoản bị xoá.
+- Tài khoản, nội dung hỏi đáp và bản tóm tắt các phiên: lưu cho tới khi tài khoản
+  bị xoá.
 - Khi tài khoản bị xoá, TOÀN BỘ phiên của tài khoản đó bị xoá cùng lúc và không
   khôi phục được.
 - Phiên của khách không đăng nhập: không được lưu ngay từ đầu.

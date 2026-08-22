@@ -65,6 +65,12 @@ function findStudentsOfTeacher(users, teacher) {
   return users.filter((u) => isStudent(u) && keyOfUser(u) === key);
 }
 
+/** Mọi phiên thuộc học sinh của đúng lớp giáo viên này. */
+function findSessionsOfTeacher(users, sessions, teacher) {
+  const studentIds = new Set(findStudentsOfTeacher(users, teacher).map((student) => student.id));
+  return sessions.filter((session) => studentIds.has(session.userId));
+}
+
 /** Mô tả lớp cho giao diện, ví dụ "6A1 · THCS Đoàn Thị Điểm". */
 function describeClass(user) {
   const school = user?.profile?.school || "";
@@ -79,6 +85,7 @@ module.exports = {
   classKey,
   findHomeroomTeacher,
   findStudentsOfTeacher,
+  findSessionsOfTeacher,
   describeClass,
   isActiveTeacher
 };

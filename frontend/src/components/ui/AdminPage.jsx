@@ -62,7 +62,7 @@ const USER_FACETS = [
     format: (code) => roleLabel(code),
     // Thứ tự cố định, không theo bảng chữ cái: xếp theo mã thì "admin" lên đầu và
     // nhóm đông nhất (học sinh) tụt xuống cuối.
-    values: [ROLES.STUDENT, ROLES.TEACHER, ROLES.ADMIN]
+    values: [ROLES.STUDENT, ROLES.TEACHER, ROLES.COUNSELOR, ROLES.ADMIN]
   },
   {
     id: "school",
@@ -167,11 +167,12 @@ const USERS_COLUMNS = [
   { header: "Số điện thoại", value: (r) => r.phone || "", width: 16 },
   { header: "Email", value: (r) => r.email || "", width: 28 },
   { header: "Vai trò", value: (r) => roleLabel(r.role), width: 20 },
-  // Chỉ giáo viên mới đi qua vòng duyệt — vai trò khác để trống thay vì ghi
+  // Các vai trò được đọc dữ liệu học sinh phải qua vòng duyệt.
   // "Đã duyệt" cho một thứ chưa từng phải duyệt.
   {
     header: "Trạng thái",
-    value: (r) => (r.role === ROLES.TEACHER ? statusLabel(r.status) : ""),
+    value: (r) =>
+      [ROLES.TEACHER, ROLES.COUNSELOR].includes(r.role) ? statusLabel(r.status) : "",
     width: 14
   },
   { header: "Trường", value: (r) => r.profile?.school || "", width: 30 },
@@ -393,14 +394,14 @@ export default function AdminPage() {
     }
   };
 
-  // Duyệt / từ chối một tài khoản giáo viên chủ nhiệm.
+  // Duyệt / từ chối tài khoản có quyền đọc dữ liệu học sinh.
   //
   // Tài khoản này đọc được tóm tắt hội thoại của cả một lớp, nên bước duyệt là
   // thật chứ không phải thủ tục — từ chối cũng là một kết quả hợp lệ.
   const setApproval = async (target, status) => {
     if (status === STATUS.REJECTED) {
       const ok = window.confirm(
-        `Từ chối tài khoản giáo viên "${target.username}"?\n` +
+        `Từ chối tài khoản ${roleLabel(target.role)} "${target.username}"?\n` +
           "Tài khoản sẽ không đăng nhập được cho tới khi bạn duyệt lại."
       );
       if (!ok) return;
@@ -434,8 +435,9 @@ export default function AdminPage() {
     }
   };
 
-  const pendingTeachers = users.filter(
-    (u) => u.role === ROLES.TEACHER && u.status === STATUS.PENDING
+  const pendingAccounts = users.filter(
+    (u) =>
+      [ROLES.TEACHER, ROLES.COUNSELOR].includes(u.role) && u.status === STATUS.PENDING
   );
 
   // --- Lọc và cắt trang -------------------------------------------------------
@@ -574,19 +576,19 @@ export default function AdminPage() {
       {/* Việc CẦN LÀM lên đầu trang. Giáo viên đã đăng ký mà chưa được duyệt thì
           không đăng nhập được — để lẫn trong bảng dài phía dưới là rất dễ quên,
           và thầy cô ngồi chờ mà không biết chờ ai. */}
-      {pendingTeachers.length > 0 && (
+      {pendingAccounts.length > 0 && (
         <section className="admin-panel admin-panel--pending">
           <h2 className="admin-panel__title">
-            ⏳ Chờ duyệt: {pendingTeachers.length} tài khoản giáo viên chủ nhiệm
+            ⏳ Chờ duyệt: {pendingAccounts.length} tài khoản
           </h2>
 
           <p className="admin-note">
-            Tài khoản giáo viên chủ nhiệm đọc được tóm tắt hội thoại của cả lớp. Hãy xác nhận
-            đúng người, đúng lớp trước khi duyệt. Học sinh đăng ký thì không cần bước này.
+            Các tài khoản này đọc được dữ liệu hội thoại của học sinh. Hãy xác nhận đúng người,
+            đúng trường và lớp trước khi duyệt. Học sinh không cần bước này.
           </p>
 
           <ul className="admin-pending">
-            {pendingTeachers.map((row) => (
+            {pendingAccounts.map((row) => (
               <li key={row.id} className="admin-pending__item">
                 <div className="admin-pending__info">
                   <strong>{row.profile?.fullName || row.username}</strong>
@@ -594,7 +596,9 @@ export default function AdminPage() {
                       gọi được để xác minh đúng người trước khi duyệt */}
                   <span className="admin-muted"> · {row.phone || row.email || "chưa có liên hệ"}</span>
                   <div className="admin-muted">
-                    Chủ nhiệm: {row.teacherInfo?.classLabel || "chưa khai lớp"}
+                    {row.role === ROLES.TEACHER
+                      ? `Chủ nhiệm: ${row.teacherInfo?.classLabel || "chưa khai lớp"}`
+                      : `Trường: ${row.profile?.school || "chưa khai trường"}`}
                     {row.profile?.dateOfBirth && ` · sinh ${row.profile.dateOfBirth}`}
                     {typeof row.teacherInfo?.studentCount === "number" &&
                       ` · ghép được ${row.teacherInfo.studentCount} học sinh`}
@@ -859,7 +863,8 @@ export default function AdminPage() {
 
                         {/* Chỉ giáo viên mới đi qua vòng duyệt — hiện trạng thái
                             ngay cạnh vai trò để biết tài khoản đã dùng được chưa */}
-                        {row.role === ROLES.TEACHER && row.status !== STATUS.APPROVED && (
+                        {[ROLES.TEACHER, ROLES.COUNSELOR].includes(row.role) &&
+                          row.status !== STATUS.APPROVED && (
                           <div className={`admin-status admin-status--${row.status}`}>
                             {statusLabel(row.status)}
                           </div>
@@ -915,7 +920,8 @@ export default function AdminPage() {
                           )}
 
                           {/* Duyệt lại được cả tài khoản đã từ chối trước đó */}
-                          {row.role === ROLES.TEACHER && row.status !== STATUS.APPROVED && (
+                          {[ROLES.TEACHER, ROLES.COUNSELOR].includes(row.role) &&
+                            row.status !== STATUS.APPROVED && (
                             <button
                               type="button"
                               className="admin-btn admin-btn--sm admin-btn--primary"
@@ -924,7 +930,8 @@ export default function AdminPage() {
                               Duyệt
                             </button>
                           )}
-                          {row.role === ROLES.TEACHER && row.status === STATUS.APPROVED && (
+                          {[ROLES.TEACHER, ROLES.COUNSELOR].includes(row.role) &&
+                            row.status === STATUS.APPROVED && (
                             <button
                               type="button"
                               className="admin-btn admin-btn--sm admin-btn--ghost"

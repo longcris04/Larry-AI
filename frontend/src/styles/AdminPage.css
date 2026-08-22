@@ -671,6 +671,13 @@
     color:#1F7A4C;
 }
 
+.admin-tag--counselor{
+
+    background:#F0E8FF;
+
+    color:#6B3FA0;
+}
+
 /* Trạng thái duyệt, nằm ngay dưới nhãn vai trò trong bảng tài khoản */
 .admin-status{
 

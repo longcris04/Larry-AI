@@ -28,6 +28,14 @@ const USERS = [
     role: "teacher",
     username: "giaovien",
     profile: { fullName: "Cô Lan", school: "THCS A", grade: "", className: "6A1" }
+  },
+  {
+    id: 4,
+    role: "user",
+    username: "cuong08",
+    email: "cuong@example.com",
+    phone: "0901000004",
+    profile: { fullName: "Lê Cường", school: "THCS C", grade: "8", className: "8C1" }
   }
 ];
 
@@ -43,7 +51,12 @@ function metadata() {
       flagged: true,
       riskLevel: "high",
       summary: "Học sinh đang buồn."
-    }
+    },
+    { id: "session-2", userId: 2, startedAt: `${today}T06:00:00Z`, messageCount: 2, flagged: true, riskLevel: "medium" },
+    { id: "session-3", userId: 2, startedAt: `${today}T07:00:00Z`, messageCount: 2, flagged: false, riskLevel: "none" },
+    { id: "session-4", userId: 2, startedAt: `${today}T08:00:00Z`, messageCount: 2, flagged: false, riskLevel: "none" },
+    { id: "session-5", userId: 4, startedAt: `${today}T09:00:00Z`, messageCount: 2, flagged: true, riskLevel: "high" },
+    { id: "session-6", userId: 4, startedAt: `${today}T10:00:00Z`, messageCount: 2, flagged: true, riskLevel: "high" }
   ];
 }
 
@@ -96,6 +109,41 @@ test("chia thành ba mục, lọc học sinh và chọn tất cả kết quả �
   expect(screen.getByText("Khẩn cấp")).toBeInTheDocument();
 });
 
+test("sắp xếp tài khoản theo ba loại số liệu và đổi được chiều", async () => {
+  await setup();
+  fireEvent.click(screen.getByRole("checkbox", { name: /Chọn tất cả 3 tài khoản/ }));
+
+  const chartNames = () =>
+    screen.getAllByLabelText(/^Tần suất của /).map((row) => row.getAttribute("aria-label"));
+
+  await waitFor(() =>
+    expect(chartNames()).toEqual([
+      "Tần suất của Trần Bình",
+      "Tần suất của Lê Cường",
+      "Tần suất của Nguyễn An"
+    ])
+  );
+
+  fireEvent.change(screen.getByLabelText("Sắp xếp tài khoản theo"), {
+    target: { value: "flagged" }
+  });
+  expect(chartNames()).toEqual([
+    "Tần suất của Lê Cường",
+    "Tần suất của Nguyễn An",
+    "Tần suất của Trần Bình"
+  ]);
+
+  fireEvent.click(screen.getByRole("button", { name: /Đang sắp xếp giảm dần/ }));
+  fireEvent.change(screen.getByLabelText("Sắp xếp tài khoản theo"), {
+    target: { value: "high" }
+  });
+  expect(chartNames()).toEqual([
+    "Tần suất của Trần Bình",
+    "Tần suất của Nguyễn An",
+    "Tần suất của Lê Cường"
+  ]);
+});
+
 test("nội dung chỉ tải sau khi mở đúng tài khoản và đúng phiên", async () => {
   await setup();
   fireEvent.click(screen.getByRole("checkbox", { name: /Nguyễn An/ }));
@@ -104,6 +152,10 @@ test("nội dung chỉ tải sau khi mở đúng tài khoản và đúng phiên"
   expect(screen.queryByText("Mình buồn vì bị bạn trêu.")).toBeNull();
 
   const account = screen.getByRole("button", { name: /Nguyễn An.*1 cuộc/ });
+  expect(within(account).getByText("SĐT: 0901000001")).toBeInTheDocument();
+  expect(within(account).getByText("Email: an@example.com")).toBeInTheDocument();
+  expect(within(account).getByText("Lớp: 6A1")).toBeInTheDocument();
+  expect(within(account).getByText("Trường: THCS A")).toBeInTheDocument();
   fireEvent.click(account);
   expect(axios.get).toHaveBeenCalledTimes(1);
 
@@ -112,9 +164,26 @@ test("nội dung chỉ tải sau khi mở đúng tài khoản và đúng phiên"
 
   expect(await screen.findByText("Mình buồn vì bị bạn trêu.")).toBeInTheDocument();
   expect(screen.getByText("Larry đang lắng nghe bạn.")).toBeInTheDocument();
+  expect(screen.getByText("Tóm tắt:").closest(".usage-session-context"))
+    .toHaveTextContent("Tóm tắt: Học sinh đang buồn.");
   expect(axios.get).toHaveBeenLastCalledWith(expect.stringMatching(/sessions\/session-1$/));
 
   const transcript = screen.getByText("Mình buồn vì bị bạn trêu.").closest(".usage-transcript");
   expect(within(transcript).getByText("Học sinh")).toBeInTheDocument();
   expect(within(transcript).getByText("Larry")).toBeInTheDocument();
+});
+
+test("scope giáo viên gọi endpoint giáo viên thay vì endpoint quản trị", async () => {
+  render(<UsageFrequency users={USERS} apiScope="teacher" />);
+
+  await waitFor(() =>
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/teacher\/sessions$/),
+      expect.any(Object)
+    )
+  );
+  expect(axios.get).not.toHaveBeenCalledWith(
+    expect.stringMatching(/\/api\/admin\/sessions$/),
+    expect.anything()
+  );
 });

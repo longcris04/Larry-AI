@@ -173,6 +173,29 @@ test("hàng tổng quan chỉ đếm tài khoản, lớp và trường trong kho
   assert.deepStrictEqual([classes.total, classes.schools], [5, 3]);
 });
 
+test("phòng tâm lý được đếm riêng, không bị tính nhầm thành học sinh", () => {
+  const users = [
+    student(1, { school: "THCS A", className: "6A1", created: "05" }),
+    {
+      id: 2,
+      role: "counselor",
+      username: "tham-van",
+      status: "pending",
+      createdAt: at("06"),
+      profile: { school: "THCS A", className: "", grade: "" }
+    }
+  ];
+
+  const { accounts, byGrade, daily } = buildStats(users, [], RANGE);
+
+  assert.deepStrictEqual(
+    [accounts.students, accounts.counselors, accounts.newCounselorsPending],
+    [1, 1, 1]
+  );
+  assert.strictEqual(byGrade.total.all, 1);
+  assert.strictEqual(daily.find((row) => row.date === "2026-08-06").newCounselors, 1);
+});
+
 test("theo từng ngày: đủ mọi ngày trong khoảng, kể cả ngày không ai đăng ký", () => {
   const users = [
     student(1, { grade: "6", school: "THCS A", created: "02" }),

@@ -78,8 +78,8 @@ function touchSession(reqUser, sessionId, history, { checkin = null, emotion = "
   if (!reqUser || reqUser.guest || !sessionId || typeof sessionId !== "string") {
     return null;
   }
-  // Quản trị viên không trò chuyện nên không bao giờ có phiên hội thoại
-  if (reqUser.role === ROLES.ADMIN) return null;
+  // Các vai trò chỉ đọc không trò chuyện nên không bao giờ có phiên hội thoại.
+  if ([ROLES.ADMIN, ROLES.TEACHER, ROLES.COUNSELOR].includes(reqUser.role)) return null;
 
   const id = sessionId.trim().slice(0, 80);
   if (!id) return null;

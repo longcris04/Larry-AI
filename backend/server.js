@@ -39,8 +39,13 @@ const {
   classKey,
   findHomeroomTeacher,
   findStudentsOfTeacher,
+  findSessionsOfTeacher,
   describeClass
 } = require("./teachers");
+const {
+  findUsersOfCounselorSchool,
+  findSessionsOfCounselorSchool
+} = require("./counselors");
 const { dayKey, resolveRange, buildStats } = require("./stats");
 const {
   JWT_SECRET,
@@ -48,7 +53,8 @@ const {
   GUEST_EXPIRES_IN,
   authenticateToken,
   requireAdmin,
-  requireTeacher
+  requireTeacher,
+  requireCounselor
 } = require("./auth");
 const {
   SETTINGS_FILE,
@@ -146,11 +152,9 @@ app.use(createChatRouter({ getUserById: (id) => users.find((u) => u.id === id) }
 // bên trên — xem routes/voice.js.
 app.use(createVoiceRouter());
 
-// Register endpoint — một cửa cho CẢ HAI loại tài khoản.
+// Register endpoint — một cửa cho các vai trò được tự đăng ký.
 //
-// `role` do nút chọn ở đầu form quyết định: "user" (học sinh) hoặc "teacher"
-// (giáo viên chủ nhiệm). Không nhận "admin" ở đây — quyền quản trị chỉ cấp được
-// bằng lệnh create-admin chạy trên máy chủ.
+// Không nhận "admin" ở đây — quyền quản trị chỉ cấp bằng lệnh create-admin.
 //
 // DANH TÍNH là SỐ ĐIỆN THOẠI, không phải email: học sinh cấp 2 phần lớn chưa có
 // email riêng. Email vẫn nhận nhưng để trống được — nó chỉ là kênh liên lạc thêm.
@@ -176,7 +180,13 @@ app.post("/api/register", async (req, res) => {
     }
 
     const isTeacher = role === ROLES.TEACHER;
-    const newRole = isTeacher ? ROLES.TEACHER : ROLES.USER;
+    const isCounselor = role === ROLES.COUNSELOR;
+    const needsApproval = isTeacher || isCounselor;
+    const newRole = isTeacher
+      ? ROLES.TEACHER
+      : isCounselor
+        ? ROLES.COUNSELOR
+        : ROLES.USER;
 
     // Số điện thoại là DUY NHẤT trên toàn hệ thống, xét cả ba vai trò. So sánh
     // theo bản đã chuẩn hoá nên "0912 345 678" và "+84912345678" là cùng một số,
@@ -198,6 +208,16 @@ app.post("/api/register", async (req, res) => {
     }
 
     const cleanProfile = sanitizeProfile(profile);
+
+    // Phòng tâm lý có quyền đọc dữ liệu nhạy cảm của cả trường, nên mọi thông tin
+    // nhận diện đều bắt buộc và được kiểm tra lại ở backend.
+    if (isCounselor) {
+      if (!cleanProfile.fullName || !cleanEmail || !cleanProfile.school) {
+        return res.status(400).json({
+          error: "Phòng tâm lý học đường cần khai đủ họ tên, email, số điện thoại và trường."
+        });
+      }
+    }
 
     // Tên hiển thị. Form đăng ký không còn ô "tên tài khoản" riêng: danh tính là
     // số điện thoại, còn thứ thầy cô đọc trong danh sách là TÊN THẬT em tự khai.
@@ -244,7 +264,7 @@ app.post("/api/register", async (req, res) => {
       role: newRole,
       // Học sinh dùng được ngay; giáo viên phải chờ quản trị viên duyệt vì tài
       // khoản đó đọc được hội thoại của cả lớp.
-      status: isTeacher ? STATUS.PENDING : STATUS.APPROVED,
+      status: needsApproval ? STATUS.PENDING : STATUS.APPROVED,
       profile: cleanProfile,
       createdAt: new Date().toISOString()
     };
@@ -265,15 +285,22 @@ app.post("/api/register", async (req, res) => {
         `🧑‍🏫 Giáo viên chủ nhiệm mới chờ duyệt: ${newUser.username} (${contactOf(newUser)}) — ${describeClass(newUser)}`
       );
     }
+    if (isCounselor) {
+      console.log(
+        `🧠 Phòng tâm lý học đường mới chờ duyệt: ${newUser.username} (${contactOf(newUser)}) — ${cleanProfile.school}`
+      );
+    }
 
     // KHÔNG cấp token/cookie ở đây: đăng ký xong quay lại màn hình đăng nhập để
     // tự đăng nhập, chứ không vào thẳng giao diện bên trong.
     res.status(201).json({
       user: toPublicUser(newUser),
-      pendingApproval: isTeacher,
+      pendingApproval: needsApproval,
       message: isTeacher
         ? "Đã gửi yêu cầu tạo tài khoản giáo viên chủ nhiệm. Quản trị viên sẽ duyệt trước khi bạn đăng nhập được."
-        : "Tạo tài khoản thành công. Hãy đăng nhập để bắt đầu."
+        : isCounselor
+          ? "Đã gửi yêu cầu tạo tài khoản phòng tâm lý học đường. Quản trị viên sẽ duyệt trước khi bạn đăng nhập được."
+          : "Tạo tài khoản thành công. Hãy đăng nhập để bắt đầu."
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -298,7 +325,13 @@ app.post("/api/login", async (req, res) => {
 
     // Vai trò do người dùng chọn ở dropdown "Bạn là", mặc định là học sinh
     const requestedRole =
-      role === ROLES.ADMIN ? ROLES.ADMIN : role === ROLES.TEACHER ? ROLES.TEACHER : ROLES.USER;
+      role === ROLES.ADMIN
+        ? ROLES.ADMIN
+        : role === ROLES.TEACHER
+          ? ROLES.TEACHER
+          : role === ROLES.COUNSELOR
+            ? ROLES.COUNSELOR
+            : ROLES.USER;
 
     const user = findUserByIdentifier(users, loginId, requestedRole);
     if (!user) {
@@ -317,7 +350,7 @@ app.post("/api/login", async (req, res) => {
     if (user.status === STATUS.PENDING) {
       return res.status(403).json({
         error:
-          "Tài khoản giáo viên chủ nhiệm của bạn đang chờ quản trị viên duyệt. " +
+          `Tài khoản ${user.role === ROLES.COUNSELOR ? "phòng tâm lý học đường" : "giáo viên chủ nhiệm"} của bạn đang chờ quản trị viên duyệt. ` +
           "Vui lòng đăng nhập lại sau khi được duyệt."
       });
     }
@@ -558,7 +591,7 @@ app.get("/api/admin/users", adminOnly, (req, res) => {
   res.json({ users: list });
 });
 
-// --- Duyệt tài khoản giáo viên chủ nhiệm --------------------------------------
+// --- Duyệt tài khoản có quyền xem dữ liệu học sinh -----------------------------
 //
 // Tài khoản này đọc được tóm tắt hội thoại của cả một lớp, nên không thể để ai
 // tự khai là giáo viên rồi vào xem ngay. Học sinh thì KHÔNG qua bước này.
@@ -568,9 +601,9 @@ app.post("/api/admin/users/:id/approval", adminOnly, (req, res) => {
   const user = users.find((u) => u.id === id);
   if (!user) return res.status(404).json({ error: "Không tìm thấy tài khoản." });
 
-  if (user.role !== ROLES.TEACHER) {
+  if (![ROLES.TEACHER, ROLES.COUNSELOR].includes(user.role)) {
     return res.status(400).json({
-      error: "Chỉ tài khoản giáo viên chủ nhiệm mới cần duyệt."
+      error: "Chỉ tài khoản giáo viên chủ nhiệm hoặc phòng tâm lý học đường mới cần duyệt."
     });
   }
 
@@ -581,7 +614,7 @@ app.post("/api/admin/users/:id/approval", adminOnly, (req, res) => {
 
   // Duyệt cho một lớp đã có giáo viên chủ nhiệm khác thì hai người cùng đọc được
   // một lớp. Chặn ở đây vì lúc đăng ký lớp đó có thể còn trống.
-  if (status === STATUS.APPROVED) {
+  if (status === STATUS.APPROVED && user.role === ROLES.TEACHER) {
     const key = classKey(user.profile?.school, user.profile?.className);
     const clash = users.find(
       (u) =>
@@ -603,7 +636,9 @@ app.post("/api/admin/users/:id/approval", adminOnly, (req, res) => {
   saveUsers(users);
 
   console.log(
-    `${status === STATUS.APPROVED ? "✅ Đã duyệt" : "⛔ Đã từ chối"} giáo viên ` +
+    `${status === STATUS.APPROVED ? "✅ Đã duyệt" : "⛔ Đã từ chối"} ${
+      user.role === ROLES.COUNSELOR ? "phòng tâm lý học đường" : "giáo viên"
+    } ` +
       `${user.username} (${contactOf(user)}) (bởi ${user.approvedBy}).`
   );
 
@@ -931,8 +966,8 @@ app.post("/api/admin/sessions/:sessionId/alert/send", adminOnly, async (req, res
 // quản trị viên, và việc thiếu hẳn route là cách bảo đảm chắc chắn hơn mọi kiểm
 // tra quyền viết trong thân hàm.
 //
-// Nội dung trả về chỉ là BẢN TÓM TẮT do model viết — sessions.json không lưu
-// nguyên văn lời học sinh, nên không có đường nào để giáo viên đọc lại hội thoại gốc.
+// Mọi endpoint bên dưới tự cắt theo trường + lớp của tài khoản giáo viên. Không
+// tin studentId/sessionId từ client vì đổi URL không được phép mở dữ liệu lớp khác.
 // ---------------------------------------------------------------------------
 
 const teacherOnly = [authenticateToken, requireTeacher((id) => users.find((u) => u.id === id))];
@@ -945,10 +980,7 @@ app.get("/api/teacher/students", teacherOnly, (req, res) => {
   const list = students.map((student) => {
     const studentSessions = sessions.filter((s) => s.userId === student.id);
     return {
-      id: student.id,
-      username: student.username,
-      email: student.email,
-      profile: student.profile,
+      ...toPublicUser(student),
       sessionCount: studentSessions.length,
       flaggedCount: studentSessions.filter((s) => s.flagged).length,
       highRiskCount: studentSessions.filter((s) => s.riskLevel === "high").length,
@@ -972,12 +1004,55 @@ app.get("/api/teacher/students", teacherOnly, (req, res) => {
 
   res.json({
     teacher: {
-      username: teacher.username,
-      email: teacher.email,
-      profile: teacher.profile,
+      ...toPublicUser(teacher),
       classLabel: describeClass(teacher)
     },
     students: list
+  });
+});
+
+// Tổng quan của đúng lớp giáo viên, dùng chung công thức với bảng quản trị nhưng
+// đầu vào chỉ gồm giáo viên hiện tại + học sinh và phiên của lớp đó.
+app.get("/api/teacher/stats", teacherOnly, (req, res) => {
+  try {
+    const range = resolveRange({ from: req.query.from, to: req.query.to });
+    const students = findStudentsOfTeacher(users, req.teacher);
+    const classSessions = findSessionsOfTeacher(users, sessions, req.teacher);
+    res.json(buildStats([req.teacher, ...students], classSessions, range));
+  } catch (err) {
+    console.error("Không dựng được số liệu lớp giáo viên:", err);
+    res.status(500).json({ error: "Không tính được số liệu thống kê của lớp." });
+  }
+});
+
+// Metadata phiên trong khoảng ngày của cả lớp. Transcript chỉ tải khi mở chi tiết.
+app.get("/api/teacher/sessions", teacherOnly, (req, res) => {
+  const range = resolveRange({ from: req.query.from, to: req.query.to });
+  const list = findSessionsOfTeacher(users, sessions, req.teacher)
+    .filter((session) => {
+      const day = dayKey(session.startedAt);
+      return day >= range.from && day <= range.to;
+    })
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
+
+  res.json({
+    range: { from: range.from, to: range.to, days: range.days.length },
+    sessions: list
+  });
+});
+
+// Nội dung một phiên của lớp mình. Tìm trong scope trước, không tìm toàn hệ thống.
+app.get("/api/teacher/sessions/:sessionId", teacherOnly, (req, res) => {
+  const id = String(req.params.sessionId || "").trim();
+  const session = findSessionsOfTeacher(users, sessions, req.teacher).find(
+    (item) => item.id === id
+  );
+  if (!session) return res.status(404).json({ error: "Không tìm thấy phiên hội thoại." });
+
+  res.json({
+    session: toSessionMetadata(session),
+    messages: Array.isArray(session.messages) ? session.messages : []
   });
 });
 
@@ -1028,6 +1103,82 @@ app.get("/api/teacher/flagged", teacherOnly, (req, res) => {
     );
 
   res.json({ sessions: list });
+});
+
+// ---------------------------------------------------------------------------
+// PHÒNG TÂM LÝ HỌC ĐƯỜNG — CHỈ ĐỌC, GIỚI HẠN THEO TRƯỜNG
+// ---------------------------------------------------------------------------
+
+const counselorOnly = [
+  authenticateToken,
+  requireCounselor((id) => users.find((u) => u.id === id))
+];
+
+app.get("/api/counselor/users", counselorOnly, (req, res) => {
+  const scopedUsers = findUsersOfCounselorSchool(users, req.counselor);
+  const list = scopedUsers.map((user) => {
+    const userSessions = sessions.filter((session) => session.userId === user.id);
+    return {
+      ...toPublicUser(user),
+      sessionCount: userSessions.length,
+      flaggedCount: userSessions.filter((session) => session.flagged).length,
+      highRiskCount: userSessions.filter((session) => session.riskLevel === "high").length,
+      lastSessionAt: userSessions.reduce(
+        (latest, session) => (session.endedAt > latest ? session.endedAt : latest),
+        ""
+      )
+    };
+  });
+
+  res.json({
+    counselor: toPublicUser(req.counselor),
+    users: list
+  });
+});
+
+app.get("/api/counselor/stats", counselorOnly, (req, res) => {
+  try {
+    const range = resolveRange({ from: req.query.from, to: req.query.to });
+    const scopedUsers = findUsersOfCounselorSchool(users, req.counselor);
+    const scopedSessions = findSessionsOfCounselorSchool(
+      users,
+      sessions,
+      req.counselor
+    );
+    res.json(buildStats(scopedUsers, scopedSessions, range));
+  } catch (err) {
+    console.error("Không dựng được số liệu phòng tâm lý học đường:", err);
+    res.status(500).json({ error: "Không tính được số liệu thống kê của trường." });
+  }
+});
+
+app.get("/api/counselor/sessions", counselorOnly, (req, res) => {
+  const range = resolveRange({ from: req.query.from, to: req.query.to });
+  const list = findSessionsOfCounselorSchool(users, sessions, req.counselor)
+    .filter((session) => {
+      const day = dayKey(session.startedAt);
+      return day >= range.from && day <= range.to;
+    })
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
+
+  res.json({
+    range: { from: range.from, to: range.to, days: range.days.length },
+    sessions: list
+  });
+});
+
+app.get("/api/counselor/sessions/:sessionId", counselorOnly, (req, res) => {
+  const id = String(req.params.sessionId || "").trim();
+  const session = findSessionsOfCounselorSchool(users, sessions, req.counselor).find(
+    (item) => item.id === id
+  );
+  if (!session) return res.status(404).json({ error: "Không tìm thấy phiên hội thoại." });
+
+  res.json({
+    session: toSessionMetadata(session),
+    messages: Array.isArray(session.messages) ? session.messages : []
+  });
 });
 
 // --- Kho tri thức, bản công khai ----------------------------------------------

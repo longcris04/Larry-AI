@@ -34,7 +34,7 @@ export default function Login() {
 
   const [password, setPassword] = useState("");
 
-  // "Bạn là" — học sinh, giáo viên chủ nhiệm, hay quản trị viên.
+  // "Bạn là" — chọn đúng vai trò của tài khoản.
   // Cùng một email không dùng được cho hai vai trò (backend chặn từ lúc đăng ký),
   // nhưng vẫn phải chọn đúng ở đây vì tài khoản cũ có thể còn trùng email.
   const [role, setRole] = useState(ROLES.STUDENT);
@@ -179,6 +179,7 @@ export default function Login() {
                 >
                   <option value={ROLES.STUDENT}>Người dùng</option>
                   <option value={ROLES.TEACHER}>Giáo viên chủ nhiệm</option>
+                  <option value={ROLES.COUNSELOR}>Phòng tâm lý học đường</option>
                   <option value={ROLES.ADMIN}>Quản trị viên</option>
                 </select>
               </div>

@@ -13,6 +13,8 @@ import AdminRoute from "./components/ui/AdminRoute";
 import AdminPage from "./components/ui/AdminPage";
 import TeacherRoute from "./components/ui/TeacherRoute";
 import TeacherPage from "./components/ui/TeacherPage";
+import CounselorRoute from "./components/ui/CounselorRoute";
+import CounselorPage from "./components/ui/CounselorPage";
 import FeedbackLinks from "./components/ui/FeedbackLinks";
 import Camera from "./components/ui/Camera";
 import ChatBox from "./components/ui/ChatBox";
@@ -139,10 +141,16 @@ const ProtectedApp = () => {
 };
 
 const AppContent = () => {
-  const { isAuthenticated, isAdmin, isTeacher, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isTeacher, isCounselor, loading } = useAuth();
 
   // Mỗi vai trò về đúng khu vực của mình. Học sinh mới là người vào khung chat.
-  const homePath = isAdmin ? "/admin" : isTeacher ? "/teacher" : "/";
+  const homePath = isAdmin
+    ? "/admin"
+    : isTeacher
+      ? "/teacher"
+      : isCounselor
+        ? "/counselor"
+        : "/";
 
   if (loading) {
     return (
@@ -204,6 +212,14 @@ const AppContent = () => {
           <TeacherRoute>
             <TeacherPage />
           </TeacherRoute>
+        }
+      />
+      <Route
+        path="/counselor"
+        element={
+          <CounselorRoute>
+            <CounselorPage />
+          </CounselorRoute>
         }
       />
       <Route

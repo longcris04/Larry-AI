@@ -19,6 +19,8 @@ const Register = () => {
   // dưới lẫn việc tài khoản có phải chờ duyệt hay không.
   const [accountRole, setAccountRole] = useState(ROLES.STUDENT);
   const isTeacher = accountRole === ROLES.TEACHER;
+  const isCounselor = accountRole === ROLES.COUNSELOR;
+  const needsApproval = isTeacher || isCounselor;
 
   // Số điện thoại là DANH TÍNH của tài khoản: bắt buộc, mỗi số một tài khoản.
   // Email chỉ là kênh liên lạc thêm nên để trống được — học sinh phần lớn chưa
@@ -83,6 +85,11 @@ const Register = () => {
       return;
     }
 
+    if (isCounselor && (!fullName.trim() || !email.trim() || !school.trim())) {
+      setError("Vui lòng khai đủ họ tên, email, số điện thoại và trường.");
+      return;
+    }
+
     setLoading(true);
 
     // Gửi lên bản đã chuẩn hoá để thứ hiện ở màn hình đăng nhập ngay sau đó
@@ -97,7 +104,7 @@ const Register = () => {
       {
         fullName,
         // Khối chỉ có ý nghĩa với học sinh
-        grade: isTeacher ? "" : grade,
+        grade: needsApproval ? "" : grade,
         school,
         className,
         dateOfBirth
@@ -151,6 +158,12 @@ const Register = () => {
               <br />
               để theo dõi tình hình lớp mình 🍎
             </>
+          ) : isCounselor ? (
+            <>
+              Tạo tài khoản phòng tâm lý học đường
+              <br />
+              để theo dõi tình hình trong trường 🧠
+            </>
           ) : (
             <>
               Tạo tài khoản mới để bắt đầu
@@ -166,8 +179,8 @@ const Register = () => {
           <button
             type="button"
             role="radio"
-            aria-checked={!isTeacher}
-            className={`role-switch__btn ${!isTeacher ? "role-switch__btn--active" : ""}`}
+            aria-checked={accountRole === ROLES.STUDENT}
+            className={`role-switch__btn ${accountRole === ROLES.STUDENT ? "role-switch__btn--active" : ""}`}
             onClick={() => setAccountRole(ROLES.STUDENT)}
           >
             <span className="role-switch__icon" aria-hidden="true">🎒</span>
@@ -183,11 +196,21 @@ const Register = () => {
             <span className="role-switch__icon" aria-hidden="true">🍎</span>
             Giáo viên chủ nhiệm
           </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={isCounselor}
+            className={`role-switch__btn ${isCounselor ? "role-switch__btn--active" : ""}`}
+            onClick={() => setAccountRole(ROLES.COUNSELOR)}
+          >
+            <span className="role-switch__icon" aria-hidden="true">🧠</span>
+            Phòng tâm lý học đường
+          </button>
         </div>
 
-        {isTeacher && (
+        {needsApproval && (
           <p className="role-switch__note">
-            ℹ️ Tài khoản giáo viên chủ nhiệm cần quản trị viên duyệt trước khi đăng nhập được.
+            ℹ️ Tài khoản này cần quản trị viên duyệt trước khi đăng nhập được.
           </p>
         )}
 
@@ -223,16 +246,18 @@ const Register = () => {
 
           <div className="form-group">
             <label htmlFor="email">
-              Email <span className="auth-optional-tag">không bắt buộc</span>
+              Email{" "}
+              {!isCounselor && <span className="auth-optional-tag">không bắt buộc</span>}
             </label>
 
             <AuthInput
               id="email"
               type="email"
               leftIcon="✉️"
-              placeholder="Nhập email của bạn (nếu có)"
+              placeholder={isCounselor ? "Nhập email của phòng tâm lý" : "Nhập email của bạn (nếu có)"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required={isCounselor}
             />
 
             {/* Với thầy cô thì đây không hẳn là tuỳ chọn: email cảnh báo về học
@@ -296,6 +321,11 @@ const Register = () => {
                   Thông tin giáo viên chủ nhiệm{" "}
                   <span className="auth-optional-tag auth-optional-tag--required">bắt buộc</span>
                 </>
+              ) : isCounselor ? (
+                <>
+                  Thông tin phòng tâm lý học đường{" "}
+                  <span className="auth-optional-tag auth-optional-tag--required">bắt buộc</span>
+                </>
               ) : (
                 <>
                   Kể thêm cho Larry nghe về bạn nhé{" "}
@@ -305,14 +335,15 @@ const Register = () => {
             </p>
 
             <div className="form-group">
-              <label>{isTeacher ? "Họ và tên đầy đủ" : "Tên"}</label>
+              <label>{needsApproval ? "Họ và tên đầy đủ" : "Tên"}</label>
 
               <AuthInput
                 id="fullName"
                 leftIcon="🙂"
-                placeholder={isTeacher ? "Ví dụ: Trần Thị Lan" : "Larry gọi bạn là gì?"}
+                placeholder={needsApproval ? "Ví dụ: Trần Thị Lan" : "Larry gọi bạn là gì?"}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                required={isCounselor}
               />
             </div>
 
@@ -340,7 +371,7 @@ const Register = () => {
                   required
                 />
               </>
-            ) : (
+            ) : isCounselor ? null : (
               <div className="form-row">
                 <AuthSelect
                   id="grade"
@@ -368,7 +399,7 @@ const Register = () => {
 
             <AuthSelect
               id="school"
-              label={isTeacher ? "Bạn dạy ở trường" : "Trường học của bạn là"}
+              label={isTeacher ? "Bạn dạy ở trường" : isCounselor ? "Trường phụ trách" : "Trường học của bạn là"}
               leftIcon="🏫"
               placeholder="Chọn trường"
               options={[
@@ -377,7 +408,7 @@ const Register = () => {
               ]}
               value={schoolChoice}
               onChange={(e) => setSchoolChoice(e.target.value)}
-              required={isTeacher}
+              required={needsApproval}
             />
 
             {/* Chỉ hiện ô tự nhập khi chọn "Trường khác" */}
@@ -389,7 +420,7 @@ const Register = () => {
                 placeholder="Ví dụ: THCS Nguyễn Du"
                 value={schoolOther}
                 onChange={(e) => setSchoolOther(e.target.value)}
-                required={isTeacher}
+                required={needsApproval}
               />
             )}
 
@@ -397,6 +428,11 @@ const Register = () => {
               <p className="auth-hint">
                 Larry ghép thầy cô với học sinh dựa trên <strong>trường</strong> và{" "}
                 <strong>lớp</strong> — hãy ghi giống hệt cách học sinh khai lớp của các em.
+              </p>
+            )}
+            {isCounselor && (
+              <p className="auth-hint">
+                Sau khi được duyệt, tài khoản chỉ xem dữ liệu của đúng trường đã khai.
               </p>
             )}
           </div>
@@ -443,7 +479,7 @@ const Register = () => {
           >
             {loading
               ? "Đang đăng ký..."
-              : isTeacher
+              : needsApproval
                 ? "Gửi yêu cầu tạo tài khoản"
                 : "Đăng ký"}
           </GradientButton>

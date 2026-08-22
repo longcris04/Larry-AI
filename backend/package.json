@@ -15,8 +15,10 @@
     "test:ratelimit": "node --test rateLimit.test.js",
     "test:settings": "node --test settings.test.js",
     "test:sessions": "node --test sessions.test.js",
+    "test:datafiles": "node --test dataFiles.test.js",
+    "test:teachers": "node --test teachers.test.js",
     "test:stats": "node --test stats.test.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test *.test.js"
   },
   "keywords": [],
   "author": "",
