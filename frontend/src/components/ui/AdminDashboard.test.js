@@ -44,9 +44,12 @@ const STATS = {
   range: { from: "2026-07-22", to: "2026-08-20", days: 30 },
   accounts: {
     students: 116, teachers: 3, teachersApproved: 2, teachersPending: 1,
-    newStudents: 10, newTeachers: 1
+    newStudents: 10, newTeachers: 1, newTeachersApproved: 1, newTeachersPending: 0
   },
-  classes: { total: 4, schools: 2, withTeacher: 2, withoutTeacher: 2 },
+  classes: {
+    total: 4, schools: 2, withTeacher: 2, withoutTeacher: 2,
+    inRange: 3, schoolsInRange: 1, withTeacherInRange: 2
+  },
   conversations: {
     sessions: 87, messages: 900, flagged: 8, high: 1, medium: 3, low: 4,
     alerts: 2, activeStudents: 28
@@ -101,6 +104,23 @@ test("chưa lọc thì hiện đủ bốn lớp", async () => {
   await setup();
   expect(shownClasses()).toEqual(["6A1", "6A2", "7B1", "6A1"]);
   expect(screen.getByText("4 lớp")).toBeInTheDocument();
+});
+
+test("hàng tổng quan dùng số liệu trong khoảng thay vì số cộng dồn", async () => {
+  await setup();
+
+  const tileValue = (label) =>
+    screen
+      .getAllByText(label)
+      .find((element) => element.classList.contains("dash-tile__label"))
+      .closest(".dash-tile")
+      .querySelector(".dash-tile__value");
+
+  expect(tileValue("Tài khoản học sinh")).toHaveTextContent("10");
+  expect(tileValue("Giáo viên chủ nhiệm")).toHaveTextContent("1");
+  expect(tileValue("Lớp đã tạo tài khoản")).toHaveTextContent("3");
+  expect(screen.getByText("1 trường · 2 lớp đã có GVCN")).toBeInTheDocument();
+  expect(screen.getByText(/Các con số tổng quan và mọi biểu đồ/)).toBeInTheDocument();
 });
 
 test("bảng lớp hiện 10 dòng mỗi trang và dùng hàng phân trang chung", async () => {

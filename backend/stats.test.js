@@ -137,6 +137,42 @@ test("khoảng ngày không xoá đi những em đã có từ trước", () => {
   assert.strictEqual(byGrade.bySchool[0].created, 1);
 });
 
+test("hàng tổng quan chỉ đếm tài khoản, lớp và trường trong khoảng ngày", () => {
+  const teacher = (id, school, className, created, status = "approved") => ({
+    id,
+    role: "teacher",
+    username: `gv${id}`,
+    status,
+    createdAt: at(created),
+    profile: { school, className, grade: "" }
+  });
+  const users = [
+    student(1, { school: "THCS A", className: "6A1", created: "02" }),
+    student(2, { school: "THCS A", className: "6A2", created: "05" }),
+    teacher(3, "THCS A", "6A2", "02"),
+    teacher(4, "THCS B", "7B1", "06"),
+    teacher(5, "THCS B", "7B2", "07", "pending"),
+    student(6, { school: "THCS C", className: "8C1", created: "02" })
+  ];
+  const range = resolveRange({ from: "2026-08-04", to: "2026-08-10" });
+
+  const { accounts, classes } = buildStats(users, [], range);
+
+  assert.deepStrictEqual(
+    [accounts.newStudents, accounts.newTeachers],
+    [1, 2]
+  );
+  assert.deepStrictEqual(
+    [accounts.newTeachersApproved, accounts.newTeachersPending],
+    [1, 1]
+  );
+  assert.deepStrictEqual(
+    [classes.inRange, classes.schoolsInRange, classes.withTeacherInRange],
+    [3, 2, 2]
+  );
+  assert.deepStrictEqual([classes.total, classes.schools], [5, 3]);
+});
+
 test("theo từng ngày: đủ mọi ngày trong khoảng, kể cả ngày không ai đăng ký", () => {
   const users = [
     student(1, { grade: "6", school: "THCS A", created: "02" }),

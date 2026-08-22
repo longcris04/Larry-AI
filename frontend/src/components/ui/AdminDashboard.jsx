@@ -466,9 +466,8 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
 
       <p className="admin-note">
         Đang xem <strong>{formatDay(stats.range.from, true)}</strong> →{" "}
-        <strong>{formatDay(stats.range.to, true)}</strong> ({stats.range.days} ngày). Số hội
-        thoại, số tài khoản mới và mọi biểu đồ bên dưới đều tính trong khoảng này; riêng tổng
-        số tài khoản, số lớp và số trường là con số cộng dồn từ trước tới nay.
+        <strong>{formatDay(stats.range.to, true)}</strong> ({stats.range.days} ngày). Các con số
+        tổng quan và mọi biểu đồ bên dưới đều tính trong khoảng này.
       </p>
 
       {/* Nạp lại thì GIỮ nguyên khung cũ và làm mờ đi, không dựng lại từ đầu:
@@ -477,22 +476,22 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
         <div className="dash-tiles">
           <StatTile
             label="Tài khoản học sinh"
-            value={accounts.students}
-            hint={`+${formatNumber(accounts.newStudents)} trong khoảng này`}
+            value={accounts.newStudents}
+            hint="tạo trong khoảng này"
           />
           <StatTile
             label="Giáo viên chủ nhiệm"
-            value={accounts.teachers}
+            value={accounts.newTeachers}
             hint={
-              accounts.teachersPending > 0
-                ? `${formatNumber(accounts.teachersApproved)} đã duyệt · ${formatNumber(accounts.teachersPending)} chờ duyệt`
-                : `${formatNumber(accounts.teachersApproved)} đã duyệt`
+              accounts.newTeachersPending > 0
+                ? `${formatNumber(accounts.newTeachersApproved)} đã duyệt · ${formatNumber(accounts.newTeachersPending)} chờ duyệt`
+                : `${formatNumber(accounts.newTeachersApproved)} đã duyệt`
             }
           />
           <StatTile
             label="Lớp đã tạo tài khoản"
-            value={classes.total}
-            hint={`${formatNumber(classes.schools)} trường · ${formatNumber(classes.withTeacher)} lớp đã có GVCN`}
+            value={classes.inRange}
+            hint={`${formatNumber(classes.schoolsInRange)} trường · ${formatNumber(classes.withTeacherInRange)} lớp đã có GVCN`}
           />
           <StatTile
             label="Hội thoại"
@@ -521,11 +520,8 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
           />
         </div>
 
-        {/* Hai thẻ chia nhóm đứng NGAY SAU hàng ô số: chúng bóc tách đúng hai con
-            số vừa hiện ở trên ("Tài khoản học sinh" và "Hội thoại"), nên đọc liền
-            mạch từ tổng xuống chi tiết. Đẩy chúng xuống cuối trang thì quản trị
-            viên phải cuộn qua bốn biểu đồ mới thấy phần trả lời cho con số mình
-            vừa nhìn. */}
+        {/* Hai thẻ chia nhóm đứng NGAY SAU hàng ô số để đọc tiếp từ tổng quan xuống
+            chi tiết. Phần theo khối giữ cả số cộng dồn và số mới trong khoảng. */}
         <AdminBreakdowns stats={stats} />
 
         {/* --- Hội thoại theo ngày --- */}

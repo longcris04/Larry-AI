@@ -438,6 +438,10 @@ function buildStats(users, sessions, range) {
 
   const classes = new Map();
   const schools = new Map();
+  // Lớp/trường có ít nhất một tài khoản được tạo trong khoảng đang xem. Giữ
+  // riêng khỏi hai Map cộng dồn vì các bảng chi tiết vẫn cần hiện đủ dữ liệu cũ.
+  const classKeysInRange = new Set();
+  const schoolKeysInRange = new Set();
 
   function classRow(key, user) {
     let row = classes.get(key);
@@ -488,6 +492,8 @@ function buildStats(users, sessions, range) {
     admins: 0,
     newStudents: 0,
     newTeachers: 0,
+    newTeachersApproved: 0,
+    newTeachersPending: 0,
     // Tài khoản chưa khai đủ trường + lớp: không ghép được với giáo viên nào,
     // và mọi hội thoại của em không thuộc lớp nào trên bảng dưới. Đây là con số
     // quản trị viên cần thấy để đi nhắc, không phải thứ nên giấu đi.
@@ -496,6 +502,7 @@ function buildStats(users, sessions, range) {
 
   for (const user of users) {
     const created = dayKey(user.createdAt);
+    const createdInRange = inRange(created);
     const key = keyOfUser(user);
     const sKey = schoolKey(user.profile?.school);
 
@@ -509,8 +516,10 @@ function buildStats(users, sessions, range) {
       if (user.status === STATUS.APPROVED) accounts.teachersApproved += 1;
       if (user.status === STATUS.PENDING) accounts.teachersPending += 1;
 
-      if (inRange(created)) {
+      if (createdInRange) {
         accounts.newTeachers += 1;
+        if (user.status === STATUS.APPROVED) accounts.newTeachersApproved += 1;
+        if (user.status === STATUS.PENDING) accounts.newTeachersPending += 1;
         daily.get(created).newTeachers += 1;
       }
 
@@ -518,6 +527,7 @@ function buildStats(users, sessions, range) {
       // "GVCN" của lớp là nói sai với người đọc bảng.
       if (key && user.status !== STATUS.REJECTED) {
         const row = classRow(key, user);
+        if (createdInRange) classKeysInRange.add(key);
         // Ưu tiên người ĐÃ DUYỆT. Một lớp về nguyên tắc chỉ có một giáo viên
         // được duyệt (server.js chặn lúc duyệt), nhưng hồ sơ chờ duyệt thì có
         // thể có thêm, và không được phép đè lên người đang thật sự phụ trách.
@@ -526,19 +536,23 @@ function buildStats(users, sessions, range) {
           row.teacherStatus = user.status;
         }
       }
-      if (sKey) schoolRow(sKey, user).teachers += 1;
+      if (sKey) {
+        schoolRow(sKey, user).teachers += 1;
+        if (createdInRange) schoolKeysInRange.add(sKey);
+      }
       continue;
     }
 
     // Còn lại là học sinh
     accounts.students += 1;
-    if (inRange(created)) {
+    if (createdInRange) {
       accounts.newStudents += 1;
       daily.get(created).newStudents += 1;
     }
 
     if (key) {
       const row = classRow(key, user);
+      if (createdInRange) classKeysInRange.add(key);
       row.students += 1;
       if (!row.grade) row.grade = normalizeLabel(user.profile?.grade);
     } else {
@@ -547,6 +561,7 @@ function buildStats(users, sessions, range) {
 
     if (sKey) {
       const row = schoolRow(sKey, user);
+      if (createdInRange) schoolKeysInRange.add(sKey);
       row.students += 1;
       if (key) row.classKeys.add(key);
     }
@@ -661,6 +676,11 @@ function buildStats(users, sessions, range) {
     classes: {
       total: classes.size,
       schools: schools.size,
+      inRange: classKeysInRange.size,
+      schoolsInRange: schoolKeysInRange.size,
+      withTeacherInRange: byClass.filter(
+        (row) => classKeysInRange.has(row.key) && row.teacherStatus === STATUS.APPROVED
+      ).length,
       // Lớp có giáo viên chủ nhiệm ĐÃ DUYỆT — chỉ những lớp này mới thật sự có
       // người đọc cảnh báo. Lớp còn lại là khoảng trống cần lấp.
       withTeacher: byClass.filter((row) => row.teacherStatus === STATUS.APPROVED).length,
