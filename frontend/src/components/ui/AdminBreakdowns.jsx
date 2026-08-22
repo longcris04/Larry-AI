@@ -372,7 +372,7 @@ export function UsageBreakdown({ usage }) {
     SCHOOL_COLUMN,
     ...seriesColumns(USAGE_SERIES),
     { header: "Học sinh có dùng", value: (row) => row.users || 0, showZero: true, width: 17 },
-    { header: "Chưa dùng lần nào", value: (row) => row.none || 0, width: 18 },
+    { header: "Không dùng trong khoảng thời gian này", value: (row) => row.none || 0, width: 30 },
     { header: "Tổng số lượt", value: (row) => row.sessions || 0, width: 14 }
   ];
 
@@ -406,7 +406,7 @@ export function UsageBreakdown({ usage }) {
               hint={`${formatNumber(total.sessions)} lượt trong khoảng này`}
             />
             <StatTile
-              label="Chưa dùng lần nào"
+              label="Không dùng trong khoảng thời gian này"
               value={total.none}
               hint={
                 total.students

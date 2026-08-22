@@ -6,7 +6,13 @@
 //   - tầng này    → đánh giá NGUỘI, để gắn cờ cho giáo viên và soạn email cảnh báo
 // Cố ý không gộp: lỗi ở tầng định tuyến không được phép kéo theo mất cảnh báo.
 
-const { loadSessions, saveSessions, createSession } = require("./sessions");
+const {
+  loadSessions,
+  saveSessions,
+  createSession,
+  normalizeMessages,
+  countMessages
+} = require("./sessions");
 const { summarizeSession } = require("./summarizer");
 const { maxRiskLevel, mergeCategories, analyzeCheckin, describeCheckin } = require("./risk");
 const { ROLES } = require("./accounts");
@@ -86,7 +92,8 @@ function touchSession(reqUser, sessionId, history, { checkin = null, emotion = "
   }
 
   session.endedAt = new Date().toISOString();
-  session.messageCount = history.length;
+  session.messages = normalizeMessages(history);
+  session.messageCount = countMessages(history);
   if (emotion) session.cameraEmotion = emotion;
 
   // Phiếu cảm xúc là căn cứ độc lập với hội thoại: học sinh điền phiếu xong có
@@ -107,12 +114,14 @@ function touchSession(reqUser, sessionId, history, { checkin = null, emotion = "
 async function refreshSummary(session, history, { force = false, checkin = null } = {}) {
   if (!session) return;
 
+  history = normalizeMessages(history);
+
   const floor = analyzeCheckin(checkin);
 
   // Phiếu có dấu hiệu tiêu cực thì tóm tắt ngay từ lượt đầu — hội thoại kiểu này
   // thường rất ngắn, đợi đủ SUMMARY_EVERY_N_MESSAGES tin nhắn thì không bao giờ tới.
   const urgent = floor.level !== "none" && session.summarizedAtCount === 0;
-  const newMessages = history.length - session.summarizedAtCount;
+  const newMessages = session.messageCount - session.summarizedAtCount;
   if (!force && !urgent && newMessages < SUMMARY_EVERY_N_MESSAGES) return;
   if (history.length === 0 && !checkin) return;
 
@@ -128,7 +137,7 @@ async function refreshSummary(session, history, { force = false, checkin = null 
     session.bullyingDetected = result.bullying;
     session.concerns = result.concerns;
     session.summaryError = "";
-    session.summarizedAtCount = history.length;
+    session.summarizedAtCount = session.messageCount;
 
     // Model không được phép hạ cờ xuống dưới mức phiếu đã tự nói lên
     applyRiskFloor(session, floor);

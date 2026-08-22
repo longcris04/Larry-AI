@@ -622,6 +622,28 @@
     margin-bottom:2px;
 }
 
+/* Ba số của tab tần suất là ba phép đo chồng lấn (khẩn cấp cũng đã nằm trong số
+   bị gắn cờ), nên phải đứng cạnh nhau; chồng cột sẽ cộng trùng và làm sai trục Y. */
+.dash-col__stack--grouped{
+
+    flex-direction:row;
+
+    align-items:flex-end;
+
+    gap:2px;
+
+    max-width:38px;
+}
+
+.dash-col__stack--grouped .dash-col__seg{
+
+    flex:1 1 0;
+
+    width:auto;
+
+    margin:0;
+}
+
 /* Ngày không có gì: một vạch mờ sát đáy. Bỏ trắng hẳn thì không phân biệt được
    "hôm đó im lặng" với "khoảng này chưa có dữ liệu". */
 .dash-col__zero{
@@ -1064,19 +1086,6 @@
 
 /* --- Tab tần suất sử dụng --------------------------------------------------- */
 
-.usage-controls{
-
-    display:flex;
-
-    flex-wrap:wrap;
-
-    align-items:flex-end;
-
-    gap:16px;
-
-    margin:0 0 22px;
-}
-
 .usage-field{
 
     display:flex;
@@ -1095,11 +1104,6 @@
     font-weight:700;
 
     color:#5A6A85;
-}
-
-.usage-field--ranges{
-
-    flex:0 0 auto;
 }
 
 .usage-input{
@@ -1130,16 +1134,338 @@
     background:#FFFFFF;
 }
 
-.usage-ranges{
+.usage-section + .usage-section{
+
+    margin-top:20px;
+}
+
+.usage-section > .dash-filters{
+
+    margin:16px 0;
+}
+
+.usage-filterbar{
+
+    display:grid;
+
+    grid-template-columns:minmax(260px,2fr) repeat(3,minmax(150px,1fr));
+
+    align-items:end;
+
+    gap:12px;
+}
+
+.usage-field--search{
+
+    min-width:0;
+}
+
+.usage-selectionbar{
 
     display:flex;
 
-    gap:8px;
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:14px;
+
+    margin:16px 0 10px;
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
 }
 
-.usage-tiles{
+.usage-check{
 
-    margin-bottom:20px;
+    display:flex;
+
+    align-items:center;
+
+    gap:9px;
+
+    cursor:pointer;
+}
+
+.usage-check input,
+.usage-account-option input{
+
+    width:18px;
+
+    height:18px;
+
+    accent-color:#2A78D6;
+}
+
+.usage-check--all{
+
+    font-weight:700;
+
+    color:var(--dash-ink);
+}
+
+.usage-account-picker{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+
+    gap:8px;
+
+    max-height:360px;
+
+    padding:10px;
+
+    overflow:auto;
+
+    border:1px solid var(--dash-axis);
+
+    border-radius:14px;
+
+    background:var(--dash-plane);
+}
+
+.usage-account-option{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:10px;
+
+    min-width:0;
+
+    padding:10px 12px;
+
+    border-radius:10px;
+
+    background:var(--dash-surface);
+
+    cursor:pointer;
+}
+
+.usage-account-option > span,
+.usage-disclosure > span:first-child{
+
+    display:flex;
+
+    min-width:0;
+
+    flex-direction:column;
+
+    gap:2px;
+}
+
+.usage-account-option small,
+.usage-disclosure small,
+.usage-row-head div span{
+
+    overflow:hidden;
+
+    color:var(--dash-ink-2);
+
+    font-size:12px;
+
+    text-overflow:ellipsis;
+
+    white-space:nowrap;
+}
+
+.usage-chart-list,
+.usage-conversations{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+
+    margin-top:16px;
+}
+
+.usage-chart-row,
+.usage-conversation-account{
+
+    padding:14px;
+
+    border:1px solid var(--dash-axis);
+
+    border-radius:14px;
+
+    background:var(--dash-plane);
+}
+
+.usage-row-head{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    gap:16px;
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
+}
+
+.usage-row-head div{
+
+    display:flex;
+
+    flex-direction:column;
+}
+
+.usage-disclosure,
+.usage-session-button{
+
+    display:flex;
+
+    width:100%;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:16px;
+
+    padding:0;
+
+    border:0;
+
+    background:transparent;
+
+    color:var(--dash-ink);
+
+    font:inherit;
+
+    text-align:left;
+
+    cursor:pointer;
+}
+
+.usage-disclosure > span:last-child,
+.usage-session-button > span:last-child{
+
+    flex:none;
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
+}
+
+.usage-session-list{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+    margin-top:12px;
+
+    padding-top:12px;
+
+    border-top:1px solid var(--dash-axis);
+}
+
+.usage-session-row{
+
+    padding:10px 12px;
+
+    border-radius:10px;
+
+    background:var(--dash-surface);
+}
+
+.usage-session-button > span:first-child{
+
+    font-weight:700;
+}
+
+.usage-transcript{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+    margin-top:10px;
+
+    padding-top:10px;
+
+    border-top:1px solid var(--dash-grid);
+}
+
+.usage-message{
+
+    max-width:85%;
+
+    padding:9px 12px;
+
+    border-radius:12px;
+
+    background:#EEF4FF;
+}
+
+.usage-message--assistant{
+
+    align-self:flex-end;
+
+    background:#F2EEFF;
+}
+
+.usage-message strong{
+
+    display:block;
+
+    margin-bottom:3px;
+
+    color:var(--dash-ink-2);
+
+    font-size:11px;
+}
+
+.usage-message p{
+
+    margin:0;
+
+    color:var(--dash-ink);
+
+    line-height:1.55;
+
+    white-space:pre-wrap;
+}
+
+@media (max-width:900px){
+
+    .usage-filterbar{
+
+        grid-template-columns:1fr 1fr;
+    }
+}
+
+@media (max-width:620px){
+
+    .usage-filterbar{
+
+        grid-template-columns:1fr;
+    }
+
+    .usage-row-head,
+    .usage-disclosure,
+    .usage-session-button{
+
+        align-items:flex-start;
+
+        flex-direction:column;
+    }
+
+    .usage-message{
+
+        max-width:100%;
+    }
 }
 
 /* --- Thẻ chia nhóm: khối lớp và mức độ dùng -------------------------------- */

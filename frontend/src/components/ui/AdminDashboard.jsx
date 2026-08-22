@@ -14,6 +14,7 @@ import {
 import { dateTimeCell } from "../../utils/xlsx";
 import AdminBreakdowns from "./AdminBreakdowns";
 import { BarRow, Legend, StatTile, percentOf } from "./DashParts";
+import DateRangeBar from "./DateRangeBar";
 import DayColumnChart from "./DayColumnChart";
 import ExportExcelButton from "./ExportExcelButton";
 import FacetSelect from "./FacetSelect";
@@ -40,81 +41,6 @@ import "../../styles/AdminDashboard.css";
 // Ô số liệu, chú giải, thanh ngang và phép tính phần trăm nằm ở DashParts.jsx —
 // mấy thẻ chia theo khối và theo mức độ dùng (AdminBreakdowns.jsx) vẽ đúng những
 // thứ đó, nên chúng phải là MỘT bản dùng chung chứ không phải hai bản giống nhau.
-
-// --- Hàng lọc khoảng ngày -----------------------------------------------------
-
-const PRESETS = [
-  { id: "7", label: "7 ngày", days: 7 },
-  { id: "30", label: "30 ngày", days: 30 },
-  { id: "90", label: "90 ngày", days: 90 }
-];
-
-function DateRangeBar({ range, onChange, busy }) {
-  const today = todayKey();
-
-  // Khoảng hiện tại có trùng đúng một nút bấm sẵn nào không. Tính ra thay vì
-  // nhớ nút nào vừa bấm: người dùng sửa tay hai ô ngày thành đúng 7 ngày gần
-  // nhất thì nút "7 ngày" cũng phải sáng lên.
-  const activePreset = useMemo(() => {
-    if (range.to !== today) return "";
-    const preset = PRESETS.find((p) => shiftDay(today, -(p.days - 1)) === range.from);
-    return preset ? preset.id : "";
-  }, [range.from, range.to, today]);
-
-  const isThisMonth = range.to === today && range.from === `${today.slice(0, 7)}-01`;
-
-  return (
-    <div className="dash-filters">
-      <span className="dash-filters__label">Khoảng thời gian</span>
-
-      <div className="dash-filters__presets" role="group" aria-label="Chọn nhanh khoảng thời gian">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            className={`dash-chip${activePreset === preset.id ? " dash-chip--on" : ""}`}
-            aria-pressed={activePreset === preset.id}
-            onClick={() => onChange({ from: shiftDay(today, -(preset.days - 1)), to: today })}
-          >
-            {preset.label}
-          </button>
-        ))}
-        <button
-          type="button"
-          className={`dash-chip${isThisMonth ? " dash-chip--on" : ""}`}
-          aria-pressed={isThisMonth}
-          onClick={() => onChange({ from: `${today.slice(0, 7)}-01`, to: today })}
-        >
-          Tháng này
-        </button>
-      </div>
-
-      <div className="dash-filters__custom">
-        <label>
-          Từ
-          <input
-            type="date"
-            value={range.from}
-            max={range.to}
-            onChange={(e) => e.target.value && onChange({ ...range, from: e.target.value })}
-          />
-        </label>
-        <label>
-          Đến
-          <input
-            type="date"
-            value={range.to}
-            min={range.from}
-            max={today}
-            onChange={(e) => e.target.value && onChange({ ...range, to: e.target.value })}
-          />
-        </label>
-      </div>
-
-      {busy && <span className="dash-filters__busy">Đang cập nhật…</span>}
-    </div>
-  );
-}
 
 // Thanh ngang chồng hai đoạn, dùng cho "hội thoại theo lớp": tổng chiều dài là
 // số hội thoại, phần đỏ là số bị gắn cờ.

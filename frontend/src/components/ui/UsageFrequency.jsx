@@ -1,254 +1,440 @@
-// Tab "Tần suất sử dụng" — một học sinh vào nói chuyện với Larry đều đặn tới đâu.
-//
-// Bảng điều khiển trả lời câu hỏi "cả trường thế nào"; chỗ này trả lời "em này
-// thế nào". Hai câu hỏi khác nhau nên để hai chỗ: gộp vào một biểu đồ thì con số
-// của một em bị chìm nghỉm trong tổng của cả trường.
-//
-// Vì sao đáng nhìn: một em vào đều rồi im hẳn ba hôm là một tín hiệu, và tín hiệu
-// đó KHÔNG hiện ra ở bất cứ con số tổng nào. Biểu đồ cột theo ngày là cách nhanh
-// nhất để thấy khoảng trống đó.
-//
-// KHÔNG gọi thêm API nào mới: dùng lại đúng đường /api/admin/users/:id/sessions
-// mà nút "Hội thoại" vẫn gọi, rồi tự đếm theo ngày ở phía trình duyệt. Một học
-// sinh có nhiều nhất vài chục phiên nên đếm ở đây rẻ hơn hẳn việc thêm một
-// endpoint nữa phải nuôi.
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 import { API_BASE_URL } from "../../config/api";
 import { ROLES } from "../../constants/roles";
-import { dayKeyOf, formatDay, formatNumber, lastNDays } from "../../utils/days";
+import { dayKeyOf, formatNumber, formatTime, shiftDay, todayKey } from "../../utils/days";
+import { buildFacets, filterByFacets, noFilters } from "../../utils/facets";
 import { matchesQuery } from "../../utils/search";
+import DateRangeBar from "./DateRangeBar";
 import DayColumnChart from "./DayColumnChart";
+import { Legend } from "./DashParts";
+import FacetSelect from "./FacetSelect";
 import "../../styles/AdminDashboard.css";
 
-// Bảy hoặc ba mươi ngày, đúng như hai mốc quen thuộc ở bảng điều khiển. Không có
-// mốc 90 ngày: với một học sinh thì 90 cột nhét vừa bề ngang màn hình sẽ mảnh
-// như sợi chỉ, và câu hỏi "em này dạo này thế nào" cũng không hỏi tới tận 3 tháng.
-const RANGES = [
-  { days: 7, label: "7 ngày gần nhất" },
-  { days: 30, label: "30 ngày gần nhất" }
+const FILTER_FIELDS = [
+  {
+    id: "school",
+    label: "Trường",
+    all: "Tất cả trường",
+    empty: "Chưa khai trường",
+    of: (user) => user.profile?.school
+  },
+  {
+    id: "grade",
+    label: "Khối",
+    all: "Tất cả khối",
+    empty: "Chưa khai khối",
+    of: (user) => user.profile?.grade
+  },
+  {
+    id: "className",
+    label: "Lớp",
+    all: "Tất cả lớp",
+    empty: "Chưa khai lớp",
+    of: (user) => user.profile?.className
+  }
 ];
 
-// Một chuỗi duy nhất → DayColumnChart vẽ thành cột thường thay vì cột chồng.
-const SERIES = [{ key: "sessions", label: "Lượt trò chuyện", color: "--dash-safe" }];
+const NO_FILTERS = noFilters(FILTER_FIELDS);
+const SERIES = [
+  { key: "sessions", label: "Cuộc hội thoại", color: "--dash-safe" },
+  { key: "flagged", label: "Bị gắn cờ", color: "--dash-flag" },
+  { key: "high", label: "Khẩn cấp", color: "--dash-high" }
+];
+
+function displayName(user) {
+  return user.profile?.fullName || user.username;
+}
+
+function datesOf({ from, to }) {
+  const dates = [];
+  for (let day = from; day <= to && dates.length < 366; day = shiftDay(day, 1)) {
+    dates.push(day);
+  }
+  return dates;
+}
+
+function chartRows(sessions, dates) {
+  const rows = new Map(
+    dates.map((date) => [date, { date, sessions: 0, flagged: 0, high: 0 }])
+  );
+
+  for (const session of sessions) {
+    const row = rows.get(dayKeyOf(session.startedAt));
+    if (!row) continue;
+    row.sessions += 1;
+    if (session.flagged || session.bullyingDetected) row.flagged += 1;
+    if (session.riskLevel === "high") row.high += 1;
+  }
+
+  return [...rows.values()];
+}
 
 export default function UsageFrequency({ users = [], onError }) {
+  const today = todayKey();
+  const [range, setRange] = useState(() => ({ from: shiftDay(today, -6), to: today }));
   const [query, setQuery] = useState("");
-  const [userId, setUserId] = useState("");
-  const [days, setDays] = useState(7);
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [openUserId, setOpenUserId] = useState("");
+  const [openSessionId, setOpenSessionId] = useState("");
+  const [details, setDetails] = useState({});
+  const [detailLoading, setDetailLoading] = useState("");
 
-  // Chỉ học sinh mới có hội thoại. Quản trị viên và giáo viên chủ nhiệm không trò
-  // chuyện với Larry, nên để tên họ trong danh sách chọn chỉ dẫn tới một biểu đồ
-  // trống trơn mà người xem tưởng là hỏng.
   const students = useMemo(
-    () => users.filter((u) => u.role === ROLES.STUDENT),
+    () => users.filter((user) => user.role === ROLES.STUDENT),
     [users]
   );
 
-  const matched = useMemo(
+  const searched = useMemo(
     () =>
-      students.filter((u) =>
+      students.filter((user) =>
         matchesQuery(query, [
-          u.username,
-          u.profile?.fullName,
-          u.profile?.school,
-          u.profile?.className,
-          u.profile?.grade,
-          u.email,
-          u.phone
+          user.username,
+          user.profile?.fullName,
+          user.profile?.school,
+          user.profile?.className,
+          user.profile?.grade,
+          user.email,
+          user.phone
         ])
       ),
     [students, query]
   );
 
-  // Lọc xong mà em đang chọn không còn trong danh sách thì bỏ chọn — giữ lại thì
-  // biểu đồ nói về một em không còn thấy tên ở ô chọn ngay bên trên nó.
+  const filtered = useMemo(
+    () => filterByFacets(searched, FILTER_FIELDS, filters),
+    [searched, filters]
+  );
+
+  const facets = useMemo(
+    () => buildFacets(searched, FILTER_FIELDS, filters),
+    [searched, filters]
+  );
+
   useEffect(() => {
-    if (userId && !matched.some((u) => String(u.id) === String(userId))) {
-      setUserId("");
-    }
-  }, [matched, userId]);
+    const valid = new Set(students.map((user) => String(user.id)));
+    setSelectedIds((current) => {
+      const next = current.filter((id) => valid.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [students]);
 
-  const selected = students.find((u) => String(u.id) === String(userId)) || null;
-
-  const load = useCallback(async () => {
-    if (!userId) {
-      setSessions([]);
-      return;
-    }
-
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/users/${userId}/sessions`);
-      setSessions(res.data.sessions || []);
-    } catch (err) {
-      onError?.(err.response?.data?.error || "Không tải được lịch sử hội thoại.");
-      setSessions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, onError]);
+    setOpenUserId("");
+    setOpenSessionId("");
+    setDetails({});
 
-  useEffect(() => {
-    load();
-  }, [load]);
+    axios
+      .get(`${API_BASE_URL}/api/admin/sessions`, { params: range })
+      .then((response) => {
+        if (active) setSessions(response.data.sessions || []);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setSessions([]);
+        onError?.(error.response?.data?.error || "Không tải được lịch sử hội thoại.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  // Đếm phiên theo ngày, rồi trải lên đủ N ngày gần nhất.
-  //
-  // Tính theo startedAt (lúc em MỞ cuộc trò chuyện) chứ không phải endedAt: một
-  // phiên bắt đầu 23h50 và chốt lúc 0h10 hôm sau vẫn là "em vào nói chuyện tối
-  // hôm đó", không phải một lượt của ngày mới.
-  const chartDays = useMemo(() => {
-    const counts = new Map();
-    for (const session of sessions) {
-      const key = dayKeyOf(session.startedAt);
-      if (key) counts.set(key, (counts.get(key) || 0) + 1);
-    }
-
-    return lastNDays(days).map((date) => ({ date, sessions: counts.get(date) || 0 }));
-  }, [sessions, days]);
-
-  const summary = useMemo(() => {
-    const values = chartDays.map((d) => d.sessions);
-    const total = values.reduce((sum, v) => sum + v, 0);
-    const activeDays = values.filter((v) => v > 0).length;
-    const peak = chartDays.reduce(
-      (best, d) => (d.sessions > best.sessions ? d : best),
-      { date: "", sessions: 0 }
-    );
-
-    return {
-      total,
-      activeDays,
-      peak,
-      // Trung bình chia cho SỐ NGÀY TRONG KHOẢNG, không chia cho số ngày có hoạt
-      // động: câu hỏi là "em vào đều không", mà bỏ ngày im lặng ra khỏi mẫu số thì
-      // em vào đúng một hôm với 3 lượt cũng ra "3 lượt/ngày".
-      perDay: days > 0 ? total / days : 0
+    return () => {
+      active = false;
     };
-  }, [chartDays, days]);
+  }, [range, onError]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedUsers = useMemo(
+    () => students.filter((user) => selectedSet.has(String(user.id))),
+    [students, selectedSet]
+  );
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((user) => selectedSet.has(String(user.id)));
+
+  const sessionsByUser = useMemo(() => {
+    const grouped = new Map();
+    for (const session of sessions) {
+      const key = String(session.userId);
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(session);
+    }
+    return grouped;
+  }, [sessions]);
+
+  const dates = useMemo(() => datesOf(range), [range]);
+
+  const toggleUser = (id) => {
+    const key = String(id);
+    setSelectedIds((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    );
+  };
+
+  const toggleFiltered = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const user of filtered) {
+        const key = String(user.id);
+        if (allFilteredSelected) next.delete(key);
+        else next.add(key);
+      }
+      return [...next];
+    });
+  };
+
+  const toggleAccount = (id) => {
+    const key = String(id);
+    setOpenUserId((current) => (current === key ? "" : key));
+    setOpenSessionId("");
+  };
+
+  const toggleSession = useCallback(
+    async (session) => {
+      if (openSessionId === session.id) {
+        setOpenSessionId("");
+        return;
+      }
+
+      setOpenSessionId(session.id);
+      if (details[session.id]) return;
+
+      setDetailLoading(session.id);
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/admin/sessions/${encodeURIComponent(session.id)}`
+        );
+        setDetails((current) => ({ ...current, [session.id]: response.data }));
+      } catch (error) {
+        onError?.(error.response?.data?.error || "Không tải được nội dung hội thoại.");
+        setOpenSessionId("");
+      } finally {
+        setDetailLoading("");
+      }
+    },
+    [details, onError, openSessionId]
+  );
 
   return (
-    // usage-panel KHÔNG chỉ để trang trí: nó mang bảng màu của biểu đồ
-    // (xem AdminDashboard.css). Bỏ class này ra là cột vẽ ra trong suốt.
     <section className="admin-panel usage-panel">
       <h2 className="admin-panel__title">📈 Tần suất sử dụng</h2>
-
       <p className="admin-note">
-        Chọn một tài khoản học sinh để xem em đó vào trò chuyện với Larry bao nhiêu lượt mỗi
-        ngày. Trục ngang là các ngày theo thứ tự tăng dần tới hôm nay; cột càng cao là càng
-        nhiều lượt trong ngày đó.
+        Chọn khoảng ngày và học sinh cần theo dõi. Biểu đồ và danh sách hội thoại bên dưới chỉ
+        dùng dữ liệu trong khoảng này; nội dung từng phiên chỉ tải sau khi bấm mở.
       </p>
 
-      <div className="usage-controls">
-        <label className="usage-field">
-          <span>Tìm tài khoản</span>
-          <input
-            type="search"
-            className="usage-input"
-            placeholder="Tên, trường, lớp, khối, email hay số điện thoại…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
+      <section className="dash-card usage-section" aria-labelledby="usage-select-title">
+        <h3 id="usage-select-title" className="dash-card__title">1. Chọn tài khoản</h3>
+        <DateRangeBar range={range} onChange={setRange} busy={loading} />
 
-        <label className="usage-field">
-          <span>
-            Học sinh
-            {query.trim() && ` (${formatNumber(matched.length)} kết quả)`}
-          </span>
-          <select
-            className="usage-input"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          >
-            <option value="">— Chọn một tài khoản —</option>
-            {matched.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.profile?.fullName ? `${u.profile.fullName} — ${u.username}` : u.username}
-                {u.profile?.className ? ` · ${u.profile.className}` : ""}
-                {u.profile?.school ? ` · ${u.profile.school}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="usage-filterbar">
+          <label className="usage-field usage-field--search">
+            <span>Tìm học sinh</span>
+            <input
+              type="search"
+              className="usage-input"
+              aria-label="Tìm học sinh theo tên, email hoặc số điện thoại"
+              placeholder="Tên, trường, lớp, khối, email hay số điện thoại…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
 
-        <div className="usage-field usage-field--ranges">
-          <span>Khoảng thời gian</span>
-          <div className="usage-ranges">
-            {RANGES.map((range) => (
-              <button
-                key={range.days}
-                type="button"
-                className={`admin-btn admin-btn--sm${
-                  days === range.days ? "" : " admin-btn--ghost"
-                }`}
-                aria-pressed={days === range.days}
-                onClick={() => setDays(range.days)}
-              >
-                {range.label}
-              </button>
-            ))}
-          </div>
+          {facets.map((facet) => (
+            <FacetSelect
+              key={facet.id}
+              facet={facet}
+              value={filters[facet.id]}
+              onChange={(id, value) => setFilters((current) => ({ ...current, [id]: value }))}
+            />
+          ))}
         </div>
-      </div>
 
-      {!selected ? (
-        <p className="admin-empty">
-          {students.length === 0
-            ? "Chưa có tài khoản học sinh nào."
-            : "Hãy chọn một tài khoản ở ô bên trên để xem biểu đồ."}
-        </p>
-      ) : loading ? (
-        <p className="admin-empty">Đang tải lịch sử hội thoại…</p>
-      ) : (
-        <>
-          <div className="dash-tiles usage-tiles">
-            <Tile label="Tổng lượt trò chuyện" value={summary.total} hint={`trong ${days} ngày`} />
-            <Tile
-              label="Số ngày có vào"
-              value={summary.activeDays}
-              hint={`trên tổng ${days} ngày`}
+        <div className="usage-selectionbar">
+          <label className="usage-check usage-check--all">
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              onChange={toggleFiltered}
+              disabled={filtered.length === 0}
             />
-            <Tile
-              label="Trung bình mỗi ngày"
-              value={summary.perDay.toFixed(1).replace(".", ",")}
-              hint="tính cả những ngày không vào"
-              raw
-            />
-            <Tile
-              label="Ngày nhiều nhất"
-              value={summary.peak.sessions}
-              hint={summary.peak.sessions > 0 ? formatDay(summary.peak.date, true) : "chưa có"}
-            />
+            Chọn tất cả {formatNumber(filtered.length)} tài khoản đã lọc
+          </label>
+          <span>{formatNumber(selectedIds.length)} tài khoản đã chọn</span>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              className="admin-btn admin-btn--sm admin-btn--ghost"
+              onClick={() => setSelectedIds([])}
+            >
+              Bỏ chọn tất cả
+            </button>
+          )}
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="admin-empty">Không có học sinh nào khớp bộ lọc.</p>
+        ) : (
+          <div className="usage-account-picker" role="group" aria-label="Danh sách học sinh để chọn">
+            {filtered.map((user) => (
+              <label key={user.id} className="usage-account-option">
+                <input
+                  type="checkbox"
+                  checked={selectedSet.has(String(user.id))}
+                  onChange={() => toggleUser(user.id)}
+                />
+                <span>
+                  <strong>{displayName(user)}</strong>
+                  <small>
+                    {user.username}
+                    {user.profile?.className ? ` · ${user.profile.className}` : ""}
+                    {user.profile?.school ? ` · ${user.profile.school}` : ""}
+                  </small>
+                </span>
+              </label>
+            ))}
           </div>
+        )}
+      </section>
 
-          <DayColumnChart
-            days={chartDays}
-            series={SERIES}
-            emptyText={`${
-              selected.profile?.fullName || selected.username
-            } chưa có lượt trò chuyện nào trong ${days} ngày gần nhất.`}
-          />
-        </>
-      )}
+      <section className="dash-card usage-section" aria-labelledby="usage-chart-title">
+        <h3 id="usage-chart-title" className="dash-card__title">2. Biểu đồ tần suất sử dụng</h3>
+        <p className="dash-card__sub">
+          Trục X là ngày; trục Y là số cuộc hội thoại. Mỗi hàng là một tài khoản đã chọn.
+        </p>
+
+        {selectedUsers.length === 0 ? (
+          <p className="admin-empty">Chưa chọn tài khoản nào ở mục 1.</p>
+        ) : loading ? (
+          <p className="admin-empty">Đang tải tần suất sử dụng…</p>
+        ) : (
+          <>
+            <Legend series={SERIES} />
+            <div className="usage-chart-list">
+              {selectedUsers.map((user) => {
+                const userSessions = sessionsByUser.get(String(user.id)) || [];
+                return (
+                  <article
+                    key={user.id}
+                    className="usage-chart-row"
+                    aria-label={`Tần suất của ${displayName(user)}`}
+                  >
+                    <div className="usage-row-head">
+                      <div>
+                        <strong>{displayName(user)}</strong>
+                        <span>{user.username}</span>
+                      </div>
+                      <span>{formatNumber(userSessions.length)} cuộc trong khoảng</span>
+                    </div>
+                    <DayColumnChart
+                      days={chartRows(userSessions, dates)}
+                      series={SERIES}
+                      grouped
+                      emptyText={`${displayName(user)} không có hội thoại trong khoảng này.`}
+                    />
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="dash-card usage-section" aria-labelledby="usage-content-title">
+        <h3 id="usage-content-title" className="dash-card__title">3. Nội dung hội thoại</h3>
+        <p className="dash-card__sub">
+          Mỗi hàng là một tài khoản. Mở tài khoản rồi chọn đúng phiên cần đọc; các phiên cũ có
+          thể chỉ còn bản tóm tắt vì transcript chưa được lưu ở phiên bản trước.
+        </p>
+
+        {selectedUsers.length === 0 ? (
+          <p className="admin-empty">Chưa chọn tài khoản nào ở mục 1.</p>
+        ) : (
+          <div className="usage-conversations">
+            {selectedUsers.map((user) => {
+              const key = String(user.id);
+              const userSessions = sessionsByUser.get(key) || [];
+              const accountOpen = openUserId === key;
+
+              return (
+                <article key={user.id} className="usage-conversation-account">
+                  <button
+                    type="button"
+                    className="usage-disclosure"
+                    aria-expanded={accountOpen}
+                    onClick={() => toggleAccount(user.id)}
+                  >
+                    <span>
+                      <strong>{displayName(user)}</strong>
+                      <small>{user.username}</small>
+                    </span>
+                    <span>{formatNumber(userSessions.length)} cuộc {accountOpen ? "▴" : "▾"}</span>
+                  </button>
+
+                  {accountOpen && (
+                    <div className="usage-session-list">
+                      {userSessions.length === 0 ? (
+                        <p className="admin-empty">Không có hội thoại trong khoảng này.</p>
+                      ) : (
+                        userSessions.map((session) => {
+                          const sessionOpen = openSessionId === session.id;
+                          const detail = details[session.id];
+                          return (
+                            <div key={session.id} className="usage-session-row">
+                              <button
+                                type="button"
+                                className="usage-session-button"
+                                aria-expanded={sessionOpen}
+                                onClick={() => toggleSession(session)}
+                              >
+                                <span>{formatTime(session.startedAt)}</span>
+                                <span>
+                                  {formatNumber(session.messageCount)} tin
+                                  {session.flagged ? " · 🚩 Gắn cờ" : ""}
+                                  {session.riskLevel === "high" ? " · Khẩn cấp" : ""}
+                                </span>
+                              </button>
+
+                              {sessionOpen && (
+                                <div className="usage-transcript">
+                                  {detailLoading === session.id ? (
+                                    <p className="admin-empty">Đang tải nội dung…</p>
+                                  ) : detail?.messages?.length > 0 ? (
+                                    detail.messages.map((message, index) => (
+                                      <div
+                                        key={`${message.role}-${index}`}
+                                        className={`usage-message usage-message--${message.role}`}
+                                      >
+                                        <strong>{message.role === "user" ? "Học sinh" : "Larry"}</strong>
+                                        <p>{message.content}</p>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="admin-empty">
+                                      Phiên này chưa có transcript được lưu.
+                                      {session.summary && ` Tóm tắt: ${session.summary}`}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </section>
-  );
-}
-
-// Ô số nhỏ phía trên biểu đồ. `raw` để dùng nguyên chuỗi đã định dạng sẵn (số
-// trung bình có phần thập phân, formatNumber sẽ làm tròn mất).
-function Tile({ label, value, hint, raw = false }) {
-  return (
-    <div className="dash-tile">
-      <span className="dash-tile__label">{label}</span>
-      <strong className="dash-tile__value">{raw ? value : formatNumber(value)}</strong>
-      {hint && <span className="dash-tile__hint">{hint}</span>}
-    </div>
   );
 }

@@ -123,8 +123,8 @@ describe("Mức độ sử dụng Larry AI", () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
 
-    // "Chưa dùng lần nào" là câu hỏi thứ năm, và nó KHÔNG phải một khung
-    expect(screen.getByText("Chưa dùng lần nào")).toBeInTheDocument();
+    // "Không dùng trong khoảng thời gian này" là câu hỏi thứ năm, và nó KHÔNG phải một khung
+    expect(screen.getByText("Không dùng trong khoảng thời gian này")).toBeInTheDocument();
     expect(screen.getByText("79")).toBeInTheDocument();
   });
 
@@ -132,7 +132,7 @@ describe("Mức độ sử dụng Larry AI", () => {
     showUsage("Theo từng trường");
 
     expect(rowsOf("Mức độ sử dụng Larry AI theo từng trường")).toEqual([
-      ["Trường", "1 lần", "2–5 lần", "6–10 lần", "Trên 10 lần", "Học sinh có dùng", "Chưa dùng lần nào", "Tổng số lượt"],
+      ["Trường", "1 lần", "2–5 lần", "6–10 lần", "Trên 10 lần", "Học sinh có dùng", "Không dùng trong khoảng thời gian này", "Tổng số lượt"],
       ["Đoàn Thị Điểm", "10", "6", "3", "2", "21", "44", "120"],
       ["Lê Quý Đôn", "2", "2", "1", "—", "5", "35", "20"]
     ]);

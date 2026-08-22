@@ -7,6 +7,49 @@ const SESSIONS_FILE = process.env.SESSIONS_FILE
   ? path.resolve(process.env.SESSIONS_FILE)
   : path.join(__dirname, "sessions.json");
 
+const MAX_STORED_MESSAGES = 200;
+const MAX_STORED_MESSAGE_LENGTH = 4000;
+
+// Chỉ lưu transcript cần để quản trị viên đọc lại. Bỏ mọi role lạ và field nội bộ
+// của graph; nội dung luôn là text thuần nên không có đường chèn HTML vào giao diện.
+function normalizeMessages(history) {
+  if (!Array.isArray(history)) return [];
+
+  // ponytail: 200 tin gần nhất đủ cho file JSON hiện tại; cần lưu dài hơn thì chuyển
+  // sessions sang DB và phân trang message thay vì nâng trần trong bộ nhớ.
+  return history
+    .filter(
+      (message) =>
+        message &&
+        (message.role === "user" || message.role === "assistant") &&
+        typeof message.content === "string" &&
+        message.content.trim()
+    )
+    .slice(-MAX_STORED_MESSAGES)
+    .map((message) => ({
+      role: message.role,
+      content: message.content.trim().slice(0, MAX_STORED_MESSAGE_LENGTH)
+    }));
+}
+
+function countMessages(history) {
+  if (!Array.isArray(history)) return 0;
+  return history.filter(
+    (message) =>
+      message &&
+      (message.role === "user" || message.role === "assistant") &&
+      typeof message.content === "string" &&
+      message.content.trim()
+  ).length;
+}
+
+// Danh sách phiên không mang transcript. Nội dung chỉ đi qua endpoint chi tiết
+// sau khi quản trị viên bấm đúng phiên cần đọc.
+function toSessionMetadata(session) {
+  const { messages: _, ...metadata } = session;
+  return metadata;
+}
+
 function saveSessions(sessions) {
   const tempFile = `${SESSIONS_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(sessions, null, 2), "utf8");
@@ -52,6 +95,7 @@ function createSession({ sessionId, user }) {
     startedAt: now,
     endedAt: now,
     messageCount: 0,
+    messages: [],
     // Phiếu cảm xúc học sinh điền trước khi chat: chỉ lưu phần chọn sẵn dưới dạng
     // một dòng mô tả, KHÔNG lưu nguyên văn phần em tự kể (xem risk.js).
     checkinNote: "",
@@ -81,6 +125,7 @@ function normalizeSession(session) {
     ...session,
     checkinNote: session.checkinNote || "",
     cameraEmotion: session.cameraEmotion || "",
+    messages: normalizeMessages(session.messages),
     alerts: Array.isArray(session.alerts) ? session.alerts : []
   };
 
@@ -99,4 +144,15 @@ function normalizeSession(session) {
   };
 }
 
-module.exports = { SESSIONS_FILE, loadSessions, saveSessions, createSession, normalizeSession };
+module.exports = {
+  SESSIONS_FILE,
+  loadSessions,
+  saveSessions,
+  createSession,
+  normalizeSession,
+  normalizeMessages,
+  countMessages,
+  toSessionMetadata,
+  MAX_STORED_MESSAGES,
+  MAX_STORED_MESSAGE_LENGTH
+};

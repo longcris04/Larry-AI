@@ -7,7 +7,7 @@ const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const { SESSIONS_FILE } = require("./sessions");
+const { SESSIONS_FILE, toSessionMetadata } = require("./sessions");
 const { summaryModel } = require("./summarizer");
 const { RISK_ORDER, riskCategoryLabels } = require("./risk");
 const {
@@ -41,7 +41,7 @@ const {
   findStudentsOfTeacher,
   describeClass
 } = require("./teachers");
-const { resolveRange, buildStats } = require("./stats");
+const { dayKey, resolveRange, buildStats } = require("./stats");
 const {
   JWT_SECRET,
   JWT_EXPIRES_IN,
@@ -728,9 +728,40 @@ app.get("/api/admin/users/:id/sessions", adminOnly, (req, res) => {
 
   const list = sessions
     .filter((s) => s.userId === id)
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
 
   res.json({ user: toPublicUser(user), sessions: list });
+});
+
+// Metadata của mọi phiên trong khoảng ngày. Một lần gọi phục vụ được nhiều tài
+// khoản đã tick; transcript bị cắt khỏi response và chỉ tải khi mở từng phiên.
+app.get("/api/admin/sessions", adminOnly, (req, res) => {
+  const range = resolveRange({ from: req.query.from, to: req.query.to });
+  const list = sessions
+    .filter((session) => {
+      const day = dayKey(session.startedAt);
+      return day >= range.from && day <= range.to;
+    })
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
+
+  res.json({
+    range: { from: range.from, to: range.to, days: range.days.length },
+    sessions: list
+  });
+});
+
+// Nội dung một phiên — chỉ gọi khi quản trị viên mở đúng phiên đó ở mục 3.
+app.get("/api/admin/sessions/:sessionId", adminOnly, (req, res) => {
+  const id = String(req.params.sessionId || "").trim();
+  const session = sessions.find((item) => item.id === id);
+  if (!session) return res.status(404).json({ error: "Không tìm thấy phiên hội thoại." });
+
+  res.json({
+    session: toSessionMetadata(session),
+    messages: Array.isArray(session.messages) ? session.messages : []
+  });
 });
 
 // Tất cả phiên có dấu hiệu tiêu cực — màn hình cảnh báo nhanh cho giáo viên.
@@ -742,7 +773,8 @@ app.get("/api/admin/flagged", adminOnly, (req, res) => {
       (a, b) =>
         (RISK_ORDER[b.riskLevel] || 0) - (RISK_ORDER[a.riskLevel] || 0) ||
         b.endedAt.localeCompare(a.endedAt)
-    );
+    )
+    .map(toSessionMetadata);
 
   res.json({ sessions: list });
 });
@@ -964,7 +996,8 @@ app.get("/api/teacher/students/:id/sessions", teacherOnly, (req, res) => {
 
   const list = sessions
     .filter((s) => s.userId === id)
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
 
   res.json({
     student: {
@@ -985,7 +1018,7 @@ app.get("/api/teacher/flagged", teacherOnly, (req, res) => {
   const list = sessions
     .filter((s) => s.flagged && byId.has(s.userId))
     .map((s) => ({
-      ...s,
+      ...toSessionMetadata(s),
       studentName: byId.get(s.userId)?.profile?.fullName || byId.get(s.userId)?.username || ""
     }))
     .sort(

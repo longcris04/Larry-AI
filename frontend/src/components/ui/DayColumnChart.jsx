@@ -17,12 +17,16 @@ import { useState } from "react";
 import { formatDay, formatNumber, niceMax } from "../../utils/days";
 import "../../styles/AdminDashboard.css";
 
-export default function DayColumnChart({ days, series, emptyText }) {
+export default function DayColumnChart({ days, series, emptyText, grouped = false }) {
   const [cursor, setCursor] = useState(null);
 
-  const totals = days.map((day) => series.reduce((sum, s) => sum + (day[s.key] || 0), 0));
-  const max = niceMax(Math.max(0, ...totals));
-  const hasData = totals.some((t) => t > 0);
+  const heights = days.map((day) =>
+    grouped
+      ? Math.max(0, ...series.map((item) => day[item.key] || 0))
+      : series.reduce((sum, item) => sum + (day[item.key] || 0), 0)
+  );
+  const max = niceMax(Math.max(0, ...heights));
+  const hasData = heights.some((value) => value > 0);
 
   // Khoảng 7 nhãn ngày là vừa đọc; nhiều hơn thì chữ chồng lên nhau
   const labelStep = Math.max(1, Math.ceil(days.length / 7));
@@ -84,7 +88,7 @@ export default function DayColumnChart({ days, series, emptyText }) {
 
           <div className="dash-chart__bars">
             {days.map((day, index) => {
-              const total = totals[index];
+              const height = heights[index];
               // Đoạn trên cùng có dữ liệu mới được bo góc — bo cả hai đoạn thì
               // chỗ nối giữa chúng lõm vào trông như thiếu mất một mẩu.
               const topKey = [...series].reverse().find((s) => day[s.key] > 0)?.key;
@@ -96,7 +100,7 @@ export default function DayColumnChart({ days, series, emptyText }) {
                   onMouseEnter={() => setCursor(index)}
                   onFocus={() => setCursor(index)}
                 >
-                  <div className="dash-col__stack">
+                  <div className={`dash-col__stack${grouped ? " dash-col__stack--grouped" : ""}`}>
                     {series.map((s) => {
                       const value = day[s.key] || 0;
                       if (!value) return null;
@@ -107,13 +111,13 @@ export default function DayColumnChart({ days, series, emptyText }) {
                           style={{
                             height: `${(value / max) * 100}%`,
                             background: `var(${s.color})`,
-                            borderRadius: s.key === topKey ? "4px 4px 0 0" : 0
+                            borderRadius: grouped || s.key === topKey ? "4px 4px 0 0" : 0
                           }}
                         />
                       );
                     })}
                   </div>
-                  {total === 0 && <div className="dash-col__zero" />}
+                  {height === 0 && <div className="dash-col__zero" />}
                 </div>
               );
             })}
