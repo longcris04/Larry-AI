@@ -103,6 +103,36 @@ test("chưa lọc thì hiện đủ bốn lớp", async () => {
   expect(screen.getByText("4 lớp")).toBeInTheDocument();
 });
 
+test("bảng lớp hiện 10 dòng mỗi trang và dùng hàng phân trang chung", async () => {
+  const byClass = Array.from({ length: 62 }, (_, index) => ({
+    ...BY_CLASS[0],
+    key: `class-${index + 1}`,
+    className: `Lớp ${index + 1}`
+  }));
+  axios.get.mockResolvedValueOnce({
+    data: {
+      ...STATS,
+      classes: { ...STATS.classes, total: byClass.length },
+      byClass
+    }
+  });
+
+  await setup();
+
+  expect(shownClasses()).toEqual(Array.from({ length: 10 }, (_, index) => `Lớp ${index + 1}`));
+  expect(screen.getByText(/Trang/)).toHaveTextContent("Trang 1 / 7");
+  expect(screen.getByRole("button", { name: "Về trang đầu" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Lùi 5 trang" })).toBeInTheDocument();
+  expect(screen.getByRole("spinbutton", { name: /Tới trang số/ })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Sau — 10 lớp tiếp theo" }));
+
+  expect(shownClasses()).toEqual(Array.from({ length: 10 }, (_, index) => `Lớp ${index + 11}`));
+  expect(screen.getByText(/Trang/)).toHaveTextContent("Trang 2 / 7");
+  expect(screen.getByRole("button", { name: "Tiến 5 trang" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Tới trang cuối" })).toBeInTheDocument();
+});
+
 test("lọc theo trường", async () => {
   await setup();
   pick("Trường", "Lê Quý Đôn");

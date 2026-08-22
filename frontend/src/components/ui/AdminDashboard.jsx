@@ -160,8 +160,7 @@ const ACCOUNT_SERIES = [
   { key: "newTeachers", label: "Giáo viên chủ nhiệm", color: "--dash-teacher" }
 ];
 
-// Số dòng bảng lớp hiện sẵn trước khi phải bấm xem thêm
-const CLASS_TABLE_LIMIT = 15;
+const CLASS_PAGE_SIZE = 10;
 
 // --- Bộ lọc bảng lớp ----------------------------------------------------------
 //
@@ -328,11 +327,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
   const [busy, setBusy] = useState(true);
   const [showDayTable, setShowDayTable] = useState(false);
 
-  // Bảng lớp cắt bớt cho tới khi người dùng bấm xem thêm. Một trường cấp 2 có
-  // vài chục lớp, cả huyện thì vài trăm — đổ hết ra làm phần còn lại của trang
-  // quản trị trôi xuống dưới tầm nhìn. Các lớp đáng chú ý nhất đã được máy chủ
-  // xếp lên đầu (xem byClass trong stats.js) nên phần cắt đi là phần yên ổn.
-  const [allClasses, setAllClasses] = useState(false);
+  const [classPage, setClassPage] = useState(0);
 
   // Bộ lọc của bảng lớp. Sống ở đây chứ không ở URL hay ở trang cha: nó chỉ nói
   // về MỘT bảng, và khoảng ngày ở trên cùng mới là thứ chi phối cả màn hình.
@@ -349,7 +344,7 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
     try {
       const res = await axios.get(ADMIN_STATS_URL, { params: range });
       setStats(res.data);
-      setAllClasses(false);
+      setClassPage(0);
       // Đổi khoảng ngày là đổi hẳn bộ số liệu — trang 4 của bảng cũ không còn nói
       // về cùng những trường đó nữa.
       setSchoolPage(0);
@@ -405,15 +400,16 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
     [searchedClasses, classFilters]
   );
 
-  const visibleClasses = useMemo(
-    () => (allClasses ? filteredClasses : filteredClasses.slice(0, CLASS_TABLE_LIMIT)),
-    [filteredClasses, allClasses]
+  const classPages = Math.max(1, Math.ceil(filteredClasses.length / CLASS_PAGE_SIZE));
+  const safeClassPage = Math.min(classPage, classPages - 1);
+  const visibleClasses = filteredClasses.slice(
+    safeClassPage * CLASS_PAGE_SIZE,
+    (safeClassPage + 1) * CLASS_PAGE_SIZE
   );
 
-  // Đổi bộ lọc thì thu bảng về lại 15 dòng đầu: danh sách mới không liên quan gì
-  // tới việc mình vừa bấm "xem tất cả" trên danh sách cũ.
+  // Đổi bộ lọc thì về trang đầu: trang hiện tại của danh sách cũ không còn nghĩa.
   useEffect(() => {
-    setAllClasses(false);
+    setClassPage(0);
   }, [classQuery, classFilters]);
 
   // Sắp xếp trên một BẢN SAO: stats.bySchool là mảng máy chủ gửi xuống, sort()
@@ -753,7 +749,8 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
                   </button>
                 </p>
               ) : (
-                <div className="admin-table-wrap">
+                <>
+                  <div className="admin-table-wrap">
                   {/* Ba bảng trên cùng một màn hình thì phải gọi được tên từng cái
                       — trình đọc màn hình liệt kê bảng theo tên, và "bảng, 9 cột"
                       ba lần liền thì không ai biết mình đang đứng ở bảng nào. */}
@@ -809,21 +806,17 @@ export default function AdminDashboard({ onError, refreshKey = 0 }) {
                       ))}
                     </tbody>
                   </table>
+                  </div>
 
-                  {filteredClasses.length > CLASS_TABLE_LIMIT && (
-                    <div className="dash-more">
-                      <button
-                        type="button"
-                        className="admin-btn admin-btn--sm admin-btn--ghost"
-                        onClick={() => setAllClasses((v) => !v)}
-                      >
-                        {allClasses
-                          ? `Thu gọn — chỉ hiện ${CLASS_TABLE_LIMIT} lớp đầu`
-                          : `Xem tất cả ${formatNumber(filteredClasses.length)} lớp`}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  <TablePager
+                    page={safeClassPage}
+                    pages={classPages}
+                    onPage={setClassPage}
+                    pageSize={CLASS_PAGE_SIZE}
+                    total={filteredClasses.length}
+                    unit="lớp"
+                  />
+                </>
               )}
             </>
           )}

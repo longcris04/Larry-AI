@@ -6,3 +6,4 @@
 /build/
 /backend/.env
 /backend/account.json
+.codegraph/
