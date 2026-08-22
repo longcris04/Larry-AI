@@ -235,9 +235,10 @@ curl http://localhost:5000/api/health
    - Bấm **"Trò chuyện với Larry ngay! 💬"** để vào thẳng chat, không cần tài khoản.
    - **Đăng ký** / **Đăng nhập** với dropdown **"Bạn là" → Người dùng** nếu muốn có tài khoản riêng. Đăng ký cần **số điện thoại** và mật khẩu (email không bắt buộc). Đăng ký xong **quay về màn hình đăng nhập** (kèm thông báo thành công và số điện thoại điền sẵn), chứ không vào thẳng chat.
    - **Đăng nhập** với dropdown **"Bạn là" → Quản trị viên** để vào khu vực quản trị (xem mục 8).
-2. Bấm **Cho phép** khi trình duyệt xin quyền camera.
-3. Đợi vài giây để tải model nhận diện. Larry chào ngay khi nhận ra cảm xúc đầu tiên, và **giữ nguyên cảm xúc đó suốt phiên chat**.
-4. Nhắn tin với Larry, hoặc bấm nút Scratch để mở trang game.
+2. Larry chào và hỏi thân thiện xem bạn có muốn dùng camera không. Chỉ khi bấm **Đồng ý mở camera**, frontend mới mount webcam và trình duyệt mới hiện hộp xin quyền; chọn **Không cần camera** vẫn đi tiếp bình thường.
+3. Nếu đồng ý, camera hiện thành vòng tròn nhỏ cạnh nhân vật Larry trong lúc model nhận diện. Ảnh/video xử lý tại trình duyệt, không lưu hoặc gửi đi; hệ thống chỉ dùng kết quả cảm xúc.
+4. Sau khi camera nhận diện xong, bị từ chối hoặc được bỏ qua, **phiếu cảm xúc** mới mở. Hoàn thành/bỏ qua phiếu xong ChatBox mới gửi lời chào đầu tiên. Phiếu cảm xúc vẫn được ưu tiên hơn kết quả camera.
+5. Nhắn tin với Larry, hoặc bấm nút Scratch để mở trang game.
 
 > Tài khoản được lưu vào file `backend/account.json` nên **không mất khi khởi động lại backend**. Xem mục 7 bên dưới.
 

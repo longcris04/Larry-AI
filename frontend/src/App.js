@@ -17,6 +17,7 @@ import CounselorRoute from "./components/ui/CounselorRoute";
 import CounselorPage from "./components/ui/CounselorPage";
 import FeedbackLinks from "./components/ui/FeedbackLinks";
 import Camera from "./components/ui/Camera";
+import CameraWelcome from "./components/ui/CameraWelcome";
 import ChatBox from "./components/ui/ChatBox";
 import CheckinModal from "./components/ui/CheckinModal";
 import KnowledgePanel from "./components/ui/KnowledgePanel";
@@ -46,6 +47,10 @@ const FAKE_EMOTION = process.env.REACT_APP_FAKE_EMOTION || "";
 
 const ProtectedApp = () => {
   const [emotion, setEmotion] = useState(FAKE_EMOTION || null);
+  // Luồng bắt buộc: xin phép camera → nhận diện (hoặc bỏ qua) → phiếu cảm xúc → chat.
+  // Chế độ giả cảm xúc dành cho demo/test bỏ riêng hai bước camera nhưng vẫn giữ
+  // phiếu check-in, đúng mục đích ban đầu của REACT_APP_FAKE_EMOTION.
+  const [setupStep, setSetupStep] = useState(FAKE_EMOTION ? "checkin" : "consent");
 
   // Camera không dùng được: học sinh không cho quyền, máy không có webcam, model
   // nhận diện hỏng, hoặc em chủ động bỏ qua. Bước camera vẫn tính là XONG — chỉ là
@@ -53,10 +58,10 @@ const ProtectedApp = () => {
   // ở "Larry đang chờ nhìn thấy bạn" mãi mãi vì cảm xúc không bao giờ về.
   const [cameraOff, setCameraOff] = useState(false);
 
-  // Phiếu cảm xúc hỏi lúc vừa vào chat. null = chưa trả lời / đã bỏ qua,
+  // Phiếu cảm xúc chỉ mở SAU bước camera. null = chưa trả lời / đã bỏ qua,
   // lúc đó system prompt giữ nguyên như cũ.
   const [checkin, setCheckin] = useState(null);
-  const [checkinOpen, setCheckinOpen] = useState(true);
+  const [checkinOpen, setCheckinOpen] = useState(Boolean(FAKE_EMOTION));
 
   // Tri thức agent vừa tra ở lượt gần nhất, do ChatBox đẩy lên. Nó thuộc về bảng
   // bên trái chứ không thuộc khung chat, nên state phải nằm ở đây.
@@ -64,11 +69,21 @@ const ProtectedApp = () => {
 
   const handleEmotionDetected = useCallback((detectedEmotion) => {
     setEmotion(detectedEmotion);
+    setSetupStep("checkin");
+    setCheckinOpen(true);
   }, []);
 
   const handleCameraUnavailable = useCallback((reason) => {
     console.info(`Bỏ qua bước camera (${reason}) — Larry sẽ hỏi để hiểu cảm xúc.`);
     setCameraOff(true);
+    setSetupStep("checkin");
+    setCheckinOpen(true);
+  }, []);
+
+  const handleCameraDecline = useCallback(() => {
+    setCameraOff(true);
+    setSetupStep("checkin");
+    setCheckinOpen(true);
   }, []);
 
   // Bước nhận diện đã kết thúc, dù chốt được cảm xúc hay không. Đây mới là thứ
@@ -78,10 +93,12 @@ const ProtectedApp = () => {
   const handleCheckinComplete = useCallback((answers) => {
     setCheckin(answers);
     setCheckinOpen(false);
+    setSetupStep("chat");
   }, []);
 
   const handleCheckinSkip = useCallback(() => {
     setCheckinOpen(false);
+    setSetupStep("chat");
   }, []);
 
   return (
@@ -89,7 +106,7 @@ const ProtectedApp = () => {
       <div className="app-shell">
         <PlayfulBackground />
 
-        {checkinOpen && (
+        {setupStep === "checkin" && checkinOpen && (
           <CheckinModal
             onComplete={handleCheckinComplete}
             onSkip={handleCheckinSkip}
@@ -103,17 +120,22 @@ const ProtectedApp = () => {
                   hoặc xác định là không dùng được. Xong việc thì gỡ hẳn component
                   (webcam tắt theo) và nhường chỗ cho bảng tri thức — chỗ cho thấy
                   Larry lấy câu trả lời từ tài liệu nào. */}
-              {emotionStepDone ? (
+              {setupStep === "consent" ? (
+                <CameraWelcome
+                  onAllow={() => setSetupStep("camera")}
+                  onDecline={handleCameraDecline}
+                />
+              ) : setupStep === "camera" ? (
+                <Camera
+                  onEmotionDetected={handleEmotionDetected}
+                  onUnavailable={handleCameraUnavailable}
+                />
+              ) : (
                 <KnowledgePanel
                   knowledge={knowledgeView.knowledge}
                   busy={knowledgeView.busy}
                   emotion={emotion}
                   cameraOff={cameraOff}
-                />
-              ) : (
-                <Camera
-                  onEmotionDetected={handleEmotionDetected}
-                  onUnavailable={handleCameraUnavailable}
                 />
               )}
               {/* Lời mời góp ý — đặt dưới bảng tri thức, ngoài khung chat, để
@@ -130,7 +152,8 @@ const ProtectedApp = () => {
               emotion={emotion}
               emotionReady={emotionStepDone}
               checkin={checkin}
-              checkinReady={!checkinOpen}
+              checkinReady={setupStep === "chat"}
+              setupStep={setupStep}
               onKnowledge={setKnowledgeView}
             />
           </section>

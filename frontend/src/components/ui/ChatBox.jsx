@@ -29,6 +29,7 @@ export default function ChatBox({
   emotionReady = true,
   checkin = null,
   checkinReady = true,
+  setupStep = "chat",
   onKnowledge
 }) {
   const [input, setInput] = useState("");
@@ -209,9 +210,21 @@ export default function ChatBox({
       <ChatHeader speaker={voiceConfig.tts ? speaker : null} />
 
       <div ref={chatRef} className="chat-messages">
-        {!emotionReady && (
+        {setupStep === "consent" && (
           <p className="waiting-hint">
-            👀 Larry đang chờ nhìn thấy bạn qua camera...
+            👋 Larry đang chào bạn và xin phép dùng camera...
+          </p>
+        )}
+
+        {setupStep === "camera" && !emotionReady && (
+          <p className="waiting-hint">
+            👀 Larry đang nhận biết cảm xúc qua camera...
+          </p>
+        )}
+
+        {setupStep === "checkin" && (
+          <p className="waiting-hint">
+            💛 Hoàn thành phiếu cảm xúc rồi mình trò chuyện nhé...
           </p>
         )}
 

@@ -130,10 +130,15 @@ export default function Camera({ onEmotionDetected, onUnavailable }) {
 
   return (
     <div className="camera-panel">
-      <h2 className="camera-title">📷 Larry đang nhìn bạn</h2>
+      <h2 className="camera-title">Cảm ơn bạn đã tin mình 💛</h2>
 
-      <div className="tv-frame">
-        <div className="tv-screen">
+      <div className="larry-character larry-character--camera">
+        <span className="larry-character__glow" aria-hidden="true" />
+        <img
+          src={`${process.env.PUBLIC_URL}/logo_mark.png`}
+          alt="Nhân vật Larry đang quan sát cảm xúc"
+        />
+        <div className="camera-preview" aria-label="Hình ảnh camera của bạn">
           <Webcam
             ref={webcamRef}
             audio={false}
