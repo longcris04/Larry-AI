@@ -452,6 +452,36 @@
     color:#4ABEFF;
 }
 
+/* "Đăng nhập bằng tài khoản khác" ở màn hình chào người đã đăng nhập sẵn.
+   Nhạt hơn nút chính vì đây là lối rẽ, không phải việc chính cần làm. */
+.auth-relogin{
+
+    margin-top:18px;
+
+    border:none;
+
+    background:none;
+
+    padding:6px 10px;
+
+    font-family:inherit;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    color:#7D88A0;
+
+    text-decoration:underline;
+
+    cursor:pointer;
+}
+
+.auth-relogin:hover{
+
+    color:#8B63FF;
+}
+
 .auth-error{
 
     width:100%;

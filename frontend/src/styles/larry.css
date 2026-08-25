@@ -413,58 +413,6 @@
   color: var(--text);
 }
 
-.emotion-badge {
-  width: 100%;
-  padding: 18px 24px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--white);
-  box-shadow: var(--shadow-soft);
-  animation: pulse 2.5s ease-in-out infinite;
-}
-
-.emotion-badge__icon {
-  font-size: 2.4rem;
-  line-height: 1;
-}
-
-.emotion-badge--happy {
-  background: linear-gradient(135deg, var(--yellow), var(--green));
-}
-
-.emotion-badge--sad {
-  background: linear-gradient(135deg, var(--blue), var(--purple));
-}
-
-.emotion-badge--angry {
-  background: linear-gradient(135deg, var(--pink), #ff6b8a);
-}
-
-.emotion-badge--neutral {
-  background: linear-gradient(135deg, #cbd5e1, var(--blue));
-}
-
-.emotion-badge--surprised {
-  background: linear-gradient(135deg, var(--yellow), var(--pink));
-}
-
-.emotion-badge--fearful {
-  background: linear-gradient(135deg, var(--purple), var(--blue));
-}
-
-.emotion-badge--disgusted {
-  background: linear-gradient(135deg, var(--green), var(--purple));
-}
-
-.emotion-badge--waiting {
-  background: linear-gradient(135deg, var(--purple), var(--pink));
-  animation: blink 2s ease-in-out infinite;
-}
-
 .chat-window {
   flex: 1;
   display: flex;
@@ -1059,11 +1007,6 @@
 
   .camera-title {
     font-size: 1.2rem;
-  }
-
-  .emotion-badge {
-    font-size: 1rem;
-    padding: 14px 18px;
   }
 
   .chat-header__name {

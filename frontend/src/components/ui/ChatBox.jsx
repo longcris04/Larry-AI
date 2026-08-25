@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import AgentTrace from "./AgentTrace";
 import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
+import IntroPrompt from "./IntroPrompt";
 import Message from "./Message";
 import ScratchButton from "./ScratchButton";
 import SpeakingIndicator from "./SpeakingIndicator";
@@ -11,6 +12,7 @@ import { useAgentStream } from "../../hooks/useAgentStream";
 import { useSpeaker } from "../../hooks/useSpeaker";
 import { useVoiceConfig } from "../../hooks/useVoiceConfig";
 import { useVoiceInput } from "../../hooks/useVoiceInput";
+import { UI_TEXT } from "../../constants/introScript";
 import { SESSION_END_URL } from "../../config/api";
 
 // Mã phiên hội thoại, sinh một lần cho mỗi lần vào màn hình chat.
@@ -24,12 +26,21 @@ function newSessionId() {
 // `emotion` là cảm xúc camera đọc được, có thể null. `emotionReady` mới là thứ
 // cho biết BƯỚC camera đã xong hay chưa: em không cho quyền camera thì bước đó
 // xong với kết quả rỗng, và cuộc trò chuyện vẫn phải mở ra bình thường.
+//
+// `intro` là kịch bản chào hỏi + phiếu cảm xúc (xem useIntroScript). Nó chạy
+// NGAY TRONG khung chat này: lời Larry hiện thành bong bóng như mọi lượt khác,
+// lựa chọn của em cũng vào dòng hội thoại. Hỏi xong phiếu thì `intro.done` bật
+// lên và Larry mới thật sự mở lời bằng model.
+//
+// Vì sao không tách thành một màn hình riêng như trước: hết màn đó rồi nhảy sang
+// khung chat thì mọi thứ em vừa kể biến mất khỏi màn hình, cuộc trò chuyện bắt
+// đầu lại từ con số không — trong khi đó chính là đoạn mở đầu của nó.
 export default function ChatBox({
   emotion,
   emotionReady = true,
   checkin = null,
-  checkinReady = true,
-  setupStep = "chat",
+  characterId,
+  intro = null,
   onKnowledge
 }) {
   const [input, setInput] = useState("");
@@ -116,7 +127,7 @@ export default function ChatBox({
       top: chatRef.current.scrollHeight,
       behavior: "smooth"
     });
-  }, [messages, streaming, steps, busy, speaker.speaking]);
+  }, [messages, streaming, steps, busy, speaker.speaking, intro?.turns, intro?.typing, intro?.prompt]);
 
   // Kho tri thức mà agent vừa tra được hiện ở bảng bên trái (KnowledgePanel), nằm
   // ngoài khung chat — nên đẩy ngược lên cho App giữ.
@@ -158,12 +169,14 @@ export default function ChatBox({
     };
   }, []);
 
-  // Chờ xong CẢ HAI bước thu thập (camera và phiếu cảm xúc) rồi Larry mới chào, để
-  // lời chào đầu tiên đã có sẵn thông tin vừa thu thập. Bước nào không có kết quả
-  // thì gửi rỗng — backend đã xử lý được cả hai chỗ trống, và khi không có tín hiệu
-  // nào thì Larry hỏi để khai thác cảm xúc ngay trong chat.
+  // Chờ CẢ kịch bản mở đầu lẫn bước đọc cảm xúc kết thúc rồi Larry mới mở lời
+  // bằng model, để câu đầu tiên đã có sẵn cả phiếu lẫn cảm xúc trong tay. Không
+  // có tín hiệu nào thì gửi rỗng — backend chịu được chỗ trống, và lúc đó Larry
+  // hỏi thẳng trong lúc trò chuyện.
+  const introDone = intro ? intro.done : true;
+
   useEffect(() => {
-    if (!emotionReady || !checkinReady || greetingSentRef.current) return;
+    if (!introDone || !emotionReady || greetingSentRef.current) return;
 
     greetingSentRef.current = true;
     setChatStarted(true);
@@ -175,13 +188,71 @@ export default function ChatBox({
       emotion: emotion || "",
       checkin
     });
-  }, [emotionReady, emotion, checkinReady, checkin, runTurn]);
+  }, [introDone, emotionReady, emotion, checkin, runTurn]);
+
+  // Kịch bản mở đầu đang hỏi một câu để em TỰ VIẾT → mở ô nhắn tin ra cho em gõ
+  const askingText = intro?.prompt?.kind === "text";
+
+  // Đoạn mở đầu KHÔNG chất đống trên màn hình: câu này nói xong thì câu sau thế
+  // chỗ. Trên màn hình nhiều nhất là hai bong bóng — câu trả lời gần nhất của em,
+  // và câu Larry đang nói.
+  //
+  // Chỉ hội thoại chính thức mới để lại vết: từ đó trở đi mỗi lượt là một bước
+  // suy nghĩ thật của hệ agent, đọc ngược lên mới thấy được mạch câu chuyện. Còn
+  // hai chục câu chào hỏi nằm đó thì em phải cuộn qua chúng suốt buổi.
+  //
+  // Câu Larry của đoạn mở đầu luôn là MỘT bong bóng duy nhất, giữ nguyên qua cả
+  // lúc gõ dở lẫn lúc gõ xong. Trước đây lúc gõ xong nó bị thay bằng một bong
+  // bóng khác, mà .message-row có animation bounce-in chạy từ opacity 0 — nên
+  // câu nào nói xong cũng nháy một cái rồi mới đứng yên.
+  const introView = useMemo(() => {
+    if (!intro || messages.length > 0 || streaming) return null;
+
+    const turns = intro.turns;
+
+    let answerIndex = -1;
+    for (let i = turns.length - 1; i >= 0; i -= 1) {
+      if (turns[i].sender === "user") {
+        answerIndex = i;
+        break;
+      }
+    }
+
+    // Chỉ lấy câu Larry nói SAU câu trả lời gần nhất. Câu hỏi vừa được trả lời
+    // rồi thì thôi, để nó nằm dưới câu trả lời là sai thứ tự thời gian.
+    let lastLine = null;
+    for (let i = turns.length - 1; i > answerIndex; i -= 1) {
+      if (turns[i].sender === "ai") {
+        lastLine = turns[i];
+        break;
+      }
+    }
+
+    return {
+      answer: answerIndex >= 0 ? turns[answerIndex] : null,
+      line: intro.typing ? { text: intro.typing.text, typing: true } : lastLine
+    };
+  }, [intro, messages.length, streaming]);
+
+  // Ô nhắn tin chỉ mở khi thật sự có chỗ nhận: lúc trò chuyện tự do, hoặc lúc
+  // phiếu cảm xúc hỏi một câu tự kể. Trong lúc Larry đang nói hay đang chờ em
+  // bấm nút thì đóng lại — mở sẵn một ô không ai đọc chỉ khiến em gõ vào quãng
+  // không.
+  const inputOpen = chatStarted || askingText;
 
   const sendMessage = () => {
     if (!input.trim() || busy) return;
 
     const text = input.trim();
     setInput("");
+
+    // Đang ở câu "kể thêm cho mình nghe" của phiếu cảm xúc: lời em gõ thuộc về
+    // phiếu, không phải một lượt hỏi model. Cùng một ô nhắn tin, hai đích đến —
+    // dựng thêm một ô nhập riêng cho phiếu thì em phải học hai chỗ để gõ.
+    if (askingText) {
+      intro.answer(text, { text });
+      return;
+    }
 
     // Gửi tin mới khi Larry còn đang đọc câu cũ thì cắt lời ngay, đừng để em ngồi
     // nghe nốt một câu đã cũ trong lúc chờ câu trả lời mới.
@@ -207,26 +278,51 @@ export default function ChatBox({
 
   return (
     <div className="chat-window">
-      <ChatHeader speaker={voiceConfig.tts ? speaker : null} />
+      <ChatHeader speaker={voiceConfig.tts ? speaker : null} characterId={characterId} />
 
-      <div ref={chatRef} className="chat-messages">
-        {setupStep === "consent" && (
-          <p className="waiting-hint">
-            👋 Larry đang chào bạn và xin phép dùng camera...
-          </p>
+      <div
+        ref={chatRef}
+        className="chat-messages"
+        onPointerDown={(event) => {
+          // Chạm vào chỗ trống trong khung chat = đi nhanh hơn. Nút bấm và ô nhập
+          // thì không tính, chúng có việc riêng của chúng.
+          if (event.target.closest("button, input, textarea, a")) return;
+          intro?.skip();
+        }}
+      >
+        {/* Camera đã bật nhưng chưa bắt được khuôn mặt nào: chờ nốt lần đọc duy
+            nhất đó rồi Larry mới mở lời. Tự bỏ cuộc sau ít giây, xem
+            useCompanionCamera. */}
+        {!emotionReady && (
+          <p className="waiting-hint">👀 Larry đang ghi nhớ cảm xúc của bạn...</p>
         )}
 
-        {setupStep === "camera" && !emotionReady && (
-          <p className="waiting-hint">
-            👀 Larry đang nhận biết cảm xúc qua camera...
-          </p>
+        {/* Kịch bản mở đầu: lời Larry và lựa chọn của em, cùng một loại bong bóng
+            với mọi lượt nói khác. Chạm vào đây là bỏ qua phần chờ đọc. */}
+        {/* Lựa chọn em vừa bấm. Mỗi câu trả lời là một bong bóng mới nên nó ĐƯỢC
+            phép hiện ra kiểu nảy vào — đó là một lượt nói mới thật. */}
+        {introView?.answer && (
+          <Message key={introView.answer.id} index={0} sender="user" text={introView.answer.text} />
         )}
 
-        {setupStep === "checkin" && (
-          <p className="waiting-hint">
-            💛 Hoàn thành phiếu cảm xúc rồi mình trò chuyện nhé...
-          </p>
+        {/* Câu Larry đang nói. Key cố định để React giữ nguyên phần tử này qua
+            mọi câu: gõ xong không nháy, và câu sau chỉ đơn giản thế chỗ câu trước.
+            Cố ý KHÔNG gắn agent nào — đoạn mở đầu không có trợ lý chuyên trách nào
+            chạy cả, gắn nhãn "Larry Điều phối" vào đây là bịa ra một bước xử lý
+            chưa hề xảy ra. */}
+        {introView?.line && (
+          <Message
+            key="intro-line"
+            index={0}
+            sender="ai"
+            text={introView.line.text}
+            streaming={Boolean(introView.line.typing)}
+          />
         )}
+
+        {intro?.prompt && <IntroPrompt prompt={intro.prompt} onAnswer={intro.answer} />}
+
+        {intro?.hint && messages.length === 0 && <p className="intro-hint">{intro.hint}</p>}
 
         {messages.map((msg, index) => (
           <Message
@@ -261,15 +357,30 @@ export default function ChatBox({
         <AgentTrace steps={steps} busy={busy} />
       </div>
 
-      {chatStarted && (
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSend={sendMessage}
-          disabled={busy}
-          // Chưa khai STT_MODEL ở backend thì không có nút micro nào được vẽ
-          voice={voiceConfig.stt ? voice : null}
-        />
+      {inputOpen && (
+        <>
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSend={sendMessage}
+            disabled={busy}
+            placeholder={askingText ? UI_TEXT.detailPlaceholder : undefined}
+            // Chưa khai STT_MODEL ở backend thì không có nút micro nào được vẽ
+            voice={voiceConfig.stt ? voice : null}
+          />
+
+          {/* Câu tự kể của phiếu được phép bỏ trống — bắt em phải viết một điều
+              chưa muốn nói thì chẳng khác gì đóng cửa cuộc trò chuyện lại. */}
+          {askingText && (
+            <button
+              type="button"
+              className="intro-skip"
+              onClick={() => intro.answer(UI_TEXT.detailSkip, { text: "" })}
+            >
+              {UI_TEXT.detailSkip}
+            </button>
+          )}
+        </>
       )}
 
       {chatStarted && <ScratchButton />}

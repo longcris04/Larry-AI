@@ -1,0 +1,291 @@
+/* Nhân vật đồng hành — khung vẽ và các tư thế.
+   Xem constants/characters.jsx để biết vì sao mọi nhân vật dùng chung bộ này. */
+
+.companion {
+  position: relative;
+  width: min(60vw, 250px);
+  line-height: 0;
+}
+
+.companion__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Thở nhè nhẹ. transform-origin đặt ở giữa thân để lúc nhún không bị lệch. */
+.companion__float {
+  transform-origin: 150px 190px;
+  animation: companion-bob 5s ease-in-out infinite;
+}
+
+@keyframes companion-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+.companion__glow {
+  transform-origin: 150px 182px;
+  animation: companion-pulse 6s ease-in-out infinite;
+}
+
+@keyframes companion-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.07);
+  }
+}
+
+/* --- Tâm trạng ------------------------------------------------------------ */
+
+.companion--shy .companion__float {
+  animation: companion-bob 5s ease-in-out infinite, companion-sway 3s ease-in-out infinite;
+}
+
+@keyframes companion-sway {
+  0%,
+  100% {
+    rotate: -3deg;
+  }
+  50% {
+    rotate: 3deg;
+  }
+}
+
+.companion--tilt .companion__float {
+  rotate: -7deg;
+  transition: rotate 0.5s ease;
+}
+
+.companion--hop .companion__float {
+  animation: companion-hop 0.75s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes companion-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-26px) scale(1.03);
+  }
+  70% {
+    transform: translateY(3px) scale(0.99);
+  }
+}
+
+/* Thở cùng nhau: quầng sáng phình ra rồi xẹp lại theo nhịp hít vào / thở ra */
+.companion--breathe-in .companion__glow {
+  animation: none;
+  opacity: 1;
+  transform: scale(1.18);
+  transition: transform 4s ease-in-out, opacity 4s ease-in-out;
+}
+
+.companion--breathe-out .companion__glow {
+  animation: none;
+  opacity: 0.45;
+  transform: scale(0.92);
+  transition: transform 6s ease-in-out, opacity 6s ease-in-out;
+}
+
+/* --- Tay ------------------------------------------------------------------ */
+/* Điểm xoay là gốc mỗi cánh tay, tính theo toạ độ trong viewBox: trái (110,118),
+   phải (190,118). Trong SVG, góc DƯƠNG làm một hình chúc xuống quay sang TRÁI
+   màn hình — nên tay trái và tay phải luôn nhận hai góc trái dấu nhau. */
+
+.companion__arm {
+  transform-box: view-box;
+  transition: transform 1.05s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.companion__arm--l {
+  transform-origin: 110px 118px;
+}
+
+.companion__arm--r {
+  transform-origin: 190px 118px;
+}
+
+/* che mắt — tư thế mặc định lúc chưa xin phép camera */
+[data-arms="cover"] .companion__arm--l {
+  transform: rotate(-21deg);
+}
+[data-arms="cover"] .companion__arm--r {
+  transform: rotate(21deg);
+}
+
+/* buông xuôi hai bên — tư thế trò chuyện bình thường */
+[data-arms="down"] .companion__arm--l {
+  transform: rotate(26deg);
+}
+[data-arms="down"] .companion__arm--r {
+  transform: rotate(-26deg);
+}
+
+/* vén hẳn ra sau — khuôn mặt lộ trọn vẹn */
+[data-arms="back"] .companion__arm--l {
+  transform: rotate(62deg);
+}
+[data-arms="back"] .companion__arm--r {
+  transform: rotate(-62deg);
+}
+
+/* giơ cao — lúc vui */
+[data-arms="up"] .companion__arm--l {
+  transform: rotate(145deg);
+}
+[data-arms="up"] .companion__arm--r {
+  transform: rotate(-145deg);
+}
+
+/* vẫy tay chào */
+[data-arms="wave"] .companion__arm--l {
+  transform: rotate(26deg);
+}
+[data-arms="wave"] .companion__arm--r {
+  transform: rotate(-132deg);
+  animation: companion-wave 1.2s ease-in-out infinite;
+}
+
+@keyframes companion-wave {
+  0%,
+  100% {
+    transform: rotate(-132deg);
+  }
+  50% {
+    transform: rotate(-158deg);
+  }
+}
+
+/* --- Mắt ------------------------------------------------------------------ */
+
+.eyes {
+  transition: opacity 0.3s ease;
+}
+
+[data-eyes="open"] .eyes-shut,
+[data-eyes="open"] .eyes-happy {
+  opacity: 0;
+}
+
+[data-eyes="shut"] .eyes-open,
+[data-eyes="shut"] .eyes-happy {
+  opacity: 0;
+}
+
+[data-eyes="happy"] .eyes-open,
+[data-eyes="happy"] .eyes-shut {
+  opacity: 0;
+}
+
+/* Chớp mắt: chỉ chạy khi mắt đang mở, và nhóm mắt nhắm sáng lên đúng lúc nhóm
+   mắt mở tắt đi — nên trông như một cái chớp thật chứ không phải mặt bị mất mắt. */
+[data-eyes="open"] .eyes-open {
+  animation: companion-blink 5.2s infinite;
+}
+
+[data-eyes="open"] .eyes-shut {
+  animation: companion-blink-inverse 5.2s infinite;
+}
+
+@keyframes companion-blink {
+  0%,
+  95%,
+  100% {
+    opacity: 1;
+  }
+  97%,
+  98.6% {
+    opacity: 0;
+  }
+}
+
+@keyframes companion-blink-inverse {
+  0%,
+  95%,
+  100% {
+    opacity: 0;
+  }
+  97%,
+  98.6% {
+    opacity: 1;
+  }
+}
+
+/* --- Khung camera nép cạnh nhân vật --------------------------------------- */
+
+.companion__cam {
+  position: absolute;
+  right: -4px;
+  bottom: 8%;
+  z-index: 4;
+  width: 30%;
+  max-width: 84px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 4px solid var(--white, #fff);
+  border-radius: 50%;
+  background: #dfeef8;
+  box-shadow: 0 12px 28px rgba(60, 110, 150, 0.28);
+  animation: companion-pop 0.34s ease both;
+}
+
+.companion__cam video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+@keyframes companion-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .companion__float,
+  .companion__glow,
+  .companion__arm,
+  .eyes-open,
+  .eyes-shut {
+    animation: none !important;
+  }
+
+  .companion__arm {
+    transition-duration: 0.3s;
+  }
+}
+
+/* Ảnh đại diện trong đầu khung chat: hình vuông nhỏ, cắt gọn trong vành gradient
+   sẵn có nên nhân vật phải phóng to lên và đẩy xuống một chút cho vừa khuôn mặt. */
+.companion--header {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--white, #fff);
+}
+
+.companion--header .companion__svg {
+  width: 155%;
+  margin: -6% 0 0 -27%;
+}

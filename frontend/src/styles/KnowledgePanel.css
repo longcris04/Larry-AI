@@ -39,7 +39,7 @@
   color: var(--text-soft);
 }
 
-.knowledge-panel__emotion {
+.knowledge-panel__note {
   margin: 10px 0 0;
   padding: 7px 12px;
   border-radius: var(--radius-pill);

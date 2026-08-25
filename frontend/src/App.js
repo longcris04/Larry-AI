@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useState } from "react";
+import React, { Suspense, useCallback, useRef, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,13 +16,16 @@ import TeacherPage from "./components/ui/TeacherPage";
 import CounselorRoute from "./components/ui/CounselorRoute";
 import CounselorPage from "./components/ui/CounselorPage";
 import FeedbackLinks from "./components/ui/FeedbackLinks";
-import Camera from "./components/ui/Camera";
-import CameraWelcome from "./components/ui/CameraWelcome";
+import AccountPill from "./components/ui/AccountPill";
 import ChatBox from "./components/ui/ChatBox";
-import CheckinModal from "./components/ui/CheckinModal";
+import CompanionPanel from "./components/ui/CompanionPanel";
 import KnowledgePanel from "./components/ui/KnowledgePanel";
 import PlayfulBackground from "./components/ui/PlayfulBackground";
 import UserMenu from "./components/ui/UserMenu";
+import { readSavedCharacterId, saveCharacterId } from "./constants/characters";
+import { homePathForRole } from "./constants/roles";
+import { useCompanionCamera } from "./hooks/useCompanionCamera";
+import { useIntroScript } from "./hooks/useIntroScript";
 import "./styles/larry.css";
 // Nạp sau larry.css để phần màu theo agent ghi đè được màu mặc định của bong bóng
 import "./styles/agents.css";
@@ -35,70 +38,37 @@ const ScratchGamePage = React.lazy(
 // đăng nhập vào thẳng khung chat thì không bao giờ mở tới.
 const AboutPage = React.lazy(() => import("./components/ui/AboutPage"));
 
-// Đặt biến này trong frontend/.env để BỎ HẲN bước camera khi demo hoặc chạy thử
-// tự động:
-//   REACT_APP_FAKE_EMOTION=neutral
-// Có sẵn cảm xúc nghĩa là bước nhận diện coi như xong, nên cột trái vào thẳng bảng
-// tri thức và webcam không bật lần nào.
+// Màn hình của học sinh chỉ có MỘT: khung chat.
 //
-// Đây KHÔNG phải cách xử lý việc học sinh từ chối quyền camera — trường hợp đó
-// Camera tự báo về qua onUnavailable và cuộc trò chuyện đi tiếp không cần cảm xúc.
-const FAKE_EMOTION = process.env.REACT_APP_FAKE_EMOTION || "";
-
+// Lời chào và phiếu cảm xúc chạy ngay bên trong khung chat đó (useIntroScript) —
+// lời Larry thành bong bóng, lựa chọn của em thành lượt nói của em. Hỏi xong
+// phiếu thì chuyển thẳng sang trò chuyện tự do, không đổi màn hình, không mất đi
+// đoạn vừa nói.
+//
+// Trước đây đoạn mở đầu là một màn hình riêng đứng chắn phía trước: hết màn đó
+// rồi nhảy sang khung chat thì mọi thứ em vừa kể biến mất, cuộc trò chuyện bắt
+// đầu lại từ con số không — trong khi đó chính là đoạn mở đầu của nó.
+//
+// Camera sống xuyên suốt (useCompanionCamera): em bật tắt lúc nào cũng được,
+// nhưng cảm xúc chỉ được ĐỌC ĐÚNG MỘT LẦN cho cả phiên.
 const ProtectedApp = () => {
-  const [emotion, setEmotion] = useState(FAKE_EMOTION || null);
-  // Luồng bắt buộc: xin phép camera → nhận diện (hoặc bỏ qua) → phiếu cảm xúc → chat.
-  // Chế độ giả cảm xúc dành cho demo/test bỏ riêng hai bước camera nhưng vẫn giữ
-  // phiếu check-in, đúng mục đích ban đầu của REACT_APP_FAKE_EMOTION.
-  const [setupStep, setSetupStep] = useState(FAKE_EMOTION ? "checkin" : "consent");
+  const [characterId, setCharacterId] = useState(readSavedCharacterId);
+  const camera = useCompanionCamera();
 
-  // Camera không dùng được: học sinh không cho quyền, máy không có webcam, model
-  // nhận diện hỏng, hoặc em chủ động bỏ qua. Bước camera vẫn tính là XONG — chỉ là
-  // xong mà không có tín hiệu nào. Không tách khỏi `emotion` thì màn hình đứng lại
-  // ở "Larry đang chờ nhìn thấy bạn" mãi mãi vì cảm xúc không bao giờ về.
-  const [cameraOff, setCameraOff] = useState(false);
-
-  // Phiếu cảm xúc chỉ mở SAU bước camera. null = chưa trả lời / đã bỏ qua,
-  // lúc đó system prompt giữ nguyên như cũ.
-  const [checkin, setCheckin] = useState(null);
-  const [checkinOpen, setCheckinOpen] = useState(Boolean(FAKE_EMOTION));
+  // checkin = null khi em bỏ qua hết các câu hỏi; lúc đó system prompt giữ
+  // nguyên như khi không có phiếu.
+  const intro = useIntroScript({ camera });
 
   // Tri thức agent vừa tra ở lượt gần nhất, do ChatBox đẩy lên. Nó thuộc về bảng
   // bên trái chứ không thuộc khung chat, nên state phải nằm ở đây.
-  const [knowledgeView, setKnowledgeView] = useState({ knowledge: null, busy: false });
+  const [knowledgeView, setKnowledgeView] = useState({
+    knowledge: null,
+    busy: false,
+  });
 
-  const handleEmotionDetected = useCallback((detectedEmotion) => {
-    setEmotion(detectedEmotion);
-    setSetupStep("checkin");
-    setCheckinOpen(true);
-  }, []);
-
-  const handleCameraUnavailable = useCallback((reason) => {
-    console.info(`Bỏ qua bước camera (${reason}) — Larry sẽ hỏi để hiểu cảm xúc.`);
-    setCameraOff(true);
-    setSetupStep("checkin");
-    setCheckinOpen(true);
-  }, []);
-
-  const handleCameraDecline = useCallback(() => {
-    setCameraOff(true);
-    setSetupStep("checkin");
-    setCheckinOpen(true);
-  }, []);
-
-  // Bước nhận diện đã kết thúc, dù chốt được cảm xúc hay không. Đây mới là thứ
-  // quyết định lúc nào mở khung chat — KHÔNG phải bản thân cảm xúc.
-  const emotionStepDone = Boolean(emotion) || cameraOff;
-
-  const handleCheckinComplete = useCallback((answers) => {
-    setCheckin(answers);
-    setCheckinOpen(false);
-    setSetupStep("chat");
-  }, []);
-
-  const handleCheckinSkip = useCallback(() => {
-    setCheckinOpen(false);
-    setSetupStep("chat");
+  const pickCharacter = useCallback((id) => {
+    setCharacterId(id);
+    saveCharacterId(id);
   }, []);
 
   return (
@@ -106,38 +76,28 @@ const ProtectedApp = () => {
       <div className="app-shell">
         <PlayfulBackground />
 
-        {setupStep === "checkin" && checkinOpen && (
-          <CheckinModal
-            onComplete={handleCheckinComplete}
-            onSkip={handleCheckinSkip}
-          />
-        )}
-
         <div className="app-layout">
           <section className="panel-left">
             <div className="camera-stack">
-              {/* Camera chỉ sống tới lúc xong bước nhận diện — chốt được cảm xúc,
-                  hoặc xác định là không dùng được. Xong việc thì gỡ hẳn component
-                  (webcam tắt theo) và nhường chỗ cho bảng tri thức — chỗ cho thấy
-                  Larry lấy câu trả lời từ tài liệu nào. */}
-              {setupStep === "consent" ? (
-                <CameraWelcome
-                  onAllow={() => setSetupStep("camera")}
-                  onDecline={handleCameraDecline}
-                />
-              ) : setupStep === "camera" ? (
-                <Camera
-                  onEmotionDetected={handleEmotionDetected}
-                  onUnavailable={handleCameraUnavailable}
-                />
-              ) : (
-                <KnowledgePanel
-                  knowledge={knowledgeView.knowledge}
-                  busy={knowledgeView.busy}
-                  emotion={emotion}
-                  cameraOff={cameraOff}
-                />
-              )}
+              {/* Gương mặt Larry ở lại suốt cuộc trò chuyện, cùng mấy cái nút em
+                  bấm được bất cứ lúc nào: đóng/mở mắt, đổi gương mặt, lối ra.
+                  Mắt mở đúng vào lúc kịch bản trong khung chat nói tới — tư thế
+                  do useIntroScript điều khiển. */}
+              <CompanionPanel
+                characterId={characterId}
+                onPickCharacter={pickCharacter}
+                camera={camera}
+                pose={intro.pose}
+                account={<AccountPill />}
+              />
+
+              {/* Bảng cho thấy Larry lấy câu trả lời từ tài liệu nào */}
+              <KnowledgePanel
+                knowledge={knowledgeView.knowledge}
+                busy={knowledgeView.busy}
+                cameraOff={!camera.isOn}
+              />
+
               {/* Lời mời góp ý — đặt dưới bảng tri thức, ngoài khung chat, để
                   không chen vào mạch trò chuyện của em */}
               <FeedbackLinks />
@@ -149,11 +109,11 @@ const ProtectedApp = () => {
           </section>
           <section className="panel-right">
             <ChatBox
-              emotion={emotion}
-              emotionReady={emotionStepDone}
-              checkin={checkin}
-              checkinReady={setupStep === "chat"}
-              setupStep={setupStep}
+              characterId={characterId}
+              emotion={camera.emotion}
+              emotionReady={camera.emotionReady}
+              checkin={intro.checkin}
+              intro={intro}
               onKnowledge={setKnowledgeView}
             />
           </section>
@@ -163,17 +123,31 @@ const ProtectedApp = () => {
   );
 };
 
-const AppContent = () => {
-  const { isAuthenticated, isAdmin, isTeacher, isCounselor, loading } = useAuth();
+// Cửa /login.
+//
+// Vừa đăng nhập xong thì đi thẳng vào khu vực của mình — đó là điều ai cũng
+// mong đợi khi vừa gõ mật khẩu. Nhưng người ĐÃ đăng nhập từ trước mà tự mở
+// /login (bấm "Vào chat" ở trang giới thiệu chẳng hạn) thì KHÔNG bị chuyển
+// hướng: họ dừng lại ở màn hình đăng nhập và tự bấm vào chat.
+//
+// Phân biệt hai trường hợp bằng đúng một câu hỏi: lúc mở trang này ra, đã đăng
+// nhập sẵn chưa? Trả lời một lần rồi giữ nguyên (useRef) — nếu đọc lại mỗi lần
+// render thì ngay sau khi đăng nhập thành công nó cũng thành "đã đăng nhập sẵn"
+// và không ai được vào đâu cả.
+const LoginRoute = ({ homePath }) => {
+  const { isAuthenticated } = useAuth();
+  const signedInOnArrival = useRef(isAuthenticated).current;
 
-  // Mỗi vai trò về đúng khu vực của mình. Học sinh mới là người vào khung chat.
-  const homePath = isAdmin
-    ? "/admin"
-    : isTeacher
-      ? "/teacher"
-      : isCounselor
-        ? "/counselor"
-        : "/";
+  if (isAuthenticated && !signedInOnArrival)
+    return <Navigate to={homePath} replace />;
+
+  return <Login />;
+};
+
+const AppContent = () => {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  const homePath = homePathForRole(user?.role);
 
   if (loading) {
     return (
@@ -206,12 +180,11 @@ const AppContent = () => {
         }
       />
 
-      <Route
-        path="/login"
-        element={
-          isAuthenticated ? <Navigate to={homePath} replace /> : <Login />
-        }
-      />
+      {/* Trang đăng nhập là CỬA VÀO THẬT của khung chat, không phải một trạm
+          trung chuyển. Người đã đăng nhập sẵn mở nó lên vẫn thấy màn hình chào
+          cùng nút "Trò chuyện với Larry ngay" — bấm rồi mới vào, chứ không bị
+          đẩy thẳng vào giữa cuộc trò chuyện. Xem LoginRoute. */}
+      <Route path="/login" element={<LoginRoute homePath={homePath} />} />
 
       <Route
         path="/register"
@@ -262,21 +235,19 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      {/* Cửa vào của cả web. Người LẠ mở link lên thì gặp trang giới thiệu trước,
-          không phải form đăng nhập: phải đọc Larry là gì rồi mới quyết định có
-          tạo tài khoản hay không. Người ĐÃ đăng nhập vào thẳng khung chat như cũ
-          — họ biết Larry là gì rồi, bắt đọc lại giới thiệu mỗi lần mở app là phiền.
-          Muốn xem lại giới thiệu thì /gioi-thieu vẫn mở được bất cứ lúc nào.
+      {/* Khung chat có địa chỉ RIÊNG. Trước đây nó nằm ngay tại "/", nên người đã
+          đăng nhập mở app lên là rơi thẳng vào cuộc trò chuyện, không có đường nào
+          quay ra xem lại giới thiệu ngoài việc tự gõ địa chỉ. */}
+      <Route path="/chat" element={<ProtectedApp />} />
+
+      {/* Cửa vào của cả web LUÔN là trang giới thiệu, kể cả khi đã đăng nhập: mở
+          app lên thì thấy Larry là gì, có gì mới, rồi tự bấm vào chat khi muốn —
+          chứ không bị ném thẳng vào giữa cuộc trò chuyện.
 
           Cố ý chuyển hướng sang /gioi-thieu chứ không vẽ AboutPage ngay tại "/":
           trang giới thiệu chỉ có MỘT địa chỉ, nên gửi link cho nhau không ra hai
           đường dẫn cùng nội dung. */}
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? <ProtectedApp /> : <Navigate to="/gioi-thieu" replace />
-        }
-      />
+      <Route path="/" element={<Navigate to="/gioi-thieu" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -58,6 +58,31 @@
   text-overflow: ellipsis;
 }
 
+/* Đường quay ra trang giới thiệu — cùng khuôn với nút đăng xuất bên dưới nhưng
+   màu dịu hơn, để không tranh chỗ với hành động rời hẳn. */
+.user-menu__about {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 11px 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f2f9ff, #e9f3ff);
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 14px;
+  color: #2a5a7c;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.user-menu__about:hover {
+  background: #e0efff;
+  transform: translateY(-2px);
+}
+
 .user-menu__logout {
   display: flex;
   align-items: center;

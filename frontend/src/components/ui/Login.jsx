@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaMobileAlt, FaLock, FaEye, FaEyeSlash, FaUserShield } from "react-icons/fa";
 
 import { useAuth } from "../../context/AuthContext";
@@ -8,12 +8,13 @@ import GradientButton from "./GradientButton";
 import PlayfulBackground from "./PlayfulBackground";
 import SpeakerToggle from "./SpeakerToggle";
 import { usePublicSettings } from "../../hooks/usePublicSettings";
-import { ROLES } from "../../constants/roles";
+import { ROLES, homePathForRole } from "../../constants/roles";
 import { PASSWORD_RESET_EMAIL } from "../../constants/systemMessages";
 import "../../styles/AuthForms.css";
 
 export default function Login() {
-  const { login, loginAsGuest } = useAuth();
+  const { login, loginAsGuest, logout, user, isAuthenticated, isGuest } = useAuth();
+  const navigate = useNavigate();
 
   // Một lần hỏi máy chủ, hai câu trả lời:
   //   guestMode  — tắt thì cả khối "hoặc → Trò chuyện ngay" biến mất
@@ -84,6 +85,55 @@ export default function Login() {
 
     setGuestLoading(false);
   };
+
+  // ĐÃ ĐĂNG NHẬP SẴN mà vẫn mở trang này (bấm "Vào chat" ở trang giới thiệu).
+  //
+  // Không đẩy thẳng vào khung chat: cuộc trò chuyện với Larry mở ra bằng một màn
+  // chào hỏi có nhịp riêng của nó, rơi vào giữa chừng mà không kịp chuẩn bị thì
+  // hụt mất mấy câu đầu. Dừng ở đây một nhịp, ai muốn vào thì bấm — và ai vào
+  // nhầm tài khoản thì đổi được ngay tại chỗ.
+  if (isAuthenticated) {
+    const name = user?.profile?.fullName || user?.username || user?.phone || "bạn";
+
+    return (
+      <div className="auth-page">
+        <PlayfulBackground />
+
+        <div className="auth-wrapper">
+          <div className="auth-card">
+            <div className="auth-card__avatar">
+              <img className="brand-logo" src={`${process.env.PUBLIC_URL}/logo_mark.png`} alt="Larry AI" />
+            </div>
+
+            <h1 className="auth-title">Chào {name} 👋</h1>
+
+            <p className="auth-subtitle">
+              {isGuest
+                ? "Bạn đang dùng chế độ khách. Vào trò chuyện với Larry nhé?"
+                : "Bạn đã đăng nhập rồi. Vào trò chuyện với Larry nhé?"}
+            </p>
+
+            {/* Chọn giọng TRƯỚC khi vào, cùng lý do như ở form đăng nhập bên dưới:
+                bật lúc Larry đang chào thì câu đó đã trôi qua mất rồi. */}
+            {!settingsLoading && voice.tts && <SpeakerToggle variant="pill" />}
+
+            <GradientButton onClick={() => navigate(homePathForRole(user?.role))} fullWidth>
+              Trò chuyện với Larry ngay! 💬
+            </GradientButton>
+
+            <button type="button" className="auth-relogin" onClick={logout}>
+              {isGuest ? "Đăng nhập bằng tài khoản của mình" : "Đăng nhập bằng tài khoản khác"}
+            </button>
+
+            <div className="auth-bottom auth-bottom--about">
+              Chưa biết Larry là ai?
+              <Link to="/gioi-thieu">Xem giới thiệu</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">

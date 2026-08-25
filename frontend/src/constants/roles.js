@@ -35,3 +35,15 @@ export function roleLabel(role) {
 export function statusLabel(status) {
   return STATUS_LABELS[status] || status || "—";
 }
+
+// Mỗi vai trò về đúng khu vực của mình sau khi đăng nhập. Học sinh mới là người
+// vào khung chat; ba vai trò còn lại vào khu quản lý của họ.
+//
+// Là "/chat" chứ không phải "/": địa chỉ gốc luôn mở trang giới thiệu, nên trả
+// về "/" ở đây thì vừa đăng nhập xong đã bị đá ngược ra trang giới thiệu.
+export function homePathForRole(role) {
+  if (role === ROLES.ADMIN) return "/admin";
+  if (role === ROLES.TEACHER) return "/teacher";
+  if (role === ROLES.COUNSELOR) return "/counselor";
+  return "/chat";
+}

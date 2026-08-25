@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { EMOTION_CONFIG } from "../../constants/emotions";
 import { getAgent } from "../../constants/agents";
 import "../../styles/KnowledgePanel.css";
 
@@ -80,10 +79,9 @@ function KnowledgeCard({ item }) {
   );
 }
 
-export default function KnowledgePanel({ knowledge, busy, emotion, cameraOff = false }) {
+export default function KnowledgePanel({ knowledge, busy, cameraOff = false }) {
   const items = knowledge?.items || [];
   const agent = knowledge?.agent ? getAgent(knowledge.agent) : null;
-  const emotionInfo = emotion ? EMOTION_CONFIG[emotion] : null;
 
   // Đang chạy mà chưa có kết quả của lượt NÀY (hook đã xoá kết quả lượt trước):
   // supervisor còn đang đánh giá, chưa agent nào tra kho.
@@ -101,17 +99,12 @@ export default function KnowledgePanel({ knowledge, busy, emotion, cameraOff = f
           vừa mở trong kho tri thức của nhà trường để viết câu trả lời cho bạn.
         </p>
 
-        {emotionInfo && (
-          <p className="knowledge-panel__emotion">
-            <span aria-hidden="true">{emotionInfo.icon}</span> Larry đã ghi nhận cảm
-            xúc của bạn — camera tắt rồi nhé.
-          </p>
-        )}
-
         {/* Không có camera thì cũng không sao, và không được để em thấy như mình vừa
-            làm hỏng việc gì — Larry hỏi thẳng trong lúc trò chuyện là đủ. */}
-        {!emotionInfo && cameraOff && (
-          <p className="knowledge-panel__emotion">
+            làm hỏng việc gì — Larry hỏi thẳng trong lúc trò chuyện là đủ.
+            Chiều ngược lại thì KHÔNG nói gì: camera đang bật mà thông báo "đã ghi
+            nhận cảm xúc của bạn" thì hoá ra vừa đọc vừa báo cáo lại cho em. */}
+        {cameraOff && (
+          <p className="knowledge-panel__note">
             <span aria-hidden="true">💬</span> Lần này mình không dùng camera. Larry sẽ
             hỏi bạn vài câu để hiểu cảm xúc của bạn nhé!
           </p>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import KnowledgeGraphExplorer from "./KnowledgeGraphExplorer";
 import PlayfulBackground from "./PlayfulBackground";
+import { useAuth } from "../../context/AuthContext";
 import { useGuestMode } from "../../hooks/useGuestMode";
 import { useGuideLink } from "../../hooks/useGuideLink";
 import "../../styles/AboutPage.css";
@@ -297,6 +298,15 @@ export default function AboutPage() {
   // Link tài liệu hướng dẫn, khai bằng USER_GUIDE_URL trong backend/.env
   const guideUrl = useGuideLink();
 
+  // Mọi nút "vào chat" đều đi qua trang đăng nhập, kể cả khi đã đăng nhập sẵn:
+  // đó là cửa vào duy nhất của khung chat. Người đã đăng nhập không phải gõ lại
+  // mật khẩu — trang đó nhận ra họ và chỉ hỏi một câu "vào chưa?" (xem Login).
+  //
+  // Chữ trên nút thì đổi theo, vì mời một người đang đăng nhập đi "Đăng nhập"
+  // nghe rất vô duyên.
+  const { isAuthenticated } = useAuth();
+  const enterTo = "/login";
+
   return (
     <div className="about-page">
       <PlayfulBackground />
@@ -319,8 +329,8 @@ export default function AboutPage() {
           <a href="#huong-dan" className="about-nav__link">
             Cách dùng
           </a>
-          <Link to="/login" className="about-nav__cta">
-            Đăng nhập →
+          <Link to={enterTo} className="about-nav__cta">
+            {isAuthenticated ? "Vào chat →" : "Đăng nhập →"}
           </Link>
         </nav>
       </header>
@@ -340,7 +350,7 @@ export default function AboutPage() {
               chuyện khó nói với người khác — bất cứ lúc nào, không cần chờ tới giờ hành chính.
             </p>
             <div className="about-hero__actions">
-              <Link to="/login" className="about-btn about-btn--primary">
+              <Link to={enterTo} className="about-btn about-btn--primary">
                 Trò chuyện với Larry
               </Link>
               <a href="#kho-tri-thuc" className="about-btn">
@@ -524,7 +534,7 @@ export default function AboutPage() {
           <p className="about-card__body">
             Larry đang đợi để nghe câu chuyện của bạn.
           </p>
-          <Link to="/login" className="about-btn about-btn--primary about-btn--lg">
+          <Link to={enterTo} className="about-btn about-btn--primary about-btn--lg">
             Bắt đầu ngay →
           </Link>
         </section>
@@ -533,7 +543,7 @@ export default function AboutPage() {
       <footer className="about-footer">
         <p>
           Larry AI · Dự án của học sinh lớp 8T1.1, THCS Đoàn Thị Điểm ·{" "}
-          <Link to="/login">Đăng nhập</Link>
+          <Link to={enterTo}>{isAuthenticated ? "Vào chat" : "Đăng nhập"}</Link>
         </p>
         <p className="about-footer__warn">
           Larry là người bạn để tâm sự, <strong>không thay thế</strong> bác sĩ hay chuyên gia

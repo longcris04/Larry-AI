@@ -1,0 +1,418 @@
+/* Kịch bản mở đầu chạy TRONG khung chat: lựa chọn, chip cảm xúc, gợi ý.
+   Kèm theo là mấy thứ dùng chung quanh nó — nút pill, bảng phụ, bộ sưu tập
+   nhân vật, và dải nhân vật ở cột trái. */
+
+.larry-pill {
+  padding: 9px 13px;
+  border: 1.5px solid rgba(112, 144, 182, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(120, 110, 150, 0.12);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.16s ease;
+}
+
+.larry-pill:hover {
+  transform: translateY(-1px);
+}
+
+.larry-pill:active {
+  transform: scale(0.95);
+}
+
+/* Hàng nút ở cột trái chật trên điện thoại — thu nhỏ chữ cho đủ chỗ */
+@media (max-width: 470px) {
+  .larry-pill {
+    padding: 8px 9px;
+    font-size: 0.7rem;
+  }
+}
+
+.larry-pop {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 30;
+  width: min(310px, 86vw);
+  padding: 15px;
+  border: 1.5px solid rgba(112, 144, 182, 0.18);
+  border-radius: 20px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  animation: larry-pop 0.22s ease both;
+}
+
+.larry-pop--left {
+  right: auto;
+  left: 0;
+}
+
+.larry-pop--center {
+  right: auto;
+  left: 50%;
+  width: min(360px, 100%);
+  transform: translateX(-50%);
+}
+
+@keyframes larry-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.larry-pop--center {
+  animation-name: larry-pop-center;
+}
+
+@keyframes larry-pop-center {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+
+.larry-pop h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.larry-pop p {
+  margin: 0 0 9px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.larry-pop__btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 13px;
+  border: 1.5px solid rgba(112, 144, 182, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff, #eef8ff);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.larry-pop__btn--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-soft);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* --- Lựa chọn ------------------------------------------------------------- */
+
+.intro-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intro-choice {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 16px;
+  border: 2px solid rgba(143, 199, 232, 0.6);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: clamp(0.95rem, 4vw, 1.06rem);
+  font-weight: 600;
+  color: #2f4a5c;
+  text-align: left;
+  cursor: pointer;
+  animation: intro-choice-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+@keyframes intro-choice-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.intro-choice:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--white);
+  box-shadow: 0 8px 18px rgba(60, 110, 150, 0.18);
+}
+
+.intro-choice--chosen {
+  border-color: rgba(90, 160, 200, 0.85);
+  background: linear-gradient(180deg, #dcf0ff, #bfe3f7);
+}
+
+.intro-choice--leaving {
+  animation: intro-choice-out 0.24s ease both;
+}
+
+@keyframes intro-choice-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+/* --- Chọn nhiều / tự viết ------------------------------------------------- */
+
+.intro-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: intro-choice-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.intro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.intro-chip {
+  padding: 8px 13px;
+  border: 2px solid rgba(143, 199, 232, 0.6);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2f4a5c;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 0.14s ease;
+}
+
+.intro-chip:hover {
+  transform: translateY(-1px);
+}
+
+.intro-chip--on {
+  border-color: rgba(90, 160, 200, 0.9);
+  background: linear-gradient(180deg, #dcf0ff, #bfe3f7);
+  color: #1d4763;
+}
+
+.intro-input,
+.intro-textarea {
+  width: 100%;
+  padding: 11px 15px;
+  border: 2px solid rgba(143, 199, 232, 0.7);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  font: inherit;
+  font-size: 0.95rem;
+  color: #2f4a5c;
+  resize: vertical;
+}
+
+.intro-input {
+  border-radius: var(--radius-pill);
+}
+
+.intro-input:focus,
+.intro-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.intro-send {
+  align-self: flex-end;
+  padding: 11px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--blue), #58d6c7);
+  font: inherit;
+  font-weight: 750;
+  color: var(--white);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.intro-send:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Dòng mách nước dưới bong bóng — chỉ hiện ở mấy câu đầu, xem useIntroScript */
+.intro-hint {
+  margin: 2px 0 0;
+  padding-left: 54px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+/* "Mình chưa muốn kể" — nằm ngay dưới ô nhắn tin ở câu tự kể của phiếu */
+.intro-skip {
+  display: block;
+  margin: 0 auto 10px;
+  border: none;
+  background: none;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.intro-skip:hover {
+  color: var(--text);
+}
+
+/* --- Bộ sưu tập nhân vật -------------------------------------------------- */
+
+.char-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.char-card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 10px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: rgba(240, 249, 255, 0.7);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.char-card:hover {
+  transform: translateY(-2px);
+  background: var(--white);
+}
+
+.char-card--on {
+  border-color: var(--blue);
+  background: var(--white);
+  box-shadow: var(--shadow-soft);
+}
+
+.char-card__name {
+  font-size: 0.85rem;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.char-card__species {
+  font-size: 0.68rem;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.companion--mini {
+  width: 100%;
+  max-width: 74px;
+}
+
+/* --- Màn hình thấp -------------------------------------------------------- */
+
+@media (max-height: 720px) {
+  .intro-choice {
+    min-height: 46px;
+    padding: 10px 14px;
+  }
+
+  .intro-chips {
+    max-height: 26vh;
+  }
+}
+
+/* --- Dải nhân vật trong lúc trò chuyện ------------------------------------ */
+
+.companion-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-soft);
+}
+
+.companion-panel__stage {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.companion--panel {
+  width: min(44vw, 190px);
+}
+
+.companion-panel__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.companion-panel__name span {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.companion-panel__actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Bảng phụ ở cột trái mở XUỐNG DƯỚI và căn giữa theo CẢ hàng nút.
+
+   Mở ngược lên thì tràn khỏi mép trên màn hình — dải nhân vật nằm trên cùng cột
+   chứ không phải dưới đáy. Còn căn theo từng cái nút thì bảng của nút ngoài cùng
+   thò hẳn ra ngoài cột, nên `position: static` ở đây đẩy gốc toạ độ lên hàng nút.
+
+   Đặt trong phạm vi cột trái nên nó thắng mọi class mà component con tự gắn. */
+.companion-panel__slot {
+  position: static;
+}
+
+.companion-panel__slot .larry-pop {
+  top: calc(100% + 10px);
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: min(340px, 100%);
+  transform: translateX(-50%);
+  animation-name: larry-pop-center;
+}

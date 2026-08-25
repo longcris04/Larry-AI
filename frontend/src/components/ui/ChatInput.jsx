@@ -30,7 +30,7 @@ function MicButton({ voice, disabled }) {
   );
 }
 
-export default function ChatInput({ value, onChange, onSend, disabled, voice = null }) {
+export default function ChatInput({ value, onChange, onSend, disabled, placeholder, voice = null }) {
   const appendEmoji = (emoji) => {
     onChange(value + emoji);
   };
@@ -40,11 +40,14 @@ export default function ChatInput({ value, onChange, onSend, disabled, voice = n
   const voiceBusy = Boolean(voice?.isRecording || voice?.isTranscribing);
   const typingDisabled = disabled || voiceBusy;
 
-  const placeholder = voice?.isRecording
+  // Micro đang bận thì lời nhắc nói về micro, ưu tiên hơn mọi thứ khác — đó là
+  // việc đang xảy ra ngay lúc này. Ngoài ra nơi gọi đặt được lời nhắc riêng
+  // (phiếu cảm xúc hỏi một câu tự kể thì mời em kể, chứ không mời gõ chung chung).
+  const hintText = voice?.isRecording
     ? "🔴 Larry đang nghe bạn nói..."
     : voice?.isTranscribing
       ? "✍️ Larry đang viết lại lời bạn..."
-      : "Hãy kể cho Larry nghe điều bạn đang nghĩ nhé...";
+      : placeholder || "Hãy kể cho Larry nghe điều bạn đang nghĩ nhé...";
 
   return (
     <div className="chat-input-area">
@@ -77,7 +80,7 @@ export default function ChatInput({ value, onChange, onSend, disabled, voice = n
         <input
           className="chat-input"
           value={value}
-          placeholder={placeholder}
+          placeholder={hintText}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") onSend();
