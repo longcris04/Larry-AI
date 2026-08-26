@@ -12,13 +12,27 @@
 //
 // Mỗi phần tử `days` là { date: "yyyy-mm-dd", [key của từng chuỗi]: số }.
 // `series` là [{ key, label, color: "--tên-biến-css" }].
+//
+// `onSelect(day)` (tuỳ chọn) biến mỗi cột thành thứ BẤM ĐƯỢC — dùng cho biểu đồ
+// tổng, nơi một cột cao bất thường luôn kéo theo câu hỏi "ngày đó là những em
+// nào". Khi có nó thì khung vẽ thành một danh sách chọn thật sự (mũi tên để đi,
+// Enter/Space để chọn) chứ không phải cái div bấm được mà chỉ chuột mới dùng nổi.
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { formatDay, formatNumber, niceMax } from "../../utils/days";
 import "../../styles/AdminDashboard.css";
 
-export default function DayColumnChart({ days, series, emptyText, grouped = false }) {
+export default function DayColumnChart({
+  days,
+  series,
+  emptyText,
+  grouped = false,
+  onSelect,
+  selectedDate = ""
+}) {
   const [cursor, setCursor] = useState(null);
+  const listId = useId();
+  const pickable = typeof onSelect === "function";
 
   const heights = days.map((day) =>
     grouped
@@ -44,9 +58,19 @@ export default function DayColumnChart({ days, series, emptyText, grouped = fals
     else if (event.key === "Home") setCursor(0);
     else if (event.key === "End") setCursor(days.length - 1);
     else if (event.key === "Escape") setCursor(null);
-    else return;
+    else if (pickable && (event.key === "Enter" || event.key === " ")) {
+      // Chưa trỏ vào đâu thì Enter chọn ngày đầu tiên chứ không im lặng
+      const index = cursor === null ? 0 : cursor;
+      setCursor(index);
+      onSelect(days[index]);
+    } else return;
     event.preventDefault();
   };
+
+  const describe = (day) =>
+    `${formatDay(day.date, true)}: ${series
+      .map((s) => `${s.label} ${formatNumber(day[s.key] || 0)}`)
+      .join(", ")}`;
 
   const active = cursor === null ? null : days[cursor];
 
@@ -55,11 +79,7 @@ export default function DayColumnChart({ days, series, emptyText, grouped = fals
   // ngoài thẻ và bị cắt mất một nửa.
   const tipLeft = cursor === null ? 0 : ((cursor + 0.5) / days.length) * 100;
   const tipShift = tipLeft < 15 ? "0" : tipLeft > 85 ? "-100%" : "-50%";
-  const readout = active
-    ? `${formatDay(active.date, true)}: ${series
-        .map((s) => `${s.label} ${formatNumber(active[s.key])}`)
-        .join(", ")}`
-    : "";
+  const readout = active ? describe(active) : "";
 
   if (!hasData) return <p className="dash-empty">{emptyText}</p>;
 
@@ -75,8 +95,15 @@ export default function DayColumnChart({ days, series, emptyText, grouped = fals
         <div
           className="dash-chart__plot"
           tabIndex={0}
-          role="group"
-          aria-label="Biểu đồ theo ngày. Dùng phím mũi tên trái/phải để đọc từng ngày."
+          role={pickable ? "listbox" : "group"}
+          aria-label={
+            pickable
+              ? "Biểu đồ theo ngày. Mũi tên trái/phải để đi từng ngày, Enter để xem những học sinh của ngày đó."
+              : "Biểu đồ theo ngày. Dùng phím mũi tên trái/phải để đọc từng ngày."
+          }
+          aria-activedescendant={
+            pickable && cursor !== null ? `${listId}-${cursor}` : undefined
+          }
           onKeyDown={onKeyDown}
           onMouseLeave={() => setCursor(null)}
           onBlur={() => setCursor(null)}
@@ -93,12 +120,22 @@ export default function DayColumnChart({ days, series, emptyText, grouped = fals
               // chỗ nối giữa chúng lõm vào trông như thiếu mất một mẩu.
               const topKey = [...series].reverse().find((s) => day[s.key] > 0)?.key;
 
+              const picked = pickable && selectedDate === day.date;
+
               return (
                 <div
                   key={day.date}
-                  className={`dash-col${cursor === index ? " dash-col--on" : ""}`}
+                  id={pickable ? `${listId}-${index}` : undefined}
+                  className={
+                    `dash-col${cursor === index ? " dash-col--on" : ""}` +
+                    `${pickable ? " dash-col--pick" : ""}${picked ? " dash-col--picked" : ""}`
+                  }
+                  role={pickable ? "option" : undefined}
+                  aria-selected={pickable ? picked : undefined}
+                  aria-label={pickable ? describe(day) : undefined}
                   onMouseEnter={() => setCursor(index)}
                   onFocus={() => setCursor(index)}
+                  onClick={pickable ? () => onSelect(day) : undefined}
                 >
                   <div className={`dash-col__stack${grouped ? " dash-col__stack--grouped" : ""}`}>
                     {series.map((s) => {

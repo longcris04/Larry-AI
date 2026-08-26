@@ -679,6 +679,29 @@
     border-radius:4px;
 }
 
+/* Cột bấm được (biểu đồ tổng có bảng "ngày này gồm những em nào"). Con trỏ đổi
+   hình để biết là bấm được, và ngày ĐANG mở giữ một khung viền đứng yên — khác
+   hẳn vệt sáng theo chuột ở trên, thứ biến mất ngay khi rời tay. */
+.dash-col--pick{
+
+    cursor:pointer;
+}
+
+.dash-col--picked::after{
+
+    content:"";
+
+    position:absolute;
+
+    inset:0;
+
+    border:2px solid #2a78d6;
+
+    border-radius:5px;
+
+    pointer-events:none;
+}
+
 /* Bảng đọc nhanh khi rê chuột hoặc di bằng phím mũi tên. Nó BỔ SUNG chứ không
    phải đường duy nhất để lấy số — nút "Xem bảng số liệu" cho đủ mọi giá trị. */
 .dash-tip{
@@ -1200,6 +1223,36 @@
     min-height:42px;
 }
 
+/* Nút chọn chỉ số đẩy hẳn về cuối hàng: nó chi phối CÁC BIỂU ĐỒ bên dưới, còn
+   hai ô bên trái chi phối THỨ TỰ các hàng — hai việc khác nhau thì đừng để dính
+   liền nhau thành một cụm. */
+.usage-viewswitch{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:6px;
+
+    margin-left:auto;
+}
+
+.usage-viewswitch--lead{
+
+    margin-left:0;
+
+    margin-right:auto;
+}
+
+.usage-viewswitch__label{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#5A6A85;
+}
+
 .usage-check{
 
     display:flex;
@@ -1268,8 +1321,7 @@
     cursor:pointer;
 }
 
-.usage-account-option > span,
-.usage-disclosure > span:first-child{
+.usage-account-option > span{
 
     display:flex;
 
@@ -1281,7 +1333,6 @@
 }
 
 .usage-account-option small,
-.usage-disclosure small,
 .usage-row-head div span{
 
     overflow:hidden;
@@ -1295,7 +1346,7 @@
     white-space:nowrap;
 }
 
-.usage-disclosure .usage-student-meta{
+.usage-row-head .usage-student-meta{
 
     display:flex;
 
@@ -1336,8 +1387,189 @@
     margin-top:6px;
 }
 
-.usage-chart-list,
-.usage-conversations{
+/* Mỗi nhóm (cả tập, một trường, một khối, một lớp) một thẻ biểu đồ. Xếp lưới tự
+   giãn: lọc ra hai mươi lớp mà xếp dọc thì cuộn cả buổi mới so được lớp đầu với
+   lớp cuối, còn ép hai cột cứng thì màn hình hẹp lại vỡ. */
+.usage-groups{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(400px,1fr));
+
+    align-items:start;
+
+    gap:14px;
+
+    margin-top:16px;
+}
+
+.usage-group{
+
+    padding:14px;
+
+    border:1px solid var(--dash-axis);
+
+    border-radius:14px;
+
+    background:var(--dash-plane);
+}
+
+.usage-group__head{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:baseline;
+
+    justify-content:space-between;
+
+    gap:6px 16px;
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
+}
+
+.usage-group__head strong{
+
+    color:var(--dash-ink);
+
+    font-size:15px;
+}
+
+/* Tên trường của khối/lớp đi liền ngay dưới tên nhóm — "Lớp 6A1" đứng một mình
+   là tên của bốn lớp khác nhau khi bộ lọc còn nhiều trường. */
+.usage-group__head div{
+
+    display:flex;
+
+    min-width:0;
+
+    flex-direction:column;
+
+    gap:2px;
+}
+
+/* --- Bảng "ngày này gồm những em nào" ------------------------------------- */
+
+.usage-daypick{
+
+    margin-top:12px;
+
+    padding-top:12px;
+
+    border-top:1px solid var(--dash-axis);
+}
+
+.usage-daypick__head{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:10px;
+
+    color:var(--dash-ink);
+
+    font-size:14px;
+}
+
+/* Danh sách dài thì tự cuộn trong thẻ — một ngày cao điểm có thể là ba chục em,
+   mà bảng này không được đẩy biểu đồ của nhóm bên cạnh trôi khỏi màn hình. */
+.usage-daypick__list{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:6px;
+
+    margin-top:10px;
+
+    max-height:236px;
+
+    overflow-y:auto;
+
+    padding-right:4px;
+}
+
+.usage-pickrow{
+
+    display:flex;
+
+    width:100%;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:14px;
+
+    padding:9px 12px;
+
+    border:1px solid transparent;
+
+    border-radius:10px;
+
+    background:var(--dash-surface);
+
+    color:var(--dash-ink);
+
+    font:inherit;
+
+    text-align:left;
+
+    cursor:pointer;
+
+    transition:border-color .15s ease;
+}
+
+.usage-pickrow:hover{
+
+    border-color:#C9D8F2;
+}
+
+.usage-pickrow > span:first-child{
+
+    display:flex;
+
+    min-width:0;
+
+    flex-direction:column;
+
+    gap:2px;
+}
+
+.usage-pickrow small{
+
+    overflow:hidden;
+
+    color:var(--dash-ink-2);
+
+    font-size:12px;
+
+    text-overflow:ellipsis;
+
+    white-space:nowrap;
+}
+
+.usage-pickrow > span:last-child{
+
+    flex:none;
+
+    color:var(--dash-ink-2);
+
+    font-size:13px;
+
+    font-weight:700;
+}
+
+.usage-rows{
 
     display:flex;
 
@@ -1348,8 +1580,7 @@
     margin-top:16px;
 }
 
-.usage-chart-row,
-.usage-conversation-account{
+.usage-row{
 
     padding:14px;
 
@@ -1358,6 +1589,22 @@
     border-radius:14px;
 
     background:var(--dash-plane);
+}
+
+/* Hàng vừa được nhảy tới từ mục 2: viền đậm lên để mắt bắt được ngay mình vừa
+   đáp xuống đâu, và outline không bị nuốt vì hàng có tabIndex=-1 để focus vào. */
+.usage-row--focus{
+
+    border-color:#2a78d6;
+
+    box-shadow:0 0 0 3px rgba(42,120,214,.14);
+}
+
+.usage-row:focus-visible{
+
+    outline:2px solid #2a78d6;
+
+    outline-offset:2px;
 }
 
 .usage-row-head{
@@ -1380,7 +1627,73 @@
     flex-direction:column;
 }
 
-.usage-disclosure,
+/* Mấy con số tổng nằm bên phải tên. Xuống dòng chứ không bóp cột tên lại, và
+   nằm NGANG chứ không dọc như cột tên — nên phải ghi đè .usage-row-head div. */
+.usage-row-head .usage-row-stats{
+
+    flex:none;
+
+    flex-direction:row;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    justify-content:flex-end;
+
+    gap:5px 10px;
+
+    font-weight:700;
+}
+
+/* Nền thay vì chữ màu: cam/vàng của biểu đồ làm màu chữ thì không đủ tương phản
+   trên nền trắng — danh tính vẫn nằm ở biểu tượng và chữ bên cạnh. */
+.usage-row-stat--flag,
+.usage-row-stat--high{
+
+    padding:2px 9px;
+
+    border-radius:999px;
+
+    background:var(--dash-surface);
+}
+
+/* Biểu đồ bên trái, hội thoại của ĐÚNG tài khoản đó bên phải — trước kia hai
+   thứ này nằm ở hai mục cách nhau cả màn hình, muốn biết cái cột cao bất thường
+   hôm thứ Ba là phiên nào thì phải cuộn xuống rồi dò lại tên. */
+.usage-row-body{
+
+    display:grid;
+
+    grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+
+    align-items:start;
+
+    gap:18px;
+
+    margin-top:12px;
+}
+
+.usage-row-chart{
+
+    min-width:0;
+}
+
+/* Cột hội thoại cao xấp xỉ biểu đồ rồi tự cuộn: một em chat 40 phiên mà kéo
+   hàng của mình dài gấp mười mấy hàng còn lại thì bảng hết so sánh được. */
+.usage-row-talks{
+
+    min-width:0;
+
+    max-height:252px;
+
+    overflow-y:auto;
+
+    padding-left:18px;
+
+    border-left:1px solid var(--dash-axis);
+}
+
 .usage-session-button{
 
     display:flex;
@@ -1408,7 +1721,6 @@
     cursor:pointer;
 }
 
-.usage-disclosure > span:last-child,
 .usage-session-button > span:last-child{
 
     flex:none;
@@ -1425,12 +1737,6 @@
     flex-direction:column;
 
     gap:8px;
-
-    margin-top:12px;
-
-    padding-top:12px;
-
-    border-top:1px solid var(--dash-axis);
 }
 
 .usage-session-row{
@@ -1508,6 +1814,31 @@
 
         grid-template-columns:1fr 1fr;
     }
+
+    /* Hai cột cạnh nhau dưới 900px thì cột nào cũng hẹp đến mức vô dụng — xếp
+       chồng, biểu đồ trước rồi tới hội thoại của chính tài khoản đó. */
+    .usage-row-body{
+
+        grid-template-columns:1fr;
+    }
+
+    .usage-row-talks{
+
+        max-height:none;
+
+        padding-left:0;
+
+        padding-top:14px;
+
+        border-left:0;
+
+        border-top:1px solid var(--dash-axis);
+    }
+
+    .usage-viewswitch{
+
+        margin-left:0;
+    }
 }
 
 @media (max-width:620px){
@@ -1518,7 +1849,6 @@
     }
 
     .usage-row-head,
-    .usage-disclosure,
     .usage-session-button{
 
         align-items:flex-start;
