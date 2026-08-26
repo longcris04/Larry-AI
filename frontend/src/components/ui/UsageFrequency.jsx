@@ -104,9 +104,20 @@ export default function UsageFrequency({ users = [], onError, apiScope = "admin"
   const [details, setDetails] = useState({});
   const [detailLoading, setDetailLoading] = useState("");
 
+  // Ô chọn chỉ liệt kê học sinh CÓ hội thoại trong khoảng đang xem. Cả kho tài
+  // khoản thì phần lớn là học sinh im lặng suốt khoảng đó, chọn vào chỉ ra một
+  // hàng biểu đồ trống — mà lại làm trôi mất mấy em thật sự cần nhìn.
+  const activeIds = useMemo(
+    () => new Set(sessions.map((session) => String(session.userId))),
+    [sessions]
+  );
+
   const students = useMemo(
-    () => users.filter((user) => user.role === ROLES.STUDENT),
-    [users]
+    () =>
+      users.filter(
+        (user) => user.role === ROLES.STUDENT && activeIds.has(String(user.id))
+      ),
+    [users, activeIds]
   );
 
   const searched = useMemo(
@@ -258,81 +269,92 @@ export default function UsageFrequency({ users = [], onError, apiScope = "admin"
     <section className="admin-panel usage-panel">
       <h2 className="admin-panel__title">📈 Tần suất sử dụng</h2>
       <p className="admin-note">
-        Chọn khoảng ngày và học sinh cần theo dõi. Biểu đồ và danh sách hội thoại bên dưới chỉ
-        dùng dữ liệu trong khoảng này; nội dung từng phiên chỉ tải sau khi bấm mở.
+        Chọn khoảng ngày rồi chọn học sinh cần theo dõi. Danh sách tài khoản chỉ gồm học sinh có
+        hội thoại trong khoảng này; nội dung từng phiên chỉ tải sau khi bấm mở.
       </p>
 
       <section className="dash-card usage-section" aria-labelledby="usage-select-title">
         <h3 id="usage-select-title" className="dash-card__title">1. Chọn tài khoản</h3>
+        <p className="dash-card__sub">
+          Chỉ hiện học sinh có ít nhất một cuộc hội thoại trong khoảng ngày đã chọn.
+        </p>
         <DateRangeBar range={range} onChange={setRange} busy={loading} />
 
-        <div className="usage-filterbar">
-          <label className="usage-field usage-field--search">
-            <span>Tìm học sinh</span>
-            <input
-              type="search"
-              className="usage-input"
-              aria-label="Tìm học sinh theo tên, email hoặc số điện thoại"
-              placeholder="Tên, trường, lớp, khối, email hay số điện thoại…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-
-          {facets.map((facet) => (
-            <FacetSelect
-              key={facet.id}
-              facet={facet}
-              value={filters[facet.id]}
-              onChange={(id, value) => setFilters((current) => ({ ...current, [id]: value }))}
-            />
-          ))}
-        </div>
-
-        <div className="usage-selectionbar">
-          <label className="usage-check usage-check--all">
-            <input
-              type="checkbox"
-              checked={allFilteredSelected}
-              onChange={toggleFiltered}
-              disabled={filtered.length === 0}
-            />
-            Chọn tất cả {formatNumber(filtered.length)} tài khoản đã lọc
-          </label>
-          <span>{formatNumber(selectedIds.length)} tài khoản đã chọn</span>
-          {selectedIds.length > 0 && (
-            <button
-              type="button"
-              className="admin-btn admin-btn--sm admin-btn--ghost"
-              onClick={() => setSelectedIds([])}
-            >
-              Bỏ chọn tất cả
-            </button>
-          )}
-        </div>
-
-        {filtered.length === 0 ? (
-          <p className="admin-empty">Không có học sinh nào khớp bộ lọc.</p>
+        {loading ? (
+          <p className="admin-empty">Đang tải danh sách tài khoản có hội thoại…</p>
+        ) : students.length === 0 ? (
+          <p className="admin-empty">Không có tài khoản nào có hội thoại trong khoảng này.</p>
         ) : (
-          <div className="usage-account-picker" role="group" aria-label="Danh sách học sinh để chọn">
-            {filtered.map((user) => (
-              <label key={user.id} className="usage-account-option">
+          <>
+            <div className="usage-filterbar">
+              <label className="usage-field usage-field--search">
+                <span>Tìm học sinh</span>
+                <input
+                  type="search"
+                  className="usage-input"
+                  aria-label="Tìm học sinh theo tên, email hoặc số điện thoại"
+                  placeholder="Tên, trường, lớp, khối, email hay số điện thoại…"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+
+              {facets.map((facet) => (
+                <FacetSelect
+                  key={facet.id}
+                  facet={facet}
+                  value={filters[facet.id]}
+                  onChange={(id, value) => setFilters((current) => ({ ...current, [id]: value }))}
+                />
+              ))}
+            </div>
+
+            <div className="usage-selectionbar">
+              <label className="usage-check usage-check--all">
                 <input
                   type="checkbox"
-                  checked={selectedSet.has(String(user.id))}
-                  onChange={() => toggleUser(user.id)}
+                  checked={allFilteredSelected}
+                  onChange={toggleFiltered}
+                  disabled={filtered.length === 0}
                 />
-                <span>
-                  <strong>{displayName(user)}</strong>
-                  <small>
-                    {user.username}
-                    {user.profile?.className ? ` · ${user.profile.className}` : ""}
-                    {user.profile?.school ? ` · ${user.profile.school}` : ""}
-                  </small>
-                </span>
+                Chọn tất cả {formatNumber(filtered.length)} tài khoản đã lọc
               </label>
-            ))}
-          </div>
+              <span>{formatNumber(selectedIds.length)} tài khoản đã chọn</span>
+              {selectedIds.length > 0 && (
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--sm admin-btn--ghost"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Bỏ chọn tất cả
+                </button>
+              )}
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="admin-empty">Không có học sinh nào khớp bộ lọc.</p>
+            ) : (
+              <div className="usage-account-picker" role="group" aria-label="Danh sách học sinh để chọn">
+                {filtered.map((user) => (
+                  <label key={user.id} className="usage-account-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(String(user.id))}
+                      onChange={() => toggleUser(user.id)}
+                    />
+                    <span>
+                      <strong>{displayName(user)}</strong>
+                      <small>
+                        {user.username}
+                        {user.profile?.className ? ` · ${user.profile.className}` : ""}
+                        {user.profile?.school ? ` · ${user.profile.school}` : ""}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
 

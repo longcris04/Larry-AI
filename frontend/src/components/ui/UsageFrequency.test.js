@@ -36,6 +36,14 @@ const USERS = [
     email: "cuong@example.com",
     phone: "0901000004",
     profile: { fullName: "Lê Cường", school: "THCS C", grade: "8", className: "8C1" }
+  },
+  {
+    id: 5,
+    role: "user",
+    username: "dung09",
+    email: "dung@example.com",
+    phone: "0901000005",
+    profile: { fullName: "Phạm Dung", school: "THCS D", grade: "9", className: "9D1" }
   }
 ];
 
@@ -186,4 +194,38 @@ test("scope giáo viên gọi endpoint giáo viên thay vì endpoint quản tr�
     expect.stringMatching(/\/api\/admin\/sessions$/),
     expect.anything()
   );
+});
+
+test("chỉ liệt kê học sinh có hội thoại trong khoảng, không phải cả kho tài khoản", async () => {
+  await setup();
+
+  expect(screen.getByRole("checkbox", { name: /Nguyễn An/ })).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: /Trần Bình/ })).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: /Lê Cường/ })).toBeInTheDocument();
+
+  // Phạm Dung có trong kho tài khoản nhưng không có phiên nào trong khoảng này.
+  expect(screen.queryByRole("checkbox", { name: /Phạm Dung/ })).toBeNull();
+  expect(screen.getByRole("checkbox", { name: /Chọn tất cả 3 tài khoản/ })).toBeInTheDocument();
+
+  // Ô lọc cũng chỉ dựng từ ba tài khoản còn lại — không còn trường của Phạm Dung.
+  const schools = within(screen.getByLabelText("Lọc theo Trường"))
+    .getAllByRole("option")
+    .map((option) => option.textContent);
+  expect(schools.some((label) => label.includes("THCS D"))).toBe(false);
+});
+
+test("khoảng ngày không có hội thoại thì không cho chọn tài khoản nào", async () => {
+  axios.get.mockImplementation((url) =>
+    url.endsWith("/api/admin/sessions")
+      ? Promise.resolve({ data: { sessions: [] } })
+      : Promise.reject(new Error(`URL không mong đợi: ${url}`))
+  );
+
+  await setup();
+
+  expect(
+    await screen.findByText("Không có tài khoản nào có hội thoại trong khoảng này.")
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.queryByLabelText("Lọc theo Trường")).toBeNull();
 });
