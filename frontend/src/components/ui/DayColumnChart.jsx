@@ -13,6 +13,11 @@
 // Mỗi phần tử `days` là { date: "yyyy-mm-dd", [key của từng chuỗi]: số }.
 // `series` là [{ key, label, color: "--tên-biến-css" }].
 //
+// `showValues` (tuỳ chọn) in con số ngay trên đầu cột: cột nhóm thì MỖI cột một
+// số (kể cả số 0), cột chồng thì một số là tổng của ngày, đặt trên đỉnh chồng.
+// Chỗ hẹp thì số tự ẩn — xem `.dash-col__value` trong AdminDashboard.css. Ngày
+// không có gì thì không cột nào và không số nào.
+//
 // `onSelect(day)` (tuỳ chọn) biến mỗi cột thành thứ BẤM ĐƯỢC — dùng cho biểu đồ
 // tổng, nơi một cột cao bất thường luôn kéo theo câu hỏi "ngày đó là những em
 // nào". Khi có nó thì khung vẽ thành một danh sách chọn thật sự (mũi tên để đi,
@@ -28,7 +33,8 @@ export default function DayColumnChart({
   emptyText,
   grouped = false,
   onSelect,
-  selectedDate = ""
+  selectedDate = "",
+  showValues = false
 }) {
   const [cursor, setCursor] = useState(null);
   const listId = useId();
@@ -44,6 +50,23 @@ export default function DayColumnChart({
 
   // Khoảng 7 nhãn ngày là vừa đọc; nhiều hơn thì chữ chồng lên nhau
   const labelStep = Math.max(1, Math.ceil(days.length / 7));
+
+  // Con số DÀI NHẤT sẽ in ra dài mấy ký tự. "3" và "1.024" cần hai khoảng rất
+  // khác nhau, mà CSS thì đo được bề ngang cột chứ không đoán được bề ngang chữ
+  // — nên chỗ hẹp tới đâu mới phải giấu số là do CON SỐ quyết định, ở đây đếm
+  // sẵn rồi giao lại cho CSS qua tên lớp. Đếm cho CẢ biểu đồ chứ không từng
+  // ngày: một hàng số lúc có lúc không nhìn còn rối hơn là không có.
+  const valueRoom = Math.min(
+    4,
+    Math.max(
+      1,
+      ...days.map((day, index) =>
+        grouped
+          ? Math.max(...series.map((item) => formatNumber(day[item.key] || 0).length))
+          : formatNumber(heights[index]).length
+      )
+    )
+  );
 
   const move = (delta) => {
     setCursor((prev) => {
@@ -84,7 +107,9 @@ export default function DayColumnChart({
   if (!hasData) return <p className="dash-empty">{emptyText}</p>;
 
   return (
-    <div className="dash-chart">
+    <div
+      className={`dash-chart${showValues ? ` dash-chart--values dash-chart--v${valueRoom}` : ""}`}
+    >
       <div className="dash-chart__frame">
         <div className="dash-chart__yaxis" aria-hidden="true">
           <span>{formatNumber(max)}</span>
@@ -120,6 +145,15 @@ export default function DayColumnChart({
               // chỗ nối giữa chúng lõm vào trông như thiếu mất một mẩu.
               const topKey = [...series].reverse().find((s) => day[s.key] > 0)?.key;
 
+              // Đoạn cõng con số DẪN — số duy nhất còn trụ lại khi ô hẹp dần.
+              // Cột chồng lấy đoạn trên cùng (đỉnh chồng = tổng), cột nhóm lấy
+              // đoạn CAO NHẤT (đỉnh nhóm = chuỗi lớn nhất). Cả hai bằng `height`.
+              const valueKey = !height
+                ? undefined
+                : grouped
+                  ? series.find((s) => (day[s.key] || 0) === height)?.key
+                  : topKey;
+
               const picked = pickable && selectedDate === day.date;
 
               return (
@@ -140,17 +174,40 @@ export default function DayColumnChart({
                   <div className={`dash-col__stack${grouped ? " dash-col__stack--grouped" : ""}`}>
                     {series.map((s) => {
                       const value = day[s.key] || 0;
-                      if (!value) return null;
+
+                      // Cột nhóm: ngày CÓ dữ liệu thì chuỗi bằng 0 vẫn giữ đúng
+                      // ô của nó — bỏ hẳn ô đi thì mấy cột còn lại giãn ra lấp
+                      // chỗ trống và ngày 2/0/0 phình to ngang ngày 2/2/2, đọc
+                      // thành "ngày này nhiều" trong khi nó chỉ thiếu hai chuỗi.
+                      // Ngày im lặng hẳn thì ngược lại: không vẽ ô nào.
+                      // (Cột chồng không có chuyện này — bỏ đoạn 0 đi thì chồng
+                      // vẫn cao đúng như cũ, mà vẽ ra lại thành một vạch xám kẹt
+                      // giữa chồng.)
+                      if (!value && (!grouped || !height)) return null;
+
                       return (
                         <div
                           key={s.key}
                           className="dash-col__seg"
                           style={{
                             height: `${(value / max) * 100}%`,
-                            background: `var(${s.color})`,
+                            background: value ? `var(${s.color})` : "var(--dash-grid)",
                             borderRadius: grouped || s.key === topKey ? "4px 4px 0 0" : 0
                           }}
-                        />
+                        >
+                          {/* aria-hidden: dòng mô tả và bảng đọc nhanh đã đọc
+                              đủ mọi con số rồi, in lại chỉ làm ồn */}
+                          {showValues && (grouped || s.key === valueKey) && (
+                            <b
+                              className={
+                                `dash-col__value${s.key === valueKey ? " dash-col__value--lead" : ""}`
+                              }
+                              aria-hidden="true"
+                            >
+                              {formatNumber(grouped ? value : height)}
+                            </b>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

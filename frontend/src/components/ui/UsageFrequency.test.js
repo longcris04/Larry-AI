@@ -400,3 +400,49 @@ test("bảng ngày chỉ đếm đúng loại cuộc hội thoại đang xem", a
   expect(rows).toHaveLength(1);
   expect(rows[0]).toHaveTextContent("Đỗ Hà");
 });
+
+test("biểu đồ tổng in số trên đầu cả ba cột, ngày không có cuộc nào thì trống hẳn", async () => {
+  await setupGroups();
+
+  const printed = (node) =>
+    [...node.querySelectorAll(".dash-col__value")].map((tag) => tag.textContent);
+  const columns = (node) => [...node.querySelectorAll(".dash-col")];
+  const filled = (node) =>
+    columns(node).filter((col) => col.querySelectorAll(".dash-col__seg").length);
+
+  // Hôm nay 4 cuộc · 1 gắn cờ · 1 khẩn cấp: đủ ba số, mỗi số trên đầu cột của nó.
+  const chart = screen.getByLabelText("Biểu đồ tổng — Tất cả tài khoản đã lọc");
+  expect(printed(chart)).toEqual(["4", "1", "1"]);
+
+  // Số dài nhất ở đây có một chữ số, nên biểu đồ xin bậc chỗ hẹp nhất — CSS dựa
+  // vào tên lớp này để biết ô hẹp tới đâu thì ba con số bắt đầu đè nhau.
+  expect(chart.querySelector(".dash-chart")).toHaveClass("dash-chart--values", "dash-chart--v1");
+
+  // Sáu ngày còn lại im lặng: không ô nào và không số nào.
+  expect(columns(chart)).toHaveLength(7);
+  expect(filled(chart)).toHaveLength(1);
+
+  // THCS B có 1 cuộc, không gắn cờ, không khẩn cấp. Hai chuỗi bằng 0 vẫn giữ ô
+  // của mình — bỏ ô đi thì cột "cuộc hội thoại" giãn ra chiếm cả chỗ trống và
+  // ngày 1/0/0 trông to ngang ngày có đủ ba loại — và vẫn in số 0.
+  fireEvent.click(groupChip("Theo trường"));
+  const schoolB = screen.getByLabelText("Biểu đồ tổng — THCS B");
+  expect(printed(schoolB)).toEqual(["1", "0", "0"]);
+  expect(filled(schoolB)[0].querySelectorAll(".dash-col__seg")).toHaveLength(3);
+
+  // Xem một chỉ số thì chỉ còn một cột, nên chỉ một số.
+  fireEvent.click(groupChip("Tất cả"));
+  fireEvent.click(
+    within(screen.getByRole("group", { name: "Loại cuộc hội thoại" }))
+      .getByRole("button", { name: "Cuộc bị gắn cờ" })
+  );
+  expect(printed(screen.getByLabelText("Biểu đồ tổng — Tất cả tài khoản đã lọc")))
+    .toEqual(["1"]);
+
+  // Mục 3 xếp nhiều biểu đồ nhỏ cạnh nhau, cột hẹp hơn hẳn: giữ chỗ cho chuỗi
+  // bằng 0 như trên, nhưng không in số nào.
+  fireEvent.click(screen.getByRole("checkbox", { name: /Vũ Diệu/ }));
+  const row = screen.getByLabelText("Tài khoản Vũ Diệu");
+  expect(filled(row)[0].querySelectorAll(".dash-col__seg")).toHaveLength(3);
+  expect(printed(row)).toEqual([]);
+});

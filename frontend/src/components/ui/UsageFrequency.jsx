@@ -601,6 +601,7 @@ export default function UsageFrequency({ users = [], onError, apiScope = "admin"
                       days={group.days}
                       series={groupSeries}
                       grouped={groupSeries.length > 1}
+                      showValues
                       selectedDate={dayOpen}
                       onSelect={(day) => pickDay(group.id, day)}
                       emptyText={`${group.title} không có ${groupViewLabel} trong khoảng này.`}

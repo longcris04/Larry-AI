@@ -479,6 +479,14 @@
     margin-top:8px;
 }
 
+/* Biểu đồ có in số trên đầu cột: cột cao nhất thường chạm đúng trần khung vẽ,
+   nên con số của nó nằm TRÊN trần. Chừa sẵn chỗ ở đây thay vì nhét số vào trong
+   cột — chữ trắng trên nền cột chỉ đạt 4,4:1, dưới ngưỡng của cỡ chữ này. */
+.dash-chart--values{
+
+    margin-top:24px;
+}
+
 .dash-chart__frame{
 
     display:flex;
@@ -575,6 +583,10 @@
 
     position:relative;
 
+    /* Khổ của Ô NÀY là thứ quyết định có in nổi con số trên đầu cột hay không
+       (xem .dash-col__value) — hỏi thẳng CSS, không phải đo bằng JS rồi vẽ lại */
+    container-type:inline-size;
+
     flex:1 1 0;
 
     min-width:0;
@@ -611,9 +623,93 @@
 
 .dash-col__seg{
 
+    position:relative;
+
     width:100%;
 
     min-height:2px;
+}
+
+/* Con số trên đầu cột. Neo vào chính ĐOẠN nó nói về chứ không vào giữa ô, để ở
+   biểu đồ ba cột nhóm mỗi số đứng đúng trên cột của mình.
+
+   Mặc định ẨN, rồi hiện theo bề ngang của Ô — tức của một NGÀY, vì hai số cạnh
+   nhau chỉ cách nhau đúng chừng đó chỗ. Ngưỡng đi theo bậc --v1…--v4 (con số dài
+   nhất của biểu đồ dài mấy ký tự): ô rộng bằng cụm cột của bậc đó là đủ chỗ cho
+   cả ba số. Hẹp hơn nữa thì chỉ còn số DẪN (tổng của ngày / chuỗi lớn nhất) —
+   hụt số nhưng vẫn đọc được cột nào cao bao nhiêu; hẹp hơn nữa thì thôi hẳn.
+
+   Trình duyệt chưa hiểu @container thì rơi về "không in số" — thiếu một tiện ích
+   thì vẫn đọc được biểu đồ, còn một hàng số chồng nhau thì không. */
+.dash-col__value{
+
+    display:none;
+
+    position:absolute;
+
+    bottom:100%;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    margin-bottom:3px;
+
+    font-size:10px;
+
+    font-weight:700;
+
+    /* Bóp nhẹ khoảng chữ: mỗi con số hẹp đi ~1px là ngưỡng ẩn ở dưới hạ được
+       cả chục px, tức là số còn hiện ở những khoảng ngày dài hơn nhiều */
+    letter-spacing:-.2px;
+
+    font-variant-numeric:tabular-nums;
+
+    line-height:1;
+
+    white-space:nowrap;
+
+    color:var(--dash-ink-2);
+}
+
+@container (min-width:28px){
+
+    .dash-col__value--lead{
+
+        display:block;
+    }
+}
+
+@container (min-width:22px){
+
+    .dash-chart--v1 .dash-col__value{
+
+        display:block;
+    }
+}
+
+@container (min-width:36px){
+
+    .dash-chart--v2 .dash-col__value{
+
+        display:block;
+    }
+}
+
+@container (min-width:52px){
+
+    .dash-chart--v3 .dash-col__value{
+
+        display:block;
+    }
+}
+
+@container (min-width:78px){
+
+    .dash-chart--v4 .dash-col__value{
+
+        display:block;
+    }
 }
 
 /* Khe 2px giữa hai đoạn của cùng một cột, cùng bề rộng với khe giữa các cột */
@@ -642,6 +738,30 @@
     width:auto;
 
     margin:0;
+}
+
+/* Nhóm ba cột mà in số trên đầu TỪNG cột thì ba con số cần ba khoảng riêng: ở
+   khổ 38px mỗi cột chỉ được ~11px, hai số hai chữ số cạnh nhau đè ngay. Nên nới
+   cụm cột ra vừa đúng bằng chỗ mà con số DÀI NHẤT của biểu đồ cần (JSX đếm sẵn
+   và gắn tên lớp --v1…--v4) — số một chữ số thì giữ nguyên cụm mảnh như cũ.
+   Vẫn là max-width nên ô hẹp thì cột vẫn co lại bình thường. */
+.dash-chart--v2 .dash-col__stack--grouped{
+
+    max-width:48px;
+}
+
+/* Ngưỡng ở dưới là chỗ HẸP NHẤT còn đọc được; mấy con số này là chỗ THOẢI MÁI
+   khi ô rộng — cụm cột chỉ nới tới đây rồi thôi, để ba số không dính nhau giữa
+   một ô rộng mênh mông mà cũng không thành ba mảng màu to đùng. */
+
+.dash-chart--v3 .dash-col__stack--grouped{
+
+    max-width:66px;
+}
+
+.dash-chart--v4 .dash-col__stack--grouped{
+
+    max-width:86px;
 }
 
 /* Ngày không có gì: một vạch mờ sát đáy. Bỏ trắng hẳn thì không phân biệt được
