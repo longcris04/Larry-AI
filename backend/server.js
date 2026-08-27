@@ -1136,6 +1136,23 @@ app.get("/api/counselor/users", counselorOnly, (req, res) => {
   });
 });
 
+// Lịch sử hội thoại của MỘT tài khoản, mở ra ngay dưới dòng của em đó trong bảng
+// tài khoản. Cùng dạng dữ liệu với endpoint của quản trị viên, nhưng chỉ trả lời
+// cho tài khoản thuộc đúng trường của phòng tâm lý — ngoài trường thì trả 404 y
+// như tài khoản không tồn tại, để không dò ra được ai có trong hệ thống.
+app.get("/api/counselor/users/:id/sessions", counselorOnly, (req, res) => {
+  const id = Number(req.params.id);
+  const user = findUsersOfCounselorSchool(users, req.counselor).find((u) => u.id === id);
+  if (!user) return res.status(404).json({ error: "Không tìm thấy tài khoản." });
+
+  const list = sessions
+    .filter((s) => s.userId === id)
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .map(toSessionMetadata);
+
+  res.json({ user: toPublicUser(user), sessions: list });
+});
+
 app.get("/api/counselor/stats", counselorOnly, (req, res) => {
   try {
     const range = resolveRange({ from: req.query.from, to: req.query.to });

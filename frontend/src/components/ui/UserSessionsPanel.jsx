@@ -92,8 +92,10 @@ export default function UserSessionsPanel({ sessions, loading, onAlert }) {
             )}
 
             <div className="admin-session__foot">
-              {/* Chỉ phiên có dấu hiệu mới cần cảnh báo giáo viên chủ nhiệm */}
-              {level !== "none" && (
+              {/* Chỉ phiên có dấu hiệu mới cần cảnh báo giáo viên chủ nhiệm — và
+                  chỉ ở nơi gửi được thật: phòng tâm lý dùng chung bảng này nhưng
+                  không có endpoint gửi email, nút mọc ra ở đó là nút bấm vào lỗi. */}
+              {onAlert && level !== "none" && (
                 <button
                   type="button"
                   className="admin-btn admin-btn--sm admin-btn--primary"

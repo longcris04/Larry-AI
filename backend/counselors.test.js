@@ -30,6 +30,19 @@ test("counselor sessions include students from the same school only", () => {
   assert.deepEqual(findSessionsOfCounselorSchool(users, sessions, counselor), [sessions[0]]);
 });
 
+// Endpoint /api/counselor/users/:id/sessions tra tài khoản NGAY TRONG phạm vi
+// trường rồi mới đọc hội thoại. Tra trong `users` rồi mới lọc trường là chỗ dễ
+// sai: lúc đó id ngoài trường trả về 400/403 khác hẳn 404, và chỉ cần thế là dò
+// ra được ai có trong hệ thống.
+test("tra tài khoản theo id chỉ thấy người trong trường", () => {
+  const inScope = (id) => findUsersOfCounselorSchool(users, counselor).find((u) => u.id === id);
+
+  assert.equal(inScope(1)?.id, 1);
+  assert.equal(inScope(2)?.id, 2);
+  assert.equal(inScope(3), undefined); // học sinh trường khác
+  assert.equal(inScope(4), undefined); // quản trị viên
+});
+
 test("middleware kiểm tra lại trạng thái duyệt từ account hiện tại", () => {
   const request = { user: { id: 10, role: "counselor" } };
   const response = {

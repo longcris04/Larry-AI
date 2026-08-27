@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
+import AccountsPanel from "./AccountsPanel";
 import AdminDashboard from "./AdminDashboard";
-import ReadOnlyAccounts from "./ReadOnlyAccounts";
 import UsageFrequency from "./UsageFrequency";
 import "../../styles/TeacherPage.css";
 
@@ -93,12 +93,25 @@ export default function CounselorPage() {
             statsUrl={`${API_BASE_URL}/api/counselor/stats`}
             title="📊 Tổng quan trường"
           />
-          <section className="admin-panel">
-            <ReadOnlyAccounts
-              accounts={users}
-              description="Các tài khoản thuộc trường; chỉ xem, không có thao tác sửa hoặc xoá."
-            />
-          </section>
+          {/* ĐÚNG bảng tài khoản của khu vực quản trị — cùng ô tìm kiếm, cùng bốn
+              ô chọn ăn theo nhau, cùng ba cột số xếp được, cùng nút tải Excel và
+              cùng ô lịch sử hội thoại mở ra dưới mỗi dòng. Khác đúng một chỗ:
+              không có nút Sửa / Xoá / Duyệt, vì phòng tâm lý đọc dữ liệu của
+              trường chứ không quản lý tài khoản. */}
+          <AccountsPanel
+            users={users}
+            loading={loading}
+            selfId={counselor?.id}
+            sessionsUrl={(id) => `${API_BASE_URL}/api/counselor/users/${id}/sessions`}
+            onError={setError}
+            note={
+              <p className="admin-note">
+                Các tài khoản thuộc trường <strong>{counselor?.profile?.school}</strong> — chỉ
+                xem, không có thao tác sửa hoặc xoá. Với giáo viên chủ nhiệm, cột{" "}
+                <strong>Lớp</strong> là lớp họ chủ nhiệm.
+              </p>
+            }
+          />
         </>
       ) : (
         <UsageFrequency
